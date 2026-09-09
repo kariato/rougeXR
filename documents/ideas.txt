@@ -1,0 +1,1024 @@
+
+I went through the original Rogue 5.4.4 source structure, and the architecture is clearer now. The best port is not “convert each C file to TypeScript.” It is extract the domain model, then reattach Rogue’s behavior to that model.
+
+The original rogue.h tells us most of what survives. Rogue has nine rooms, up to thirteen passages, a 24×80 logical map, room, stats, THING, PLACE, monster templates, object templates, and a large set of globals. The room generator explicitly divides the level into a 3×3 grid, optionally removes some rooms, generates room geometry, and then populates them. The passage generator separately builds a connectivity graph between those nine slots.
+
+I would make the extracted engine look like this:
+
+RogueGame
+│
+├── GameState
+│   ├── level
+│   ├── maxLevel
+│   ├── gold
+│   ├── foodRemaining
+│   ├── turn
+│   ├── statusEffects
+│   └── rngState
+│
+├── Player
+│   ├── position
+│   ├── stats
+│   ├── inventory
+│   ├── equipment
+│   ├── flags
+│   └── currentRoomId
+│
+├── DungeonLevel
+│   ├── rooms[9]
+│   ├── corridors[]
+│   ├── tiles[80 × 24]
+│   ├── stairs
+│   ├── entities
+│   └── discoveredState
+│
+├── TurnEngine
+├── MovementSystem
+├── CombatSystem
+├── MonsterSystem
+├── ItemSystem
+├── EffectScheduler
+└── EventBus
+
+The interesting part is the mapping.
+
+Original Rogue	TypeScript model	Decision
+coord	GridPosition	Preserve exactly
+struct room	RoomState	Preserve/restructure
+struct stats	CombatStats	Preserve
+THING creature half	ActorState / MonsterState	Split
+THING object half	ItemState	Split
+PLACE	TileState	Preserve logically
+struct monster	MonsterDefinition	Preserve as immutable data
+obj_info	ItemDefinition	Preserve as immutable data
+rooms[9]	RoomState[9]	Preserve
+passages[13]	CorridorState[]	Reinterpret
+mlist	entity registry / room entities	Replace linked list
+lvl_obj	room/level entity containers	Replace linked list
+player global	PlayerState	Preserve
+daemons/fuses	EffectScheduler	Modernize
+curses screen state	nothing	Discard
+terminal characters	enum/type metadata	Reinterpret
+globals	properties of GameState	Eliminate globals
+1. GridPosition
+
+This one should remain almost embarrassingly close to the original.
+
+Rogue defines:
+
+typedef struct {
+    int x;
+    int y;
+} coord;
+
+Our equivalent:
+
+export interface GridPosition {
+    x: number;
+    y: number;
+}
+
+We should not store Three.js coordinates here.
+
+That distinction matters:
+
+Game coordinate:
+    { x: 27, y: 11 }
+
+XR coordinate:
+    Vector3(8.4, 0, -3.6)
+
+The latter is derived by the renderer.
+
+2. RoomState
+
+The original room is:
+
+struct room {
+    coord r_pos;
+    coord r_max;
+    coord r_gold;
+    int r_goldval;
+    short r_flags;
+    int r_nexits;
+    coord r_exit[12];
+};
+
+I would turn it into:
+
+export interface RoomState {
+    id: number;
+
+    position: GridPosition;
+    size: GridSize;
+
+    flags: RoomFlags;
+
+    exits: RoomExit[];
+
+    discovered: boolean;
+    visited: boolean;
+
+    entities: EntityId[];
+}
+
+Notice what disappeared:
+
+r_gold
+r_goldval
+
+I would not preserve those fields.
+
+Gold should become an entity:
+
+interface GoldState extends EntityState {
+    kind: "gold";
+    amount: number;
+}
+
+The original keeps gold specially inside the room structure because that was convenient for its implementation. That's precisely the sort of historical implementation detail we should remove.
+
+A pile of gold belongs in the same entity system as a potion or sword.
+
+3. DungeonLevel
+
+This becomes the central serialized object.
+
+export interface DungeonLevelState {
+    depth: number;
+
+    rooms: RoomState[];
+    corridors: CorridorState[];
+
+    tiles: TileState[];
+
+    stairs: GridPosition;
+
+    entities: Record<EntityId, EntityState>;
+
+    discoveredTiles: BitSet;
+}
+
+This should be JSON-serializable without any Three.js object, callback, pointer, class instance or GLTF reference.
+
+That gives us:
+
+JSON.stringify(level)
+
+and restores cleanly.
+
+More importantly, it's exactly the data structure we need for your original idea:
+
+The whole dungeon remains tiny serialized state while only the current room becomes a live scene.
+
+4. TileState — the equivalent of PLACE
+
+This one turns out to be more important than I initially thought.
+
+Original Rogue has:
+
+typedef struct {
+    char p_ch;
+    char p_flags;
+    THING *p_monst;
+} PLACE;
+
+And its movement code consults the underlying map cell to decide whether a move hits a wall, passage, floor, trap, monster, etc.
+
+We should retain that logic but remove the terminal glyph.
+
+Something like:
+
+export interface TileState {
+    type: TileType;
+
+    flags: TileFlags;
+
+    entityId?: EntityId;
+
+    roomId?: number;
+
+    corridorId?: number;
+
+    discovered: boolean;
+}
+
+with:
+
+enum TileType {
+    Empty,
+    Floor,
+    Wall,
+    Door,
+    Corridor,
+    Trap,
+    Stairs
+}
+
+This is one place where I would not over-object-orient it.
+
+Don't create:
+
+FloorTile class
+WallTile class
+DoorTile class
+PassageTile class
+
+That's unnecessary object churn.
+
+An 80×24 level is only:
+
+1,920 cells
+
+A compact array of plain tile structures is better.
+
+5. EntityState
+
+Here we deliberately dismantle THING.
+
+Original Rogue uses one C union for both creatures and objects. The creature half stores position, flags, combat statistics, destination, current room and carried objects; the object half stores object type, position, damage, quantity, bonuses, armor/charges/value and flags.
+
+That is clever C.
+
+It is terrible TypeScript.
+
+I'd use a discriminated union:
+
+type EntityState =
+    | MonsterState
+    | ItemState
+    | GoldState;
+
+with a common base:
+
+interface BaseEntityState {
+    id: EntityId;
+    position: GridPosition;
+    roomId: number | null;
+}
+
+Then:
+
+interface MonsterState extends BaseEntityState {
+    kind: "monster";
+
+    species: MonsterType;
+
+    stats: CombatStats;
+
+    flags: MonsterFlags;
+
+    inventory: EntityId[];
+
+    destination?: GridPosition;
+
+    disguise?: EntityAppearance;
+}
+
+and:
+
+interface ItemState extends BaseEntityState {
+    kind: "item";
+
+    itemType: ItemType;
+    subtype: number;
+
+    count: number;
+
+    flags: ItemFlags;
+
+    hitBonus?: number;
+    damageBonus?: number;
+    armor?: number;
+    charges?: number;
+
+    group?: number;
+}
+6. PlayerState
+
+The C source aliases things such as:
+
+hero   → player.t_pos
+pstats → player.t_stats
+pack   → player.t_pack
+proom  → player.t_room
+
+That tells us that the player should remain conceptually an actor, but I wouldn't force the player and monsters to be identical classes.
+
+I'd have:
+
+export interface PlayerState {
+    position: GridPosition;
+
+    stats: CombatStats;
+
+    flags: PlayerFlags;
+
+    inventory: EntityId[];
+
+    equipment: {
+        weapon?: EntityId;
+        armor?: EntityId;
+        leftRing?: EntityId;
+        rightRing?: EntityId;
+    };
+
+    currentRoomId: number | null;
+
+    foodRemaining: number;
+
+    gold: number;
+
+    experience: number;
+}
+
+I would keep gold on the player as a number once collected, because Rogue treats the purse that way.
+
+World gold:
+
+Gold entity
+
+Picked-up gold:
+
+player.gold += amount
+destroy entity
+
+That's cleaner than carrying thousands of individual gold entities.
+
+7. CombatStats
+
+Original:
+
+strength
+experience
+level
+armor
+HP
+damage dice
+max HP
+
+So:
+
+interface CombatStats {
+    strength: number;
+    experience: number;
+    level: number;
+
+    armorClass: number;
+
+    hitPoints: number;
+    maxHitPoints: number;
+
+    damage: DiceExpression;
+}
+
+The damage strings like:
+
+"1d6"
+"2d4"
+
+should become parsed values:
+
+interface DiceExpression {
+    count: number;
+    sides: number;
+    bonus?: number;
+}
+
+We can reproduce Rogue's dice behavior exactly while getting rid of string parsing during play.
+
+8. MonsterDefinition vs MonsterState
+
+The original already separates monster templates from monster instances.
+
+struct monster gives a monster's name, carrying probability, flags and initial stats.
+
+Then new_monster() creates an actual THING, assigns its type and position, identifies its room, derives stats from the template, and puts it on the monster list and map.
+
+That's exactly the modern pattern:
+
+interface MonsterDefinition {
+    type: MonsterType;
+    name: string;
+
+    carryChance: number;
+
+    baseStats: CombatStats;
+    flags: MonsterFlags;
+}
+
+versus:
+
+interface MonsterState {
+    id: EntityId;
+    type: MonsterType;
+
+    position: GridPosition;
+
+    stats: CombatStats;
+
+    flags: MonsterFlags;
+
+    inventory: EntityId[];
+}
+
+Static definition:
+
+Orc
+HP formula
+armor
+damage
+behavior flags
+
+Runtime state:
+
+Orc #281
+HP = 6
+position = 17,8
+confused = true
+carrying potion #94
+
+This is important for serialization.
+
+We don't serialize the whole monster definition every time.
+
+We serialize:
+
+{
+  "id": "m281",
+  "type": "ORC",
+  "position": {"x":17,"y":8},
+  "hp":6
+}
+
+and reattach the immutable definition on hydration.
+
+9. Inventory is really EntityContainer
+
+This is where your earlier room-inventory idea pays off.
+
+Instead of making separate implementations for:
+
+player pack
+monster pack
+room objects
+level objects
+
+I'd make one generic abstraction:
+
+interface EntityContainer {
+    entityIds: EntityId[];
+}
+
+Then:
+
+RoomState        implements entity container
+PlayerState      implements entity container
+MonsterState     implements entity container
+
+Conceptually the same operation handles all movement of things:
+
+transfer(
+    entityId,
+    sourceContainer,
+    destinationContainer
+)
+
+So:
+
+Potion on floor
+Room → Player
+
+Drop:
+
+Player → Room
+
+Monster steals it:
+
+Player → Monster
+
+Kill monster:
+
+Monster → Room
+
+That is significantly cleaner than recreating Rogue's linked lists.
+
+10. CorridorState
+
+Original Rogue makes passages in a separate phase and builds connectivity between adjacent members of the 3×3 room graph.
+
+I think this deserves first-class representation:
+
+interface CorridorState {
+    id: number;
+
+    fromRoomId: number;
+    toRoomId: number;
+
+    tiles: GridPosition[];
+
+    discovered: boolean;
+}
+
+This aligns perfectly with our XR architecture because corridors become transition zones.
+
+They have two identities:
+
+Game engine
+
+A sequence of legal passage tiles.
+
+XR renderer
+
+A cheap modular corridor mesh between two heavyweight room scenes.
+
+That separation is extremely useful.
+
+11. TurnEngine
+
+command() is effectively Rogue's game-loop coordinator. Before a command it runs scheduled effects, handles movement restrictions, gathers an action, executes it, and ultimately lets the rest of the world respond.
+
+We should separate command acquisition from command execution.
+
+Not:
+
+engine.readController()
+
+Instead:
+
+engine.execute(action)
+
+where:
+
+type GameAction =
+    | MoveAction
+    | AttackAction
+    | PickupAction
+    | DropAction
+    | UseItemAction
+    | SearchAction
+    | RestAction
+    | DescendAction;
+
+Then:
+
+class TurnEngine {
+
+    execute(action: GameAction): GameEvent[] {
+
+        scheduler.beforeTurn();
+
+        actionSystem.execute(action);
+
+        monsterSystem.takeTurns();
+
+        scheduler.afterTurn();
+
+        state.turn++;
+
+        return eventQueue.flush();
+    }
+}
+
+This is an important architectural boundary because WebXR input is just one source of GameActions.
+
+Later we could theoretically run the exact same engine from:
+
+keyboard
+XR controllers
+hand tracking
+unit tests
+AI bot
+text interface
+
+without changing Rogue itself.
+
+12. MovementSystem
+
+The original do_move() is doing too many things at once.
+
+It:
+
+computes the destination;
+checks boundaries;
+checks diagonal legality;
+deals with confusion;
+handles traps;
+checks monster occupancy;
+deals with walls/passages;
+handles room changes;
+deals with pickup-related consequences.
+
+We want to preserve the behavior, not the function.
+
+So I'd turn it into something like:
+
+class MovementSystem {
+
+    attemptMove(
+        actor: ActorState,
+        direction: Direction
+    ): MoveResult;
+}
+
+MoveResult might say:
+
+type MoveResult =
+    | { type: "moved"; from: GridPosition; to: GridPosition }
+    | { type: "blocked"; reason: BlockReason }
+    | { type: "attack"; targetId: EntityId }
+    | { type: "trap"; trapId: EntityId }
+    | { type: "roomTransition"; fromRoom: number; toRoom: number };
+
+And then the engine turns those results into semantic events.
+
+13. EffectScheduler
+
+This is one of the nicest pieces to extract.
+
+Rogue's daemon.c explicitly implements things that occur in the future. It maintains up to twenty delayed actions, distinguishing recurring daemons from timed fuses.
+
+That's a proper scheduler hiding inside a 1980s game.
+
+Instead of function pointers:
+
+interface ScheduledEffect {
+    id: string;
+
+    type: EffectType;
+
+    triggerTurn: number;
+
+    interval?: number;
+
+    payload?: unknown;
+}
+
+Example:
+
+{
+    type: "RECOVER_CONFUSION",
+    triggerTurn: 183
+}
+
+or:
+
+{
+    type: "HEAL",
+    triggerTurn: 190,
+    interval: 30
+}
+
+This is much safer to serialize than callbacks.
+
+And it lets us save the complete dungeon simply by serializing state.
+
+14. GameState absorbs the globals
+
+This is where most of the ugly work lives.
+
+extern.c shows the historical Rogue implementation uses a large number of global values such as playing, running, amulet, seenstairs, door_stop, move_on, level, food_left, counters, coordinates, rooms, passages, the monster list, level-object list, equipment pointers and the player.
+
+They shouldn't be copied one-for-one.
+
+I'd divide them.
+
+Persistent game state
+interface GameState {
+    currentLevel: DungeonLevelState;
+
+    player: PlayerState;
+
+    dungeonDepth: number;
+    maximumDepth: number;
+
+    turn: number;
+
+    scheduler: SchedulerState;
+
+    rng: RandomState;
+
+    gameStatus: GameStatus;
+}
+Transient command state
+
+Things like:
+
+running
+repeat count
+last command
+fight-to-death
+
+go into:
+
+interface CommandContext {
+    running: boolean;
+    repeatCount: number;
+
+    lastAction?: GameAction;
+    currentDirection?: Direction;
+}
+Configuration
+
+Things like Rogue's:
+
+terse
+jump
+passgo
+door_stop
+
+belong in:
+
+interface GameOptions {}
+Presentation-only state
+
+Things like:
+
+message cursor position
+curses window
+output buffer
+screen-refresh flags
+
+die completely.
+
+That's exactly the baggage we don't want.
+
+15. RNG needs to become first-class
+
+There's one architectural issue we hadn't discussed yet, and I think it's important.
+
+If we want a genuinely deterministic engine, the random generator itself belongs in state.
+
+Don't use:
+
+Math.random()
+
+anywhere in the game engine.
+
+Use:
+
+interface RandomSource {
+    nextInt(max: number): number;
+}
+
+with a seedable implementation.
+
+Then:
+
+const game = RogueGame.create({
+    seed: 123456
+});
+
+means we can replay exactly the same game.
+
+That gives us incredibly useful testing:
+
+seed 574839
+↓
+level 1 generation
+↓
+identical every time
+
+and:
+
+seed + input sequence
+↓
+identical entire game
+
+That will make porting the original behavior vastly easier.
+
+16. The event layer
+
+This is the piece I'd add that Rogue itself doesn't have explicitly.
+
+type GameEvent =
+    | PlayerMoved
+    | MonsterMoved
+    | RoomEntered
+    | RoomExited
+    | CorridorEntered
+    | DoorOpened
+    | CombatStarted
+    | AttackResolved
+    | EntityPickedUp
+    | EntityDropped
+    | EntityDestroyed
+    | TrapTriggered
+    | StatusChanged
+    | LevelGenerated
+    | LevelChanged;
+
+Now Three.js never asks:
+
+"Has anything changed?"
+
+Instead it gets:
+
+{
+    type: "ROOM_ENTERED",
+    roomId: 4
+}
+
+That causes our visual lifecycle:
+
+ROOM_ENTERED
+     │
+     ├─ hydrate RoomRuntime
+     ├─ generate walls/floor
+     ├─ instantiate door meshes
+     ├─ instantiate GLTF entities
+     ├─ attach animations
+     ├─ attach spatial audio
+     └─ mark RoomView active
+
+And:
+
+ROOM_EXITED
+     │
+     ├─ stop mixers
+     ├─ persist mutable entity state
+     ├─ return pooled GLTFs
+     ├─ destroy room geometry
+     └─ leave lightweight floor outline
+
+That is the architecture we were describing verbally earlier, but now it has a clean software boundary.
+
+The whole thing therefore collapses into four layers
+┌────────────────────────────────────────────┐
+│                XR PRESENTATION             │
+│ Three.js • GLTF • animation • sound • UI  │
+└──────────────────────┬─────────────────────┘
+                       │ GameEvents
+┌──────────────────────▼─────────────────────┐
+│                 GAME ENGINE                │
+│ Turn • Movement • Combat • AI • Effects   │
+└──────────────────────┬─────────────────────┘
+                       │ operates upon
+┌──────────────────────▼─────────────────────┐
+│                  DOMAIN MODEL              │
+│ Player • Rooms • Tiles • Entities • Level │
+└──────────────────────┬─────────────────────┘
+                       │ serialize
+┌──────────────────────▼─────────────────────┐
+│                PERSISTED STATE             │
+│                JSON / IndexedDB            │
+└────────────────────────────────────────────┘
+
+And there is a fifth, completely independent piece:
+
+DungeonGenerator(seed)
+        ↓
+DungeonLevelState
+
+The original do_rooms() and do_passages() become that generator. We can preserve their algorithms closely because the original already cleanly separates room creation and connectivity.
+
+The architectural rule I would now put at the top of the project specification is:
+
+No code under /presentation may mutate GameState. No code under /engine may import Three.js.
+
+That one rule will prevent most of the architectural decay that would otherwise creep into this project.
+
+And there's one refinement I'd make to our earlier “one active room” idea. I wouldn't actually hydrate only one runtime object. I'd keep the entire logical dungeon hydrated because it's microscopic—1,920 tiles and perhaps dozens of entities. What we should restrict aggressively is the presentation layer. One room gets full Three.js representation, corridor geometry gets instantiated as necessary, and the rest of the dungeon gets only the lightweight map/floor representation.
+
+That avoids constantly serializing/deserializing tiny game objects for no meaningful performance gain. On a Quest, the expensive things are GLTFs, materials, shaders, draw calls, animation mixers and rendering—not a few hundred TypeScript objects.
+
+So the corrected principle is:
+
+Entire dungeon simulated in memory; only the local dungeon visually instantiated.
+
+That's an important distinction, and I think it's the stronger version of the architecture.
+
+It is
+
+Exactly. And that correction simplifies the whole project.
+
+The serialization boundary is for persistence, not for deciding what exists during play. There is no reason to repeatedly destroy and reconstruct the logical RoomState, monsters, items, etc. The Quest can hold that trivial amount of data without noticing.
+
+The expensive boundary is:
+
+logical state → rendered state.
+
+So I'd formalize the architecture around two clocks:
+
+GAME CLOCK                         RENDER CLOCK
+(turn based)                       (72/90 FPS)
+
+DungeonLevel ──────────────────────► SceneProjection
+  9 rooms                              │
+  corridors                            ├── current room: FULL
+  monsters                             ├── current corridor: FULL
+  items                                ├── nearby door: FULL
+  traps                                └── everything else: OUTLINE
+  player
+  effects
+
+       ▲                                   │
+       │ GameAction                        │ interpolation
+       │                                   ▼
+    Engine                            Three.js/WebXR
+
+And this produces an interesting consequence for the overhead view we started with.
+
+We don't need to rebuild anything when you zoom out.
+
+Suppose you've explored six rooms. Their logical states are already there. The renderer simply changes its projection policy:
+
+FIRST PERSON
+
+Room 4:
+  walls       ✓
+  textures    ✓
+  lights      ✓
+  monsters    ✓
+  objects     ✓
+  animations  ✓
+
+Room 3:
+  floor outline only
+
+Room 5:
+  floor outline only
+
+Rooms 0,1,2,6,7,8:
+  discovered floor outlines
+
+Then you pull upward:
+
+TABLETOP / GOD VIEW
+
+Room 0  ┌─────────┐
+Room 1       ┌──────┐
+Room 2            ┌────┐
+                   │    │
+         ══════════╝
+Room 3  ┌──────────┐
+        │          │
+        └─────╥────┘
+              ║
+Room 4     ┌──╨───────┐  ← active room
+           │  detailed │
+           │   scene   │
+           └───────────┘
+
+The room you're standing in could remain a little animated diorama, while the rest of the discovered dungeon is essentially colored geometry.
+
+That could become the visual identity of the game rather than merely an optimization.
+
+And there's another direction I'd seriously consider: don't make the overhead transition a menu command.
+
+Physically pulling the dungeon away from you could be part of the interaction. First-person scale is approximately:
+
+1 Rogue tile ≈ 1 meter
+
+but as you zoom upward, the spatial adapter continuously changes scale until:
+
+1 Rogue tile ≈ 2 cm
+
+Now you're standing over the same dungeon as though it's a model railway.
+
+Then reverse it—select a discovered room, descend toward it, and the simple floor plan progressively resolves into walls, doors, lighting and objects.
+
+There is one design issue we'd have to settle fairly early, though: does overhead mode allow movement/actions, or is it purely inspection?
+
+I'd initially make it inspection-only. Otherwise the player can potentially bypass one of Rogue's central mechanics: uncertainty created by exploring locally. The tabletop should show only discovered knowledge, not authoritative dungeon state. That distinction gives us another clean separation:
+
+GameState
+   │
+   ├── ActualWorldState
+   │
+   └── PlayerKnowledgeState
+             │
+             ▼
+        Map / overhead view
+
+That PlayerKnowledgeState may turn out to be just as important architecturally as GameState, because the renderer must never accidentally reveal a monster, trap, secret door, or unexplored room merely because the engine knows it's there.
+
+This is good
+
+Yes—and I think we've crossed the point where this is just an interesting VR experiment. There's a coherent engine design underneath it.
+
+The next thing I'd nail down is the interaction contract between continuous VR and discrete Rogue. That's the genuinely novel part and also where we could accidentally ruin Rogue.
+
+For example, imagine an orc is one tile in front of you. Visually, you're holding a sword and can wave your arm continuously. But the engine can't let every controller movement become an attack. Instead, the XR layer needs to recognize an intentional swing and emit exactly one:
+
+GameAction.Attack({
+    target: orcId
+})
+
+Rogue resolves the attack—hit/miss, damage, monster response—and the renderer then dramatizes that result.
+
+Same with walking. Your head and hands move continuously, but crossing a tile boundary generates one discrete MoveAction. Opening a chest might be a physical gesture, but underneath it's still a turn-consuming Rogue action.
+
+That creates a useful rule:
+
+XR proposes actions. Rogue decides outcomes. XR performs the outcome.
+
+So if Rogue says you missed, it doesn't matter that your physical sword visually passed through the monster. The presentation needs to turn that into a glancing blow, dodge, parry, or similar animation.
+
+That keeps the original game's statistics and balance intact while making the experience spatial.
+
+There's another branch I think is worth developing alongside this: we don't necessarily have to reproduce the original Rogue UI. Inventory could become physical. Pulling back into tabletop mode could expose your inventory beside the dungeon as little objects/cards. Potions could have shapes and colors corresponding to Rogue's randomized potion identities. Scrolls could be physical objects. Equipment could sit around the player's miniature/avatar.
+
+So we'd preserve the original rules, but deliberately rethink every terminal-era presentation choice for XR.
+
+That's a stronger design principle than merely making Rogue 3D.
