@@ -119,6 +119,7 @@ interface MonsterState {
   slowTurn: boolean;
   target: MonsterTarget | null;
   disguise: string | null;
+  roomId: RoomId | null;
   packOrder: EntityId[];
 }
 interface ItemBase {
@@ -159,12 +160,15 @@ The registry is game-owned so carried items survive level destruction. Monster t
 
 Immutable weapon definitions contain melee damage, thrown damage, launcher definition ID or null, and missile flags. Monster definitions contain initial stats/formulas, flags, carrying probability, and source monster code. Generic item definitions contain category, subtype code, generation weight, base value, and effect ID. Generate explicit category unions from transcribed tables. Mutable damage specifications, if changed by a source effect, require per-instance overrides rather than mutation of shared definitions.
 
+Ring appraisal value is not purely static across games: the source shuffles a gem-name pool onto ring definitions at startup, and each gem carries its own worth that is added into that ring type's price for the game (section 4.11). `IdentificationEntry.worth` holds that resolved per-game value for definitions whose price is randomized this way; `ItemDefinition`'s own base value stays the source's nominal figure and is not itself sufficient for rings once this randomization is implemented.
+
 ```typescript
 interface IdentificationEntry {
   definitionId: string;
   appearanceId: string;
   known: boolean;
   called: string | null;
+  worth: number | null;
 }
 interface Counters {
   foodLeft: number; noFood: number; quiet: number; between: number;
@@ -246,14 +250,14 @@ Exact match: `{x: number, y: number}`.
 | --- | --- | --- | --- |
 | `l_next`, `l_prev` | `union thing *` | *(none)* | Replaced by `monsterOrder` / `packOrder` arrays (section 9) |
 | `t_pos` | `coord` | `at` | |
-| `t_turn` | `bool` | `slowTurn` | Per-monster half-cycle flag; verify against `monster.c`/`chase.c` before relying on the name |
+| `t_turn` | `bool` | `slowTurn` | Confirmed in `chase.c` `move_monst()`: a slowed monster (`ISSLOW`) only chases when `t_turn` is true, and the field is XOR-toggled every turn (`tp->t_turn ^= TRUE`), giving slowed monsters one move every other turn; hasted monsters bypass the check. `slowTurn` is the correct name and semantics |
 | `t_type` | `char` | `definitionId` | Monster species letter replaced by a stable string ID |
 | `t_disguise` | `char` | `disguise` | |
 | `t_oldch` | `char` | *(dropped)* | Curses redraw bookkeeping (the glyph to restore under a moved monster); unnecessary once `TileState.terrain` is the authoritative source of a cell's appearance |
 | `t_dest` | `coord *` | `target` | Folded into the `MonsterTarget` discriminated union, which is more explicit than a raw pointer |
 | `t_flags` | `short` | `flags: number` | See the `CreatureFlag` bit table in 4.14 |
 | `t_stats` | `struct stats` | `stats` | |
-| `t_room` | `struct room *` | **gap** | `MonsterState` does not currently have a `roomId` field, unlike `PlayerState`. Recommend adding `roomId: RoomId \| null` to `MonsterState`, since `t_room` is read for room-based wake/greed logic (`ISGREED`) |
+| `t_room` | `struct room *` | `roomId` | Resolved: `MonsterState` now carries `roomId: RoomId \| null` (section 3). Confirmed in `monsters.c` (`new_monster()` sets it via `roomin()`) and `chase.c` (`relocate()` updates it on move; `do_chase()` and `find_dest()` read it for pathing and for the greedy-monster gold-room check, `tp->t_room == proom`) |
 | `t_pack` | `union thing *` | `packOrder` | |
 | `t_reserved` | `int` | *(dropped)* | Unused padding in the original struct |
 
@@ -264,7 +268,7 @@ Exact match: `{x: number, y: number}`.
 | `l_next`, `l_prev` | `union thing *` | *(none)* | Replaced by `floorObjectOrder` / `packOrder` |
 | `o_type` | `int` | `category` | Was one of the screen-glyph constants (`POTION`, `SCROLL`, ...); replaced by the semantic `category` union. See 4.13 for the glyph correspondence |
 | `o_pos` | `coord` | `location` (`{kind: 'floor', ...}` variant) | Meaningless while carried in the source; the `ItemLocation` union makes that explicit instead of leaving a stale coordinate |
-| `o_text` | `char *` | *(folded into `IdentificationEntry`)* | Likely a shared pointer to a per-type randomized title (e.g. a scroll's nonsense name), not per-instance text. Verify against `scrolls.c`/`things.c`; if confirmed per-type, no `ItemState` field is needed since `IdentificationEntry.appearanceId` already covers it once per definition |
+| `o_text` | `char *` | *(none)* | Resolved: confirmed against `things.c`. Scroll titles are read from a shared global array indexed by subtype (`s_names[which]`, formatted as `"titled '%s'"` when `oi_know`/`oi_guess` are both unset), not from a per-object `o_text`. `o_text` itself was not found being assigned in either `things.c` or `scrolls.c`; treat it as unused for the mechanics this project ports. `IdentificationEntry.appearanceId` fully covers per-type title/appearance assignment; no `ItemState` field is needed |
 | `o_launch` | `int` | *(definition-level)* | Lives on the weapon's `ItemDefinition` (`launcher definition ID or null` in section 3), not the instance, since it's static per weapon type |
 | `o_packch` | `char` | *(dropped)* | Inventory-letter assignment is a browser/app concern (section 15), not engine state |
 | `o_damage` | `char[8]` | *(definition-level)* | Melee `DamageSpec` on the weapon's `ItemDefinition` |
@@ -292,8 +296,8 @@ Exact match: `{x: number, y: number}`.
 | --- | --- | --- | --- | --- |
 | low 3 bits | `F_TMASK` | `0x07` | `feature.trap` (`TrapKind`) | 8 trap kinds fit exactly in 3 bits; `TileState.feature` stores the resolved `TrapKind` directly rather than requiring a lookup by index |
 | low 4 bits | `F_PNUM` | `0x0f` | `roomId` / `passageId` | 4 bits (0-15) is too small to index both 9 rooms and 13 passages at once; almost certainly `F_PASS` disambiguates which namespace `F_PNUM` indexes into for that cell. `TileState` already resolves this correctly by keeping `roomId` and `passageId` as two separate fields instead of one packed nibble -- confirm against `rooms.c`/`passages.c` before relying on this reading |
-| `0x10` | `F_REAL` | 16 | **gap** | Meaning not yet confirmed from `rogue.h` alone; likely distinguishes a genuine feature from a decoy/illusory one. Do not guess a `TileState` field for this until `level.c` is read |
-| `0x20` | `F_DROPPED` / `F_LOCKED` (same bit, aliased) | 32 | **gap** | On a trap tile: "already sprung." On a door tile: "locked." Neither is represented in `TileState.feature` or on the `door` terrain today; recommend adding `sprung: boolean` alongside `feature` and a `locked?: boolean` alongside `terrain: 'door'` once this is confirmed |
+| `0x10` | `F_REAL` | 16 | `!secret` | Resolved: confirmed in `passages.c` (`putpass()` and `door()` clear `F_REAL` to mark a passage or door as secret, at a probability that increases with depth) and in `move.c` (a levitating player crossing an otherwise-hidden trap gets `F_REAL` set on it, exposing it without triggering it; `numpass()` treats `!(flags & F_REAL)` on a wall character as a secret door). `F_REAL` is uniformly "this feature's true nature is exposed," which is exactly the existing `TileState.secret` field, inverted: `secret === !F_REAL`. No new field needed |
+| `0x20` | `F_DROPPED` / `F_LOCKED` (same bit, aliased) | 32 | *(unused)* | Searched `move.c` (trap triggering), `rooms.c` (door placement), and `command.c` (command dispatch, including door interaction) at the pinned commit: neither identifier appears in any of the three. The only state `be_trapped()` was seen setting is `F_SEEN` (discovery, not a sprung/consumed flag); no "already sprung" guard was found anywhere checked. Treat both constants as vestigial/dead in this codebase; no `TileState` field is needed unless a later source file (e.g. `trap`-adjacent code inside another module not yet read) contradicts this. This is an absence-of-evidence conclusion, not a positive one |
 | `0x40` | `F_SEEN` | 64 | `discovered` | |
 | `0x80` | `F_PASS` | 128 | *(implicit in `terrain === 'passage'`, and disambiguates `F_PNUM` above)* | |
 
@@ -309,7 +313,7 @@ Exact match: `{x: number, y: number}`.
 
 The C struct stores immutable definition data and mutable per-game identification state in the same array, because the original process only ever runs one game. Section 3 already separates these into `ItemDefinition` (static) and `IdentificationEntry` (per-game), which is the correct split -- this row exists to make the exact field correspondence explicit for whoever transcribes the actual `info[]` tables from `things.c`/`init.c`.
 
-One nuance to verify before implementing: `ISKNOW` also exists as a per-*instance* `ItemFlag` (section 4.6, `o_flags`) alongside the per-*type* `oi_know`. Confirm whether any content (e.g. rings) is identified per-instance rather than per-type before assuming `IdentificationEntry` alone is sufficient.
+Resolved: `ISKNOW` also exists as a per-*instance* `ItemFlag` (4.6/4.14, `o_flags`) alongside the per-*type* `oi_know`, and rings genuinely use the instance form. Confirmed in `rings.c`'s `ring_num()`, which gates the ring's true name on `obj->o_flags & ISKNOW` -- a check against the specific object, not a shared type-level table. This means ring identification cannot be modeled purely with `IdentificationEntry.known` the way potions and scrolls are: a ring only becomes individually known (by a scroll of identify, or by wear-based discovery elsewhere in `rings.c` not covered by this excerpt), so its `ItemState.flags` must carry `ItemFlag.IsKnown` per instance, and any UI/observation check for "is this ring identified" must read the instance flag rather than (or in addition to) `IdentificationEntry.known` for its `definitionId`. `ItemState.flags: number` (section 3) already has room for this; no structural change was needed, only this clarification. Verify whether sticks behave the same way when `sticks.c` is read.
 
 ### 4.9 `struct monster` -> `MonsterDefinition`
 
@@ -324,9 +328,9 @@ Exact match already in section 3: `m_name` -> `name`, `m_carry` -> `carryChance`
 | `d_arg` | `arg` | |
 | `d_time` | `phase` + `remaining` | Source encodes both in one field (a permanent daemon vs. a positive fuse countdown); `ScheduledEntry` already splits this into two named fields, matching the existing `remaining: -1` daemon / positive fuse convention in section 8 |
 
-### 4.11 `STONE` -> ring/stick appearance pool
+### 4.11 `STONE` -> ring appearance pool and per-game worth
 
-`st_name` / `st_value` are a `{name, value}` pair, structurally identical to one entry in the randomized appearance pool that assigns cosmetic names (semi-precious stones, for rings; wood types, for sticks) to definitions at game start. This folds into `IdentificationEntry.appearanceId` the same way potion colors and scroll titles do. `st_value` is unused for the identification model, whether it's a definition-side base value duplicate or a sorting index -- verify against `things.c` before treating it as gameplay-relevant.
+`st_name` / `st_value` are a `{name, value}` pair. Confirmed in `init.c`: a 26-entry `stones[]` table (e.g. `{"agate", 25}`, `{"alexandrite", 40}`, ..., `{"zircon", 80}`) is shuffled at startup by `init_stones()`, which assigns each selected stone's `st_name` to that ring's `r_stones[i]` appearance slot **and adds `st_value` into `ring_info[i].oi_worth`**. Both fields are live, not vestigial: `st_name` folds into `IdentificationEntry.appearanceId` as expected, but `st_value` means a ring's identified price is partly random per game, not purely a static `ItemDefinition` figure -- see the `IdentificationEntry.worth` field added in section 3, which is populated the same way (at generation time, alongside `appearanceId`) for definitions whose price is randomized this way. `ItemDefinition`'s own base value stays the source's nominal figure for content that isn't randomized this way (potions, scrolls, weapons, armor). Sticks were not checked directly; verify whether `ws_made[]` (stick appearance names, seen referenced in `things.c`) has an equivalent worth-shuffling step in `sticks.c`/`init.c` before assuming sticks use only a static value.
 
 ### 4.12 `struct h_list` -> out of scope
 
@@ -440,7 +444,7 @@ Transcribed in source declaration order for provenance; the order has no runtime
 | 1 | `S_MAP` | `magicMapping` |
 | 2 | `S_HOLD` | `holdMonster` |
 | 3 | `S_SLEEP` | `sleep` |
-| 4 | `S_ARMOR` | `armor` |
+| 4 | `S_ARMOR` | `enchantArmor` |
 | 5 | `S_ID_POTION` | `identifyPotion` |
 | 6 | `S_ID_SCROLL` | `identifyScroll` |
 | 7 | `S_ID_WEAPON` | `identifyWeapon` |
@@ -449,13 +453,13 @@ Transcribed in source declaration order for provenance; the order has no runtime
 | 10 | `S_SCARE` | `scareMonster` |
 | 11 | `S_FDET` | `foodDetection` |
 | 12 | `S_TELEP` | `teleportation` |
-| 13 | `S_ENCH` | `enchant` |
+| 13 | `S_ENCH` | `enchantWeapon` |
 | 14 | `S_CREATE` | `createMonster` |
 | 15 | `S_REMOVE` | `removeCurse` |
 | 16 | `S_AGGR` | `aggravateMonsters` |
 | 17 | `S_PROTECT` | `protectArmor` |
 
-`S_ARMOR` and `S_ENCH` are transcribed by symbol only; confirm the exact distinction in `scrolls.c` before naming them (`armor` here is a placeholder, not a confirmed effect name).
+Resolved: confirmed in `scrolls.c`. `S_ARMOR` ("scroll of enchant armor") removes any curse on the equipped armor and decrements `o_arm` by 1, improving armor class (lower is better in this source's convention). `S_ENCH` ("scroll of enchant weapon") removes any curse on the equipped weapon and randomly increments either its hit bonus (`o_hplus`) or its damage bonus (`o_dplus`). Both are enchantment scrolls, one per equipment slot; named accordingly above.
 
 | # | C constant | Proposed `WeaponKind` |
 | --- | --- | --- |
@@ -469,7 +473,7 @@ Transcribed in source declaration order for provenance; the order has no runtime
 | 7 | `SHIRAKEN` | `shuriken` |
 | 8 | `SPEAR` | `spear` |
 
-`MAXWEAPONS = 9` matches the 9 rows above, but the header also defines a stray `FLAME` constant at value 9 (past `MAXWEAPONS`). Confirm against `weapons.c` whether `FLAME` is a real 10th weapon-table entry or an unrelated effect ID before finalizing this union.
+`MAXWEAPONS = 9` matches the 9 rows above. Resolved: the header also defines a stray `FLAME` constant at value 9 (past `MAXWEAPONS`), but it does not appear in `weapons.c`'s `init_dam` table, nor anywhere in `extern.c` or `fight.c`. `FLAME` is vestigial/unused in this codebase's actual game logic; exclude it from `WeaponKind`, which stands at exactly the 9 entries above.
 
 | # | C constant | Proposed `ArmorKind` |
 | --- | --- | --- |
@@ -520,16 +524,26 @@ Transcribed in source declaration order for provenance; the order has no runtime
 
 `T_DOOR`, `T_ARROW`, `T_SLEEP`, `T_BEAR`, `T_TELEP`, `T_DART`, `T_RUST`, `T_MYST` (`NTRAPS = 8`) already match the `TrapKind` union in section 3 one-for-one (`trapDoor`, `arrow`, `sleep`, `bear`, `teleport`, `dart`, `rust`, `mystery`) -- confirmed consistent, no changes needed.
 
-### 4.17 Open items to resolve before the corresponding module is implemented
+### 4.17 Source verification findings
 
-- Add `roomId: RoomId | null` to `MonsterState` (4.5, `t_room`).
-- Confirm `F_REAL` and `F_DROPPED`/`F_LOCKED` semantics against `level.c` and add the missing `TileState` fields (4.7).
-- Confirm whether ring identification is per-instance as well as per-type before relying solely on `IdentificationEntry` (4.8).
-- Confirm `o_text` is a shared per-type pointer, not per-instance data, before skipping an `ItemState` field for it (4.6).
-- Confirm `FLAME` in the weapon constants and `st_value` in `STONE` against `weapons.c` / `things.c` (4.15, 4.11).
-- Confirm `S_ARMOR` vs `S_ENCH` scroll semantics against `scrolls.c` before naming them in code (4.15).
+The six items flagged as gaps in an earlier pass of this document were checked against `move.c`, `passages.c`, `rooms.c`, `command.c`, `rings.c`, `scrolls.c`, `weapons.c`, `things.c`, `extern.c`, `fight.c`, `chase.c`, `monsters.c`, and `init.c` at the pinned commit. Outcomes:
 
-Add a rules-ledger row for each once resolved.
+| Item | Outcome |
+| --- | --- |
+| `MonsterState` missing `roomId` (`t_room`) | Fixed: field added in section 3. Confirmed set in `new_monster()`/`relocate()`, read in `do_chase()`/`find_dest()` (4.5) |
+| `PLACE` `F_REAL` semantics | Resolved: `F_REAL` is the inverse of the already-existing `TileState.secret` field; no new field needed (4.7) |
+| `PLACE` `F_DROPPED`/`F_LOCKED` semantics | Resolved as unused: not found in `move.c`, `rooms.c`, or `command.c`; treated as vestigial constants (4.7) |
+| Per-instance vs per-type ring identification | Resolved: rings use the per-instance `ISKNOW` object flag (`ItemState.flags`), confirmed in `rings.c`; `IdentificationEntry.known` alone is not sufficient for rings (4.8) |
+| `o_text` per-instance vs shared | Resolved: scroll titles are read from a shared `s_names[which]` array, not `o_text`; no `ItemState` field needed (4.6) |
+| `FLAME` weapon constant | Resolved as unused: absent from `weapons.c`, `extern.c`, and `fight.c` (4.15) |
+| `STONE.st_value` purpose | Resolved: feeds `ring_info[i].oi_worth` in `init_stones()`, confirmed in `init.c`. This surfaced a new modeling requirement (ring worth is partly per-game random), addressed by the `IdentificationEntry.worth` field added in section 3 (4.11) |
+
+Two residual items surfaced by this pass, not yet closed:
+
+- Whether sticks share rings' per-instance identification and worth-randomization behavior (`sticks.c` not yet read).
+- Whether a trap "already sprung" concept exists anywhere outside the three files checked for `F_DROPPED`/`F_LOCKED`; the conclusion above is an absence-of-evidence result, not a positive one.
+
+Add a rules-ledger row before implementing content that depends on either.
 
 ## 5. Randomness and numerical behavior
 
