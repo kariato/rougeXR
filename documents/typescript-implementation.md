@@ -804,6 +804,8 @@ The inspector reads detached debug snapshots and renders explicit fields. A raw 
 
 ## 16. Desktop 3D and XR extension contract
 
+Presentation reference: [Quick 3D MMORPG review](quick-3d-mmorpg-review.md), pinned to `547884332ca650abe96264f7230702d36481b9bc`. Adapt camera smoothing, animation crossfades, and skeleton-aware asset instancing; do not import its render-driven gameplay, networking, or Three.js-backed entity state.
+
 ```typescript
 interface GameView {
   mount(host: HTMLElement): void;
@@ -818,6 +820,10 @@ Implement this first for Canvas 2D. Add a Three.js implementation later. It maps
 Room meshes are keyed by level ID and region key. Shared materials/geometries use reference-counted ownership; disposing a room must not dispose assets still used elsewhere. Async asset results carry a scene-generation token and are discarded if the active level changed. Primitive placeholders remain until assets arrive. View switching calls dispose/mount and then update with the current observation; it does not restart the engine or replay events.
 
 XR capability detection and session creation live outside GameView's logical contract. XR actions go through the same controller with revision validation. Physical tracking never writes actor position. Headset-only acceptance tests are added after the desktop 3D gate.
+
+For the desktop adapter, bind input listeners with removable callbacks and clear captured input on blur, visibility loss, and disposal. Ray selection uses distance-sorted eligible observed objects and an explicit occlusion rule. Cache assets by resolved URL plus load options, with explicit loading/ready/failed states. Animation states consume resolved presentation events; animation completion only releases presentation resources or advances its visual queue.
+
+Resource cleanup handles material arrays and reference-counted shared textures/geometries. Late loader results must check the active view token before attachment. Test same-filename assets from different paths, disposal during load, surviving shared instances, nearest-hit selection, and repeated view mounting. Do not globally disable frustum culling as a substitute for inspecting animated bounds.
 
 ## 17. Source-to-module implementation checklist
 

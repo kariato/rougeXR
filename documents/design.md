@@ -144,6 +144,8 @@ Developer fixtures provide small reproducible situations: corridor movement, dia
 
 ## Desktop 3D before XR
 
+Use [Quick 3D MMORPG as a presentation reference](quick-3d-mmorpg-review.md) for camera smoothing, animation transitions, and animated asset loading. Adapt these patterns behind the existing observation/action boundary. The Rogue engine and browser-first sequence remain the implementation base.
+
 After the 2D engine works, attach a desktop 3D renderer to the same observation and action interfaces. Preserve the 2D map and inspector alongside it so a rendering error can be compared against the logical result.
 
 Mouse drag controls look direction; a separate orbit control supports tabletop inspection. Grid movement remains the same discrete commands. Camera movement alone does not move the game actor. This separates debugging of camera transforms, tile scale, room geometry, visibility, and entity placement from debugging the rules.

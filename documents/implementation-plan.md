@@ -271,13 +271,15 @@ Gate: enable `full` mode only after definition coverage and the command audit ju
 
 Outcome: room geometry and spatial interaction can be debugged without a headset.
 
+Use the [Quick 3D MMORPG review](quick-3d-mmorpg-review.md) as a selective presentation reference. Keep the headless Rogue engine and existing phase order.
+
 | Step | Small deliverable | Completion check |
 | --- | --- | --- |
 | 12.1 | Implement GameView contract for existing 2D view and add empty desktop 3D view. | Switching views preserves session and revision. |
 | 12.2 | Render primitive floor/wall/door geometry from safe observations. | Layout agrees with 2D; unknown rooms are not revealed. |
-| 12.3 | Add desktop look/orbit/tabletop camera controls. | Camera motion spends no turns and changes no RNG state. |
-| 12.4 | Add visible entity representations and event animations. | Animation skip/speed does not affect replay hashes. |
-| 12.5 | Add local room activation, shared-resource ownership, and async generation tokens. | Repeated level/view changes leave no stale objects or disposed shared assets. |
+| 12.3 | Add desktop look/orbit/tabletop camera controls, smoothing, and nearest eligible ray selection. | Camera motion spends no turns; selection respects occlusion; focus loss clears captured input. |
+| 12.4 | Add visible entity representations, independent skeleton instances, and event-driven animation states. | Animation skip/speed does not affect replay hashes; animation callbacks never initiate gameplay. |
+| 12.5 | Add local room activation, URL-keyed asset caching, shared-resource ownership, and async generation tokens. | Test same filenames at different paths, material arrays, disposal during load, surviving shared instances, and listener teardown. |
 
 - [ ] 12.1
 - [ ] 12.2
