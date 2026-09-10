@@ -1,5 +1,7 @@
 # TypeScript implementation specification
 
+Execution order and small completion gates are tracked in the [phased implementation plan](implementation-plan.md).
+
 Status: implementation contract, not implemented code. This document expands [design.md](design.md) and governs code generation where the architectural sketches are less precise. The selected reference is Davidslv/rogue at `f4653c2a2ee6981a73abe9dfda055134285e1e79`; see [source notes](rogue544-base.md). Never use the historical FreeBSD Clone III report to supply missing rules.
 
 ## 1. Generation contract and scope
