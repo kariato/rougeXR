@@ -6,6 +6,7 @@ Based on [Davidslv/rogue (Rogue 5.4.4)](https://github.com/Davidslv/rogue), init
 Development starts in a regular desktop browser with keyboard and mouse controls, a 2D dungeon view, and a state inspector. Desktop 3D follows; XR is added after the game can be debugged without a headset.
 
 - [Browser-first design](documents/design.md)
+- [Detailed TypeScript implementation specification](documents/typescript-implementation.md)
 - [Selected Rogue 5.4.4 source](documents/rogue544-base.md)
 - [Rules ledger](documents/rules-ledger.md)
 - [Historical FreeBSD Rogue comparison](documents/freebsd-rogue-review.md)

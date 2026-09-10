@@ -13,7 +13,9 @@ Reference: Davidslv/rogue at `f4653c2a2ee6981a73abe9dfda055134285e1e79`. Entries
 | Input | Replace terminal commands with keyboard/mouse actions; XR later | Selection cancellation, free UI operations, focus handling |
 | Rendering | Replace curses with observation-driven 2D/3D views | Visibility, remembered information, disguises, detection |
 | Persistence | New versioned JSON format; no C-save compatibility initially | State and replay continuity, including pending haste slots |
-| Randomness | Explicit seeded algorithm and saved state | Reproducibility; C sequence parity is not yet claimed |
+| Randomness | Specify xorshift32-v1, zero-seed mapping, and modulo range mapping in the implementation document | Fixed output vectors, saved continuation; C sequence parity is not claimed |
 | Debug reveal | Read-only developer access, independent of player knowledge | No state mutation or hidden-data leakage into normal views |
+| Scheduler overflow | Explicit transaction fault with rollback instead of invalid memory access | Full-slot allocation test |
+| Initial content | Explicit slice mode enables only implemented mechanics; full mode requires handler coverage | Definition manifest and unsupported-action tests |
 
 Add an entry before intentionally changing source behavior. Record the relevant source function, the difference, its reason, and its verification case.

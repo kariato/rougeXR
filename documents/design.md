@@ -1,5 +1,7 @@
 # rougeXR design: browser first
 
+For concrete types, module contracts, algorithms, and code-generation work packages, use the [TypeScript implementation specification](typescript-implementation.md). It refines the interface sketches in this architectural document.
+
 ## Objective and scope
 
 Build and debug the game in a regular desktop browser using a keyboard and mouse. A headset, XR session, motion controller, or WebXR support must never be required to start a game, inspect state, reproduce a bug, or test the rules.
