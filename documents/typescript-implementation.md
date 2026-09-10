@@ -195,7 +195,343 @@ interface GameState {
 
 This is the required slice schema. Before adding a full-content mechanic, extend it with every behaviorally relevant global or static used by that mechanic and add save-continuation coverage. Do not hide healing, monster, running, or effect state in module variables. UI selection and animation time remain outside GameState. Derived equipment bonuses are recomputed from equipment, never saved as competing authority.
 
-## 4. Randomness and numerical behavior
+## 4. Source field provenance and flag constants
+
+Content below is transcribed directly from [rogue.h at the pinned commit](https://github.com/Davidslv/rogue/blob/f4653c2a2ee6981a73abe9dfda055134285e1e79/rogue.h). It gives the exact C field each interface field in section 3 replaces, and defines the flag/content-type constants that section 3 leaves as an opaque `number` or a generic union. Read this section before implementing anything that touches `flags`, `TileState.feature`, or a content-type identifier. It does not transcribe the `info[]`/monster probability tables themselves (`things.c`, `init.c`, `monsters.c`); that data still needs its own pass per section 17's checklist.
+
+### 4.1 Size constants
+
+| C constant | Value | JSON representation |
+| --- | --- | --- |
+| `MAXROOMS` | 9 | `LevelState.rooms.length` (fixed at 9 in the initial ruleset) |
+| `MAXPASS` | 13 | Upper bound on `LevelState.passages.length` |
+| `NUMLINES` / `NUMCOLS` | 24 / 80 | `LevelState.height` / `LevelState.width` |
+| `MAXTRAPS` | 10 | Informational; traps are represented per-tile (`TileState.feature`), not as a separate fixed-size array |
+| `MAXPACK` | 23 | Pack capacity check in inventory rules (section 9) |
+| `MAXDAEMONS` | 20 | `SchedulerState.slots.length` |
+| `AMULETLEVEL` | 26 | Depth at which the Amulet of Yendor generates (full-content, Phase 11 of the implementation plan) |
+| `MAXPOTIONS` / `MAXSCROLLS` / `MAXWEAPONS` / `MAXARMORS` / `MAXRINGS` / `MAXSTICKS` | 14 / 18 / 9 / 8 / 14 / 14 | Length of each content-type union in 4.15 |
+
+### 4.2 `coord` -> `Position`
+
+Exact match: `{x: number, y: number}`.
+
+### 4.3 `struct room` -> `RoomState`
+
+| C field | Type | `RoomState` field | Notes |
+| --- | --- | --- | --- |
+| `r_pos` | `coord` | `origin` | |
+| `r_max` | `coord` | `width`, `height` | Split into two scalars |
+| `r_gold` | `coord` | `goldTarget` | Position only; the amount no longer lives on the room |
+| `r_goldval` | `int` | *(none)* | Gold becomes an `ItemState` with `category: 'gold'`; `goldTarget` preserves only the AI-targeting position, per the design.md decision not to special-case gold on the room |
+| `r_flags` | `short` | `dark`, `kind` | See 4.14; `ISDARK` -> `dark: boolean`, `ISGONE`/`ISMAZE` -> `kind: 'gone' \| 'maze'`, decomposed rather than kept as a raw bitmask |
+| `r_nexits` | `int` | *(implicit)* | `exits.length` |
+| `r_exit[12]` | `coord[12]` | `exits: Position[]` | Fixed max 12 in source; unbounded array here |
+
+### 4.4 `struct stats` -> `CombatStats`
+
+| C field | `CombatStats` field |
+| --- | --- |
+| `s_str` (`str_t`, unsigned int) | `strength` |
+| `s_exp` | `experience` |
+| `s_lvl` | `level` |
+| `s_arm` | `armorClass` |
+| `s_hpt` | `hp` |
+| `s_dmg` (`char[13]`) | `damage` (parsed to `DamageSpec`; source uses `x`-separated dice groups, e.g. `1x6/1x4`, matching section 11) |
+| `s_maxhp` | `maxHp` |
+
+### 4.5 `union thing`, creature half -> `MonsterState` / `PlayerState`
+
+| C field | Type | Target field | Notes |
+| --- | --- | --- | --- |
+| `l_next`, `l_prev` | `union thing *` | *(none)* | Replaced by `monsterOrder` / `packOrder` arrays (section 9) |
+| `t_pos` | `coord` | `at` | |
+| `t_turn` | `bool` | `slowTurn` | Per-monster half-cycle flag; verify against `monster.c`/`chase.c` before relying on the name |
+| `t_type` | `char` | `definitionId` | Monster species letter replaced by a stable string ID |
+| `t_disguise` | `char` | `disguise` | |
+| `t_oldch` | `char` | *(dropped)* | Curses redraw bookkeeping (the glyph to restore under a moved monster); unnecessary once `TileState.terrain` is the authoritative source of a cell's appearance |
+| `t_dest` | `coord *` | `target` | Folded into the `MonsterTarget` discriminated union, which is more explicit than a raw pointer |
+| `t_flags` | `short` | `flags: number` | See the `CreatureFlag` bit table in 4.14 |
+| `t_stats` | `struct stats` | `stats` | |
+| `t_room` | `struct room *` | **gap** | `MonsterState` does not currently have a `roomId` field, unlike `PlayerState`. Recommend adding `roomId: RoomId \| null` to `MonsterState`, since `t_room` is read for room-based wake/greed logic (`ISGREED`) |
+| `t_pack` | `union thing *` | `packOrder` | |
+| `t_reserved` | `int` | *(dropped)* | Unused padding in the original struct |
+
+### 4.6 `union thing`, object half -> `ItemState`
+
+| C field | Type | Target field | Notes |
+| --- | --- | --- | --- |
+| `l_next`, `l_prev` | `union thing *` | *(none)* | Replaced by `floorObjectOrder` / `packOrder` |
+| `o_type` | `int` | `category` | Was one of the screen-glyph constants (`POTION`, `SCROLL`, ...); replaced by the semantic `category` union. See 4.13 for the glyph correspondence |
+| `o_pos` | `coord` | `location` (`{kind: 'floor', ...}` variant) | Meaningless while carried in the source; the `ItemLocation` union makes that explicit instead of leaving a stale coordinate |
+| `o_text` | `char *` | *(folded into `IdentificationEntry`)* | Likely a shared pointer to a per-type randomized title (e.g. a scroll's nonsense name), not per-instance text. Verify against `scrolls.c`/`things.c`; if confirmed per-type, no `ItemState` field is needed since `IdentificationEntry.appearanceId` already covers it once per definition |
+| `o_launch` | `int` | *(definition-level)* | Lives on the weapon's `ItemDefinition` (`launcher definition ID or null` in section 3), not the instance, since it's static per weapon type |
+| `o_packch` | `char` | *(dropped)* | Inventory-letter assignment is a browser/app concern (section 15), not engine state |
+| `o_damage` | `char[8]` | *(definition-level)* | Melee `DamageSpec` on the weapon's `ItemDefinition` |
+| `o_hurldmg` | `char[8]` | *(definition-level)* | Thrown `DamageSpec` on the weapon's `ItemDefinition` |
+| `o_count` | `int` | `quantity` | |
+| `o_which` | `int` | *(folded into `definitionId`)* | Subtype index; the instance's `definitionId` already resolves to one specific `ItemDefinition` that encodes category + subtype |
+| `o_hplus` | `int` | `hitBonus` (`weapon` variant) | |
+| `o_dplus` | `int` | `damageBonus` (`weapon` variant) | |
+| `o_arm` | `int` | `armorClass` (`armor` variant) / `charges` (`stick` variant, via the `o_charges` alias) / folded into `quantity` (`gold` variant, via the `o_goldval` alias) | One C field serves three different roles depending on `o_type`; the discriminated `ItemState` union spells each out as a separate named field instead |
+| `o_flags` | `int` | `flags: number` | See the `ItemFlag` bit table in 4.14 |
+| `o_group` | `int` | `group` | |
+| `o_label` | `char *` | `label` | |
+
+### 4.7 `PLACE` -> `TileState`
+
+| C field | Type | Target field | Notes |
+| --- | --- | --- | --- |
+| `p_ch` | `char` | *(dropped)* | Terminal glyph; `terrain` + `feature` are authoritative instead |
+| `p_flags` | `char` | see below | Bit-packed; see the `TileFlag` table |
+| `p_monst` | `THING *` | *(none)* | Occupancy is derived from the entity index (section 9), not stored redundantly on the tile |
+
+`p_flags` bit layout (`F_PNUM` / `F_TMASK` occupy the same low bits, disambiguated by `F_PASS`):
+
+| Bit | C constant | Value | Target | Notes |
+| --- | --- | --- | --- | --- |
+| low 3 bits | `F_TMASK` | `0x07` | `feature.trap` (`TrapKind`) | 8 trap kinds fit exactly in 3 bits; `TileState.feature` stores the resolved `TrapKind` directly rather than requiring a lookup by index |
+| low 4 bits | `F_PNUM` | `0x0f` | `roomId` / `passageId` | 4 bits (0-15) is too small to index both 9 rooms and 13 passages at once; almost certainly `F_PASS` disambiguates which namespace `F_PNUM` indexes into for that cell. `TileState` already resolves this correctly by keeping `roomId` and `passageId` as two separate fields instead of one packed nibble -- confirm against `rooms.c`/`passages.c` before relying on this reading |
+| `0x10` | `F_REAL` | 16 | **gap** | Meaning not yet confirmed from `rogue.h` alone; likely distinguishes a genuine feature from a decoy/illusory one. Do not guess a `TileState` field for this until `level.c` is read |
+| `0x20` | `F_DROPPED` / `F_LOCKED` (same bit, aliased) | 32 | **gap** | On a trap tile: "already sprung." On a door tile: "locked." Neither is represented in `TileState.feature` or on the `door` terrain today; recommend adding `sprung: boolean` alongside `feature` and a `locked?: boolean` alongside `terrain: 'door'` once this is confirmed |
+| `0x40` | `F_SEEN` | 64 | `discovered` | |
+| `0x80` | `F_PASS` | 128 | *(implicit in `terrain === 'passage'`, and disambiguates `F_PNUM` above)* | |
+
+### 4.8 `struct obj_info` -> split across `ItemDefinition` and `IdentificationEntry`
+
+| C field | Target |
+| --- | --- |
+| `oi_name` | `ItemDefinition` internal/true name (immutable) |
+| `oi_prob` | `ItemDefinition` generation weight |
+| `oi_worth` | `ItemDefinition` base value |
+| `oi_guess` | `IdentificationEntry.called` |
+| `oi_know` | `IdentificationEntry.known` |
+
+The C struct stores immutable definition data and mutable per-game identification state in the same array, because the original process only ever runs one game. Section 3 already separates these into `ItemDefinition` (static) and `IdentificationEntry` (per-game), which is the correct split -- this row exists to make the exact field correspondence explicit for whoever transcribes the actual `info[]` tables from `things.c`/`init.c`.
+
+One nuance to verify before implementing: `ISKNOW` also exists as a per-*instance* `ItemFlag` (section 4.6, `o_flags`) alongside the per-*type* `oi_know`. Confirm whether any content (e.g. rings) is identified per-instance rather than per-type before assuming `IdentificationEntry` alone is sufficient.
+
+### 4.9 `struct monster` -> `MonsterDefinition`
+
+Exact match already in section 3: `m_name` -> `name`, `m_carry` -> `carryChance`, `m_flags` -> `flags`, `m_stats` -> `baseStats`.
+
+### 4.10 `struct delayed_action` -> `ScheduledEntry`
+
+| C field | Target | Notes |
+| --- | --- | --- |
+| `d_type` | `effect` | Was a raw type tag; replaced by the closed `EffectId` registry |
+| `d_func` | *(dropped)* | Function pointer; replaced entirely by `EffectId` + registry indirection, per design.md's rule against callbacks in saved state |
+| `d_arg` | `arg` | |
+| `d_time` | `phase` + `remaining` | Source encodes both in one field (a permanent daemon vs. a positive fuse countdown); `ScheduledEntry` already splits this into two named fields, matching the existing `remaining: -1` daemon / positive fuse convention in section 8 |
+
+### 4.11 `STONE` -> ring/stick appearance pool
+
+`st_name` / `st_value` are a `{name, value}` pair, structurally identical to one entry in the randomized appearance pool that assigns cosmetic names (semi-precious stones, for rings; wood types, for sticks) to definitions at game start. This folds into `IdentificationEntry.appearanceId` the same way potion colors and scroll titles do. `st_value` is unused for the identification model, whether it's a definition-side base value duplicate or a sorting index -- verify against `things.c` before treating it as gameplay-relevant.
+
+### 4.12 `struct h_list` -> out of scope
+
+The `'?'` command's help listing (`h_ch`, `h_desc`, `h_print`). This is static UI text for a terminal help screen, not domain state. If reproduced, it belongs as static data in `src/app/`, not in `GameState`.
+
+### 4.13 Screen glyph constants -> `Terrain` / `category` correspondence
+
+| Glyph constant | Char | `Terrain` / `category` value |
+| --- | --- | --- |
+| `PASSAGE` | `#` | `'passage'` |
+| `DOOR` | `+` | `'door'` |
+| `FLOOR` | `.` | `'floor'` |
+| `PLAYER` | `@` | *(not a tile; player position)* |
+| `TRAP` | `^` | `feature.kind === 'trap'` |
+| `STAIRS` | `%` | `feature.kind === 'stairs'` |
+| `GOLD` | `*` | `category: 'gold'` |
+| `POTION` | `!` | `category: 'potion'` |
+| `SCROLL` | `?` | `category: 'scroll'` |
+| `FOOD` | `:` | `category: 'food'` |
+| `WEAPON` | `)` | `category: 'weapon'` |
+| `ARMOR` | `]` | `category: 'armor'` |
+| `AMULET` | `,` | `category: 'amulet'` |
+| `RING` | `=` | `category: 'ring'` |
+| `STICK` | `/` | `category: 'stick'` |
+| `MAGIC` | `$` | Generic "this is magic" indicator used by some detection effects, not a category of its own |
+
+### 4.14 Flag constants
+
+Transcribe these as named TypeScript constants; do not invent conflicting bit assignments (section 3 already requires this). `RoomFlag` is shown for provenance only -- `RoomState` decomposes it into `dark`/`kind` rather than keeping a raw bitmask, unlike the other three tables below.
+
+```typescript
+// r_flags (decomposed into RoomState.dark / RoomState.kind, not kept as a raw field)
+const enum RoomFlag {
+  IsDark = 0o1,  // ISDARK
+  IsGone = 0o2,  // ISGONE
+  IsMaze = 0o4,  // ISMAZE
+}
+
+// o_flags -> ItemState flags (all variants)
+const enum ItemFlag {
+  IsCursed = 0o1,     // ISCURSED
+  IsKnown  = 0o2,     // ISKNOW -- see 4.8 for the per-type vs per-instance nuance
+  IsMissile = 0o4,    // ISMISL (thrown weapon)
+  IsMany   = 0o10,    // ISMANY (stackable)
+  IsFound  = 0o20,    // ISFOUND (already reported once)
+  IsProtected = 0o40, // ISPROT (rust-proof)
+}
+
+// t_flags -> MonsterState.flags and PlayerState.flags
+// Several bits are reused with a different meaning depending on which
+// interface holds them (they are separate fields on separate structs,
+// never actually read across kinds -- but the source shares one bit
+// range for both, so the reuse is intentional, not a collision).
+const enum CreatureFlag {
+  CanHallucinateVictim = 0o1,      // CANHUH
+  CanSee               = 0o2,      // CANSEE
+  IsBlind              = 0o4,      // ISBLIND
+  IsCancelled          = 0o10,     // ISCANC  (monster)
+  IsLevitating         = 0o10,     // ISLEVIT (player -- same bit as IsCancelled)
+  IsFound              = 0o20,     // ISFOUND
+  IsGreedy             = 0o40,     // ISGREED
+  IsHasted             = 0o100,    // ISHASTE
+  IsTarget             = 0o200,    // ISTARGET
+  IsHeld               = 0o400,    // ISHELD
+  IsConfused           = 0o1000,   // ISHUH
+  IsInvisible          = 0o2000,   // ISINVIS
+  IsMean               = 0o4000,   // ISMEAN  (monster)
+  IsHallucinating      = 0o4000,   // ISHALU  (player -- same bit as IsMean)
+  IsRegenerating       = 0o10000,  // ISREGEN
+  IsRunning            = 0o20000,  // ISRUN
+  SeesMonsters         = 0o40000,  // SEEMONST (player)
+  IsFlying             = 0o40000,  // ISFLY    (monster -- same bit as SeesMonsters)
+  IsSlowed             = 0o100000, // ISSLOW
+}
+
+// PLACE.p_flags -- see 4.7 for the two unresolved bits (F_REAL, F_DROPPED/F_LOCKED)
+const enum TileFlag {
+  Passage   = 0x80, // F_PASS
+  Seen      = 0x40, // F_SEEN
+  Dropped   = 0x20, // F_DROPPED / F_LOCKED (aliased)
+  Real      = 0x10, // F_REAL
+  IndexMask = 0x0f, // F_PNUM
+  TrapMask  = 0x07, // F_TMASK
+}
+```
+
+### 4.15 Content-type unions
+
+Transcribed in source declaration order for provenance; the order has no runtime meaning once each maps to a string `definitionId` (4.6's `o_which` note). Effects, exact names, and which entries are implemented in the `slice` ruleset are separate work (section 17 checklist: `potions.c`, `scrolls.c`, `weapons.c`, `armor.c`, `rings.c`, `sticks.c`).
+
+| # | C constant | Proposed `PotionKind` |
+| --- | --- | --- |
+| 0 | `P_CONFUSE` | `confuse` |
+| 1 | `P_LSD` | `hallucinate` |
+| 2 | `P_POISON` | `poison` |
+| 3 | `P_STRENGTH` | `strength` |
+| 4 | `P_SEEINVIS` | `seeInvisible` |
+| 5 | `P_HEALING` | `healing` |
+| 6 | `P_MFIND` | `monsterDetection` |
+| 7 | `P_TFIND` | `treasureDetection` |
+| 8 | `P_RAISE` | `raiseLevel` |
+| 9 | `P_XHEAL` | `extraHealing` |
+| 10 | `P_HASTE` | `haste` |
+| 11 | `P_RESTORE` | `restoreStrength` |
+| 12 | `P_BLIND` | `blindness` |
+| 13 | `P_LEVIT` | `levitation` |
+
+| # | C constant | Proposed `ScrollKind` |
+| --- | --- | --- |
+| 0 | `S_CONFUSE` | `confuse` |
+| 1 | `S_MAP` | `magicMapping` |
+| 2 | `S_HOLD` | `holdMonster` |
+| 3 | `S_SLEEP` | `sleep` |
+| 4 | `S_ARMOR` | `armor` |
+| 5 | `S_ID_POTION` | `identifyPotion` |
+| 6 | `S_ID_SCROLL` | `identifyScroll` |
+| 7 | `S_ID_WEAPON` | `identifyWeapon` |
+| 8 | `S_ID_ARMOR` | `identifyArmor` |
+| 9 | `S_ID_R_OR_S` | `identifyRingOrStick` |
+| 10 | `S_SCARE` | `scareMonster` |
+| 11 | `S_FDET` | `foodDetection` |
+| 12 | `S_TELEP` | `teleportation` |
+| 13 | `S_ENCH` | `enchant` |
+| 14 | `S_CREATE` | `createMonster` |
+| 15 | `S_REMOVE` | `removeCurse` |
+| 16 | `S_AGGR` | `aggravateMonsters` |
+| 17 | `S_PROTECT` | `protectArmor` |
+
+`S_ARMOR` and `S_ENCH` are transcribed by symbol only; confirm the exact distinction in `scrolls.c` before naming them (`armor` here is a placeholder, not a confirmed effect name).
+
+| # | C constant | Proposed `WeaponKind` |
+| --- | --- | --- |
+| 0 | `MACE` | `mace` |
+| 1 | `SWORD` | `sword` |
+| 2 | `BOW` | `bow` |
+| 3 | `ARROW` | `arrow` |
+| 4 | `DAGGER` | `dagger` |
+| 5 | `TWOSWORD` | `twoHandedSword` |
+| 6 | `DART` | `dart` |
+| 7 | `SHIRAKEN` | `shuriken` |
+| 8 | `SPEAR` | `spear` |
+
+`MAXWEAPONS = 9` matches the 9 rows above, but the header also defines a stray `FLAME` constant at value 9 (past `MAXWEAPONS`). Confirm against `weapons.c` whether `FLAME` is a real 10th weapon-table entry or an unrelated effect ID before finalizing this union.
+
+| # | C constant | Proposed `ArmorKind` |
+| --- | --- | --- |
+| 0 | `LEATHER` | `leather` |
+| 1 | `RING_MAIL` | `ringMail` |
+| 2 | `STUDDED_LEATHER` | `studdedLeather` |
+| 3 | `SCALE_MAIL` | `scaleMail` |
+| 4 | `CHAIN_MAIL` | `chainMail` |
+| 5 | `SPLINT_MAIL` | `splintMail` |
+| 6 | `BANDED_MAIL` | `bandedMail` |
+| 7 | `PLATE_MAIL` | `plateMail` |
+
+| # | C constant | Proposed `RingKind` |
+| --- | --- | --- |
+| 0 | `R_PROTECT` | `protection` |
+| 1 | `R_ADDSTR` | `addStrength` |
+| 2 | `R_SUSTSTR` | `sustainStrength` |
+| 3 | `R_SEARCH` | `search` |
+| 4 | `R_SEEINVIS` | `seeInvisible` |
+| 5 | `R_NOP` | `noOp` (a deliberate dud ring type in the source) |
+| 6 | `R_AGGR` | `aggravateMonsters` |
+| 7 | `R_ADDHIT` | `addHit` |
+| 8 | `R_ADDDAM` | `addDamage` |
+| 9 | `R_REGEN` | `regeneration` |
+| 10 | `R_DIGEST` | `digestion` |
+| 11 | `R_TELEPORT` | `teleportation` |
+| 12 | `R_STEALTH` | `stealth` |
+| 13 | `R_SUSTARM` | `sustainArmor` |
+
+| # | C constant | Proposed `StickKind` |
+| --- | --- | --- |
+| 0 | `WS_LIGHT` | `light` |
+| 1 | `WS_INVIS` | `invisibility` |
+| 2 | `WS_ELECT` | `lightning` |
+| 3 | `WS_FIRE` | `fire` |
+| 4 | `WS_COLD` | `cold` |
+| 5 | `WS_POLYMORPH` | `polymorph` |
+| 6 | `WS_MISSILE` | `magicMissile` |
+| 7 | `WS_HASTE_M` | `hasteMonster` |
+| 8 | `WS_SLOW_M` | `slowMonster` |
+| 9 | `WS_DRAIN` | `drainLife` |
+| 10 | `WS_NOP` | `noOp` |
+| 11 | `WS_TELAWAY` | `teleportAway` |
+| 12 | `WS_TELTO` | `teleportTo` |
+| 13 | `WS_CANCEL` | `cancellation` |
+
+### 4.16 Trap kind cross-check
+
+`T_DOOR`, `T_ARROW`, `T_SLEEP`, `T_BEAR`, `T_TELEP`, `T_DART`, `T_RUST`, `T_MYST` (`NTRAPS = 8`) already match the `TrapKind` union in section 3 one-for-one (`trapDoor`, `arrow`, `sleep`, `bear`, `teleport`, `dart`, `rust`, `mystery`) -- confirmed consistent, no changes needed.
+
+### 4.17 Open items to resolve before the corresponding module is implemented
+
+- Add `roomId: RoomId | null` to `MonsterState` (4.5, `t_room`).
+- Confirm `F_REAL` and `F_DROPPED`/`F_LOCKED` semantics against `level.c` and add the missing `TileState` fields (4.7).
+- Confirm whether ring identification is per-instance as well as per-type before relying solely on `IdentificationEntry` (4.8).
+- Confirm `o_text` is a shared per-type pointer, not per-instance data, before skipping an `ItemState` field for it (4.6).
+- Confirm `FLAME` in the weapon constants and `st_value` in `STONE` against `weapons.c` / `things.c` (4.15, 4.11).
+- Confirm `S_ARMOR` vs `S_ENCH` scroll semantics against `scrolls.c` before naming them in code (4.15).
+
+Add a rules-ledger row for each once resolved.
+
+## 5. Randomness and numerical behavior
 
 Use a specified port RNG, `xorshift32-v1`. This is an intentional deterministic-port choice, not a claim of binary C RNG parity.
 
@@ -219,7 +555,7 @@ Accept a decimal uint32 seed; map seed zero to initial word `0x6d2b79f5`, but ke
 
 Gameplay never calls `Math.random`. Rendering does not receive the RNG. Hallucination appearances are updated at a deterministic engine observation boundary; use a separate saved cosmetic RNG only if the rules ledger explicitly records that divergence. Initially preserve source-related random calls when moving perception logic out of curses, and freeze their results in observations. `observe()` itself consumes no randomness.
 
-## 5. Public session and transaction boundary
+## 6. Public session and transaction boundary
 
 ```typescript
 type EquipmentSlot = 'weapon' | 'armor' | 'leftRing' | 'rightRing';
@@ -261,7 +597,7 @@ Malformed input and stale revisions are transport errors: no sequence increment,
 
 Rule handlers receive `{state, indexes, random, emit}` and return `{consumedSlot, reason, resolved}`. They mutate the draft but do not run the entire turn loop. Nested consequences, such as traps and attacks, return ordered events to the same transaction. Expected gameplay failure uses result values, not exceptions.
 
-## 6. Command-cycle state machine
+## 7. Command-cycle state machine
 
 ```typescript
 type CyclePhase = 'begin' | 'input' | 'after' | 'terminal';
@@ -288,7 +624,7 @@ New-level creation inside an action does not reset the command-cycle state by de
 
 Define a trace hook for tests: `phase`, `effect`, `action`, `pickup`, `ring`, `inputReady`. It writes debug data only and cannot affect control flow.
 
-## 7. Scheduler implementation
+## 8. Scheduler implementation
 
 ```typescript
 type EffectId = string; // closed generated union from registered source effects
@@ -309,7 +645,7 @@ Default registration follows `main.c`: runners AFTER, doctor AFTER, swander fuse
 
 Scheduler overflow throws an explicit engine fault and rolls back the transaction; never corrupt memory or silently drop effects. Record this defined error behavior as a portability difference.
 
-## 8. Entities, stacking, and indexes
+## 9. Entities, stacking, and indexes
 
 `buildIndexes(state)` creates monster-by-cell, object-by-cell, and entity lookup helpers. Player occupancy is separate. A tile can hold a monster over an object. Initial source rules permit at most one floor object entity per cell; a quantity stack is one entity. Index validation rejects overlap rather than overwriting an entry.
 
@@ -319,7 +655,7 @@ Implement `allocateId`, `insertMonster`, `insertItem`, `transferItem`, `splitSta
 
 Maintain order arrays using the equivalent of source attach/detach operations. These arrays are validated serialized order, since changing iteration order can change AI and random outcomes. On a level transition, delete floor objects, monsters, and their packs; retain player-owned items and monotonic ID allocation.
 
-## 9. Generation pipeline
+## 10. Generation pipeline
 
 Implement `buildLevel(context, depth): LevelState` as part of the same transactional state, using the shared RNG and entity allocator. Reproduce the order in `new_level.c`: clear held state; update maximum depth; clear old level objects and monsters; `do_rooms`; `do_passages`; increment no-food counter; `put_things`; traps; stairs; monster room assignment; player placement; room entry observation.
 
@@ -329,7 +665,7 @@ Represent generation stages as trace events in debug mode. A seed fixture must r
 
 Connectivity tests use potential traversability, including secret passages, rather than requiring every hidden connection to be immediately walkable. Also verify valid player/stairs placement, nine room slots, unique entity IDs, and consistent floor occupancy. Use fixed seeds and depth-specific fixtures; do not assert that every slot contains an ordinary room.
 
-## 10. Movement and combat algorithms
+## 11. Movement and combat algorithms
 
 Movement uses a fixed direction-to-offset table. Port `do_move` branch order, particularly:
 
@@ -355,7 +691,7 @@ Damage strings in this repository use `x`, for example `1x6/1x4`, not the `d` no
 
 Copy strength tables from the pinned source with tests for table boundaries. Do not substitute familiar D&D formulas. Include attack-group details in raw debug events but only appropriate hit/miss descriptions in player events. Full monster special attacks remain separate named handlers rather than a growing switch in the renderer.
 
-## 11. Monster and item modules
+## 12. Monster and item modules
 
 Port `runners`, chase decisions, and source target updates without replacing them with A* pathfinding. Iterate `monsterOrder` in source-equivalent order. Before processing each ID, confirm it still exists; removal, teleport, and death can invalidate later assumptions. Movement uses the same occupancy helpers but source-specific monster predicates. Sleep, slow/haste, held behavior, and disguise belong to rules, not animation state.
 
@@ -365,7 +701,7 @@ Some scroll effects require another item selection. The first UI slice gathers a
 
 For each content category, transcribe definition data separately from runtime effects. Each definition includes `sourceFile`, `sourceSymbol`, stable ID, appearance category, initial generation data, and handler ID. A startup coverage check requires every enabled definition to have a handler. No reflection or dynamically evaluated handler names.
 
-## 12. Perception, memory, and event privacy
+## 13. Perception, memory, and event privacy
 
 ```typescript
 interface CellAppearance {
@@ -404,7 +740,7 @@ Define raw events as a discriminated union: actor moved, attack group resolved, 
 
 Use a closed `PresentationEvent` union of message, visible movement, visible attack, inventory update, and level-view reset. Strings inserted into DOM use `textContent`. Scene or audio adapters consume only this union and observation. Reveal mode draws a separate debug layer and never alters the normal observation.
 
-## 13. Persistence and replay
+## 14. Persistence and replay
 
 ```typescript
 interface SaveEnvelope {
@@ -436,7 +772,7 @@ Retain up to 1,000 replay entries. At rotation, restore the checkpoint and repla
 
 Use IndexedDB through a small `SaveStore` adapter with `loadLatest` and `storeLatest`. Serialize writes in action order. On failure show a storage status and keep manual download enabled. Loading validates and constructs a candidate session first, then swaps the shell session only on success. Clear stale selections after a successful swap.
 
-## 14. Browser shell and renderer
+## 15. Browser shell and renderer
 
 `AppController` owns one session, one replay recorder, one input controller, and one renderer. Startup creates the DOM, attempts saved-game restoration, otherwise creates the fixed default seed game. A failed autosave import offers a new game while retaining the invalid file for manual export; never trap the user in a startup loop.
 
@@ -452,7 +788,7 @@ Draw layers in order: unknown background, remembered terrain, visible terrain/fe
 
 The inspector reads detached debug snapshots and renders explicit fields. A raw JSON section is collapsible. Clicking the inspector cannot dispatch gameplay. Replay controls use the same renderer but disable live gameplay input. Do not poll engine state every animation frame; render from the last observation.
 
-## 15. Desktop 3D and XR extension contract
+## 16. Desktop 3D and XR extension contract
 
 ```typescript
 interface GameView {
@@ -469,7 +805,7 @@ Room meshes are keyed by level ID and region key. Shared materials/geometries us
 
 XR capability detection and session creation live outside GameView's logical contract. XR actions go through the same controller with revision validation. Physical tracking never writes actor position. Headset-only acceptance tests are added after the desktop 3D gate.
 
-## 16. Source-to-module implementation checklist
+## 17. Source-to-module implementation checklist
 
 | Source | Target | Required extraction |
 | --- | --- | --- |
@@ -487,11 +823,11 @@ XR capability detection and session creation live outside GameView's logical con
 
 For every ported function, record source symbol, target function, saved state it touches, time policy, RNG calls, and tests in the rules ledger. Treat source macros such as `when`, `winat`, `on`, and `attach` according to their definitions before translating branches. Do not perform mechanical text substitution.
 
-## 17. Concrete acceptance cases
+## 18. Concrete acceptance cases
 
 | ID | Setup/action | Expected assertion |
 | --- | --- | --- |
-| R01 | RNG word 1 | First three outputs match section 4 |
+| R01 | RNG word 1 | First three outputs match section 5 |
 | R02 | Call rnd(0), then rnd(1) | First does not advance draws; second does |
 | T01 | Normal input boundary; submit rest | One cycle completes; next BEFORE executes once |
 | T02 | Hasted input boundary; submit two rests | First consumes one slot with no AFTER; second runs AFTER |
@@ -521,7 +857,7 @@ For every ported function, record source symbol, target function, saved state it
 
 Expected rule outcomes must be checked against the pinned source before marking source-fidelity tests complete. Use scripted RNG adapters in rule unit tests; production RNG remains fixed. Generation tests use a modest fixed seed set spanning shallow and deep levels and validate invariants as well as deterministic hashes. Hash snapshots alone are not proof of source fidelity.
 
-## 18. Code generation work packages
+## 19. Code generation work packages
 
 1. **Scaffold and model:** configs, scripts, types, flags, definition manifest, RNG, grid helpers, state validator. Gate: typecheck, R01/R02, invalid-state tests. Produce no placeholder gameplay claims.
 2. **State operations and scheduler:** entity transfers/indexes, scheduler, draft transaction, cycle machine with fixtures. Gate: T01–T07, I01/I02, rollback tests.
