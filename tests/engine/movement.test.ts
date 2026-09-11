@@ -36,13 +36,14 @@ describe('movement rules', () => {
     transitionRegion(state, { x: 19, y: 5 }, { x: 20, y: 5 });
     expect(state.player.roomId).toBe(1);
   });
-  it('records deferred pickup without changing item ownership', () => {
+  it('resolves deferred pickup after movement', () => {
     const state = createTwoRoomFixture();
     transferItem(state, 'e2', { kind: 'floor', levelId: 1, at: { x: 6, y: 5 } });
     const session = new GameSession(state);
     session.submit({ expectedRevision: 0, action: { type: 'move', direction: 'E', pickup: true } });
-    expect(session.trace()).toContainEqual({ kind: 'pickup', detail: 'deferred:e2', tick: 0 });
-    expect(session.exportState().entities.e2).toMatchObject({ location: { kind: 'floor', at: { x: 6, y: 5 } } });
+    expect(session.trace()).toContainEqual({ kind: 'pickup', detail: 'collected:e2', tick: 0 });
+    expect(session.exportState().entities.e2).toBeUndefined();
+    expect(session.exportState().player.gold).toBeGreaterThan(0);
   });
   it('decrements no-move before destination calculation and consumes the slot (M02)', () => {
     const state = createTwoRoomFixture(); state.timing.noMove = 1;

@@ -195,9 +195,9 @@ Outcome: a small but meaningful set of Rogue interactions works end to end.
 | 8.6 | Doctor/healing and the required timed status recovery handlers. | Saved counters and scheduler produce equal continuation after restore. |
 | 8.7 | Implement trap handlers needed by the enabled slice, one trap kind per substep. | Each kind has movement/timing/save fixtures before generation enables it. |
 
-- [ ] 8.1
-- [ ] 8.2
-- [ ] 8.3
+- [x] 8.1
+- [x] 8.2
+- [x] 8.3
 - [ ] 8.4
 - [ ] 8.5
 - [ ] 8.6

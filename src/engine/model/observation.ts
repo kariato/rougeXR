@@ -28,6 +28,7 @@ export interface PlayerObservation {
   cells: ObservedCell[];
   entities: ObservedEntity[];
   status: { hp: number; maxHp: number; gold: number; depth: number };
+  inventory: Array<{ token: string; label: string; quantity: number }>;
 }
 
 export interface DebugCell {

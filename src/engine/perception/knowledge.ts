@@ -65,9 +65,13 @@ export function observe(state: WorldState): PlayerObservation {
     if (cells[cellIndex(state.level, at)]?.visibility !== 'visible') return [];
     return [{ token: `item-${entity.id}`, at: { ...at }, appearance: itemGlyph(entity), label: entity.definitionId }];
   });
+  const inventory = state.player.packOrder.map(id => {
+    const item = state.entities[id]; if (item?.kind !== 'item') throw new Error('Invalid player pack');
+    return { token: item.id, label: item.label ?? item.definitionId, quantity: item.quantity };
+  });
   return { revision: state.timing.revision, width: state.level.width, height: state.level.height,
     playerAt: { ...state.player.at }, cells, entities,
-    status: { hp: state.player.stats.hp, maxHp: state.player.stats.maxHp, gold: state.player.gold, depth: state.level.depth } };
+    status: { hp: state.player.stats.hp, maxHp: state.player.stats.maxHp, gold: state.player.gold, depth: state.level.depth }, inventory };
 }
 
 function itemGlyph(item: ItemState): string {

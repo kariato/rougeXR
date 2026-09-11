@@ -4,6 +4,8 @@ export type GameAction =
   | { type: 'move'; direction: Direction; pickup: boolean }
   | { type: 'rest' }
   | { type: 'search' }
+  | { type: 'pickup' }
+  | { type: 'drop'; itemId: string }
   | { type: 'fixture'; name: string };
 
 export interface ActionRequest { expectedRevision: number; action: GameAction }
@@ -17,6 +19,8 @@ export type RawEventInput =
   | { type: 'attackResolved'; attackerId: string; defenderId: string; groupIndex: number; roll: number; hit: boolean; damage: number }
   | { type: 'hpChanged'; actorId: string; from: number; to: number }
   | { type: 'actorDefeated'; actorId: string; byActorId: string }
+  | { type: 'itemCollected'; itemId: string; category: string; quantity: number }
+  | { type: 'itemDropped'; itemId: string; category: string; quantity: number }
   | { type: 'featureRevealed'; at: Position; feature: string }
   | { type: 'sourceMessage'; text: string };
 export type RawEvent = RawEventInput & { ordinal: number; actionSequence: number };

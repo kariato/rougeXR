@@ -6,6 +6,7 @@ import { resolveMove } from './rules/movement';
 import { resolveSearch } from './rules/search';
 import { isPositionVisible, updateKnowledge } from './perception/knowledge';
 import { runMonsters } from './rules/combat';
+import { collectAtPlayer, collectItem, dropItem } from './rules/inventory';
 
 export interface RuleResult { resolved: boolean; consumedSlot: boolean; reason: string | null; deferredPickup?: string | null }
 export interface RuleContext { state: WorldState; emit(event: PresentationEvent): void; emitRaw(event: RawEventInput): void }
@@ -50,7 +51,10 @@ export class GameSession {
       };
       const result = this.actionHandler(request.action, { state: draft, emit: event => events.push(event), emitRaw });
       trace.push({ kind: 'action', detail: `${request.action.type}:${result.resolved ? 'resolved' : 'rejected'}`, tick: draft.timing.tick });
-      if (result.deferredPickup) trace.push({ kind: 'pickup', detail: `deferred:${result.deferredPickup}`, tick: draft.timing.tick });
+      if (result.deferredPickup) {
+        const pickup = collectItem(draft, result.deferredPickup, emitRaw);
+        trace.push({ kind: 'pickup', detail: `${pickup.resolved ? 'collected' : 'rejected'}:${result.deferredPickup}`, tick: draft.timing.tick });
+      }
       if (result.consumedSlot) draft.timing.cycle.slotsRemaining--;
       this.pump(draft, trace, events, emitRaw);
       draft.timing.revision++;
@@ -120,6 +124,8 @@ function defaultAction(action: GameAction, context: RuleContext): RuleResult {
     return result;
   }
   if (action.type === 'search') return resolveSearch(context.state, context.emitRaw);
+  if (action.type === 'pickup') return { ...collectAtPlayer(context.state, context.emitRaw), consumedSlot: true };
+  if (action.type === 'drop') return dropItem(context.state, action.itemId, context.emitRaw);
   if (action.name === 'free') return { resolved: true, consumedSlot: false, reason: null };
   return { resolved: false, consumedSlot: false, reason: `Unsupported fixture action: ${action.name}` };
 }
@@ -127,10 +133,11 @@ function validRequest(value: unknown): value is ActionRequest {
   if (!value || typeof value !== 'object') return false;
   const request = value as Partial<ActionRequest>;
   return Number.isSafeInteger(request.expectedRevision) && request.action !== null && typeof request.action === 'object'
-    && ((request.action as GameAction).type === 'rest' || (request.action as GameAction).type === 'search'
+    && ((request.action as GameAction).type === 'rest' || (request.action as GameAction).type === 'search' || (request.action as GameAction).type === 'pickup'
       || ((request.action as GameAction).type === 'move'
         && Object.hasOwn({ N: 1, NE: 1, E: 1, SE: 1, S: 1, SW: 1, W: 1, NW: 1 }, (request.action as { direction?: string }).direction ?? '')
         && typeof (request.action as { pickup?: unknown }).pickup === 'boolean')
+      || ((request.action as GameAction).type === 'drop' && typeof (request.action as { itemId?: unknown }).itemId === 'string')
       || ((request.action as GameAction).type === 'fixture' && typeof (request.action as { name?: unknown }).name === 'string'));
 }
 function projectEvent(state: WorldState, event: RawEvent): PresentationEvent | null {
@@ -141,6 +148,7 @@ function projectEvent(state: WorldState, event: RawEvent): PresentationEvent | n
     return { type: 'message', text: event.hit ? `${subject} hit for ${event.damage}.` : `${subject} missed.` };
   }
   if (event.type === 'hpChanged' || event.type === 'actorDefeated') return null;
+  if (event.type === 'itemCollected' || event.type === 'itemDropped') return { type: 'inventoryUpdate' };
   if (event.actorId === 'player' || isPositionVisible(state, event.from) || isPositionVisible(state, event.to)) {
     return { type: 'visibleMovement', token: event.actorId === 'player' ? 'player' : `monster-${event.actorId}`,
       from: { ...event.from }, to: { ...event.to } };

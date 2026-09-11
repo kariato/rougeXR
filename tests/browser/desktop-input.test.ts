@@ -11,6 +11,7 @@ describe('desktop input', () => {
     expect(actionForKeyboardEvent(keyboard('c'))).toEqual({ type: 'move', direction: 'SE', pickup: true });
     expect(actionForKeyboardEvent(keyboard('.'))).toEqual({ type: 'rest' });
     expect(actionForKeyboardEvent(keyboard('f'))).toEqual({ type: 'search' });
+    expect(actionForKeyboardEvent(keyboard(','))).toEqual({ type: 'pickup' });
   });
   it('ignores repeats, unknown keys, and focused controls (B02)', () => {
     expect(actionForKeyboardEvent(keyboard('w', { repeat: true }))).toBeNull();

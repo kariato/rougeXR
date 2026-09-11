@@ -29,4 +29,6 @@ Phase 6 introduces a browser-native, versioned JSON format rather than reproduci
 
 Phase 7 ports the `fight.c` strength tables, independent slash-separated damage groups, zero-based d20 swing test, and damage floor. Bumping an active Kestrel attacks without moving the player. The `chase.c` runner executes in the AFTER phase, retains source scan and tie-break ordering, slow-turn toggling, and the Kestrel's flying second move. Death ends player effects immediately or removes the monster, grants experience, and releases carried item identities onto deterministic legal floor cells. Only the ordinary Kestrel is enabled; monster special attacks remain gated to Phase 11.
 
+Phase 8.1 activates the deferred `command.c` pickup point. Gold transfers its quantity into the purse and removes the floor entity atomically; ordinary items transfer through the shared ownership primitive. Pack accounting follows `pack.c`: ungrouped quantities consume one slot per unit while a grouped stack consumes one slot, with `MAXPACK` fixed at 23. Pickup events expose category and quantity to the presentation layer without leaking an item's definition.
+
 Add an entry before intentionally changing source behavior. Record the relevant source function, the difference, its reason, and its verification case.

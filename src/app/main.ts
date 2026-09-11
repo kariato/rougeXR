@@ -22,8 +22,10 @@ const stateSummary = required<HTMLElement>('#state-summary');
 const phaseTrace = required<HTMLElement>('#phase-trace');
 const rest = required<HTMLButtonElement>('#rest');
 const search = required<HTMLButtonElement>('#search');
+const pickup = required<HTMLButtonElement>('#pickup');
 const messages = required<HTMLElement>('#messages');
 const rawEvents = required<HTMLElement>('#raw-events');
+const inventory = required<HTMLElement>('#inventory');
 const saveButton = required<HTMLButtonElement>('#save');
 const loadButton = required<HTMLButtonElement>('#load');
 const exportReport = required<HTMLButtonElement>('#export-report');
@@ -54,6 +56,11 @@ function render(): void {
   stateSummary.textContent = `HP ${state.player.stats.hp}/${state.player.stats.maxHp} · Seed ${state.seed} · Tick ${state.timing.tick} · Revision ${state.timing.revision} · ${state.timing.status}`;
   phaseTrace.textContent = session.trace().map(entry => `[${entry.tick}] ${entry.kind}: ${entry.detail}`).join('\n') || 'Input ready.';
   messages.textContent = latestEvents.map(event => event.type === 'message' ? event.text : event.type === 'visibleMovement' ? 'You move.' : event.type).join('\n') || 'No messages.';
+  inventory.replaceChildren(...observation.inventory.map(item => {
+    const row = document.createElement('button'); row.type = 'button'; row.textContent = `${item.label} ×${item.quantity} — Drop`;
+    row.addEventListener('click', () => submit({ type: 'drop', itemId: item.token })); return row;
+  }));
+  if (!observation.inventory.length) inventory.textContent = 'Pack is empty.';
   rawEvents.textContent = reveal.checked ? JSON.stringify(session.debugEvents(), null, 2) : '';
   document.body.classList.toggle('debug-reveal', reveal.checked);
 }
@@ -70,6 +77,7 @@ rest.addEventListener('click', () => {
   submit({ type: 'rest' });
 });
 search.addEventListener('click', () => submit({ type: 'search' }));
+pickup.addEventListener('click', () => submit({ type: 'pickup' }));
 bindDesktopInput(window, enqueue);
 function submit(action: GameAction): void {
   enqueue(action);

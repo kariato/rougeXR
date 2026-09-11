@@ -60,3 +60,37 @@ export function transferItem(state: WorldState, id: EntityId, destination: ItemL
   }
   item.location = copied;
 }
+
+export function splitStack(state: WorldState, id: EntityId, quantity = 1): EntityId {
+  const item = state.entities[id];
+  if (item?.kind !== 'item') throw new Error('Unknown item');
+  if (!Number.isSafeInteger(quantity) || quantity < 1 || quantity >= item.quantity) throw new RangeError('Invalid split quantity');
+  const order = container(state, item.location); const newId = allocateId(state);
+  const copy = JSON.parse(JSON.stringify(item)) as typeof item;
+  copy.id = newId; copy.quantity = quantity; item.quantity -= quantity; state.entities[newId] = copy;
+  order.splice(order.indexOf(id) + 1, 0, newId);
+  return newId;
+}
+
+export function mergeStacks(state: WorldState, targetId: EntityId, sourceId: EntityId): boolean {
+  const target = state.entities[targetId]; const source = state.entities[sourceId];
+  if (target?.kind !== 'item' || source?.kind !== 'item' || targetId === sourceId || !sameLocation(target.location, source.location)
+    || !stackCompatible(target, source)) return false;
+  const order = container(state, source.location); const sourceIndex = order.indexOf(sourceId);
+  if (sourceIndex < 0) throw new Error('Invalid stack membership');
+  target.quantity += source.quantity; order.splice(sourceIndex, 1); delete state.entities[sourceId]; return true;
+}
+
+export function stackCompatible(left: Extract<WorldState['entities'][string], { kind: 'item' }>, right: Extract<WorldState['entities'][string], { kind: 'item' }>): boolean {
+  if (left.category !== right.category || left.definitionId !== right.definitionId) return false;
+  const multiple = ['food', 'potion', 'scroll'].includes(left.category);
+  if (!multiple && (left.group === 0 || left.group !== right.group)) return false;
+  const ignored = new Set(['id', 'location', 'quantity']);
+  const comparable = (item: typeof left): string => JSON.stringify(Object.fromEntries(Object.entries(item).filter(([key]) => !ignored.has(key))));
+  return comparable(left) === comparable(right);
+}
+
+function sameLocation(left: ItemLocation, right: ItemLocation): boolean {
+  return left.kind === 'floor' ? right.kind === 'floor' && left.levelId === right.levelId && left.at.x === right.at.x && left.at.y === right.at.y
+    : right.kind === 'pack' && left.owner === right.owner;
+}

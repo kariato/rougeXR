@@ -17,6 +17,7 @@ export function actionForKeyboardEvent(event: KeyboardInput): GameAction | null 
   if (direction) return { type: 'move', direction, pickup: true };
   if (event.key === '.' || event.key === ' ') return { type: 'rest' };
   if (event.key === 'f') return { type: 'search' };
+  if (event.key === ',') return { type: 'pickup' };
   return null;
 }
 
