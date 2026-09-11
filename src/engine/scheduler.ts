@@ -1,9 +1,9 @@
 import type { ScheduledEntry, SchedulerState } from './model/state';
 
 export const SCHEDULER_CAPACITY = 20;
-/** Fixture effects currently allowed in serialized Phase 6 state. */
-export const KNOWN_EFFECT_IDS = new Set(['before', 'after', 'fixture']);
-export type EffectRunner = (entry: Readonly<ScheduledEntry>) => void;
+/** Effect identifiers allowed in serialized state for the implemented slice. */
+export const KNOWN_EFFECT_IDS = new Set(['before', 'after', 'fixture', 'runners']);
+export type EffectRunner = (entry: Readonly<ScheduledEntry>) => void | boolean;
 
 function allocate(scheduler: SchedulerState, entry: ScheduledEntry): number {
   const index = scheduler.slots.findIndex(slot => slot === null);
@@ -36,7 +36,7 @@ export function killDaemon(s: SchedulerState, effect: string): boolean { return 
 export function runDaemons(s: SchedulerState, phase: ScheduledEntry['phase'], run: EffectRunner): void {
   for (let i = 0; i < s.slots.length; i++) {
     const entry = s.slots[i];
-    if (entry?.phase === phase && entry.remaining === -1) run(entry);
+    if (entry?.phase === phase && entry.remaining === -1 && run(entry) === false) return;
   }
 }
 export function runFuses(s: SchedulerState, phase: ScheduledEntry['phase'], run: EffectRunner): void {
@@ -46,7 +46,7 @@ export function runFuses(s: SchedulerState, phase: ScheduledEntry['phase'], run:
     entry.remaining--;
     if (entry.remaining === 0) {
       s.slots[i] = null;
-      run(entry);
+      if (run(entry) === false) return;
     }
   }
 }

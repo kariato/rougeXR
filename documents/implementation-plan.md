@@ -1,6 +1,6 @@
 # Implementation plan
 
-Status: implementation in progress through Phase 6. This plan breaks the [TypeScript implementation specification](typescript-implementation.md) into small reviewable changes. The reference remains Davidslv/rogue commit `f4653c2a2ee6981a73abe9dfda055134285e1e79`.
+Status: implementation complete through Phase 7. This plan breaks the [TypeScript implementation specification](typescript-implementation.md) into small reviewable changes. The reference remains Davidslv/rogue commit `f4653c2a2ee6981a73abe9dfda055134285e1e79`.
 
 ## Working method
 
@@ -172,12 +172,12 @@ Outcome: the user can fight and defeat a representative monster in the browser.
 | 7.5 | Add carried-item release on death using fixture items. | Released item retains identity and valid ownership; old monster references are removed. |
 | 7.6 | Add browser encounter fixture and replay regression. | Win/lose encounter produces identical save/replay results. |
 
-- [ ] 7.1
-- [ ] 7.2
-- [ ] 7.3
-- [ ] 7.4
-- [ ] 7.5
-- [ ] 7.6
+- [x] 7.1
+- [x] 7.2
+- [x] 7.3
+- [x] 7.4
+- [x] 7.5
+- [x] 7.6
 
 Gate: one end-to-end encounter. Do not enable monster species whose special behavior is missing.
 

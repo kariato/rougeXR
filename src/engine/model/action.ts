@@ -14,6 +14,9 @@ export type PresentationEvent =
   | { type: 'levelViewReset' };
 export type RawEventInput =
   | { type: 'actorMoved'; actorId: 'player' | string; from: Position; to: Position }
+  | { type: 'attackResolved'; attackerId: string; defenderId: string; groupIndex: number; roll: number; hit: boolean; damage: number }
+  | { type: 'hpChanged'; actorId: string; from: number; to: number }
+  | { type: 'actorDefeated'; actorId: string; byActorId: string }
   | { type: 'featureRevealed'; at: Position; feature: string }
   | { type: 'sourceMessage'; text: string };
 export type RawEvent = RawEventInput & { ordinal: number; actionSequence: number };

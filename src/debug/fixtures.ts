@@ -3,6 +3,9 @@ import { cellIndex, GRID_HEIGHT, GRID_WIDTH } from '../engine/grid';
 import type { CombatStats, TileState, WorldState } from '../engine/model/state';
 import { createRandom, rnd } from '../engine/random';
 import { updateKnowledge } from '../engine/perception/knowledge';
+import { KESTREL } from '../definitions/combat';
+import { IS_RUNNING } from '../engine/rules/flags';
+import { startDaemon } from '../engine/scheduler';
 
 /** Synthetic debug data, not Rogue generation or a source-balanced encounter. */
 export function createTwoRoomFixture(seed = 12345): WorldState {
@@ -42,5 +45,18 @@ export function createTwoRoomFixture(seed = 12345): WorldState {
   state.level.monsterOrder.push(monsterId);
   state.level.floorObjectOrder.push(objectId);
   updateKnowledge(state);
+  return state;
+}
+
+/** Phase 7 deterministic browser encounter using the first supported source monster. */
+export function createKestrelEncounterFixture(seed = 12345): WorldState {
+  const state = createTwoRoomFixture(seed);
+  const monster = state.entities.e1;
+  if (monster?.kind !== 'monster') throw new Error('Fixture monster missing');
+  monster.definitionId = KESTREL.id; monster.at = { x: 8, y: 5 }; monster.roomId = 0;
+  monster.stats = { ...KESTREL.stats, hp: 4, maxHp: 4, damage: KESTREL.stats.damage.map(group => ({ ...group })) };
+  monster.flags = KESTREL.flags | IS_RUNNING; monster.target = { kind: 'player' }; monster.disguise = KESTREL.glyph; monster.slowTurn = false;
+  startDaemon(state.timing.scheduler, 'runners', 0, 'after');
+  state.knowledge.remembered.fill(null); updateKnowledge(state);
   return state;
 }

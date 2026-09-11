@@ -1,4 +1,4 @@
-import { createTwoRoomFixture } from '../debug/fixtures';
+import { createKestrelEncounterFixture } from '../debug/fixtures';
 import { cellIndex } from '../engine/grid';
 import { debugFixtureSnapshot, describeDebugCell, describeObservedCell } from '../engine/perception/fixture-observation';
 import { observe } from '../engine/perception/knowledge';
@@ -11,7 +11,7 @@ import type { GameAction } from '../engine/model/action';
 import { parseSave, restoreGame, serializeSave } from '../persistence/save';
 import { parseReplay, ReplayRecorder, reproduceReplay } from '../persistence/replay';
 
-const fixture = createTwoRoomFixture();
+const fixture = createKestrelEncounterFixture();
 const issues = validateWorld(fixture);
 if (issues.length) throw new Error(`Fixture validation failed: ${JSON.stringify(issues)}`);
 
@@ -51,7 +51,7 @@ function render(): void {
     ? ['Click a cell to inspect it.']
     : [...describeObservedCell(observation, selectedIndex), ...(reveal.checked ? describeDebugCell(debugSnapshot, selectedIndex) : [])];
   inspector.textContent = lines.join('\n');
-  stateSummary.textContent = `Seed ${state.seed} · Tick ${state.timing.tick} · Revision ${state.timing.revision} · ${state.timing.cycle.slotsRemaining} slot ready`;
+  stateSummary.textContent = `HP ${state.player.stats.hp}/${state.player.stats.maxHp} · Seed ${state.seed} · Tick ${state.timing.tick} · Revision ${state.timing.revision} · ${state.timing.status}`;
   phaseTrace.textContent = session.trace().map(entry => `[${entry.tick}] ${entry.kind}: ${entry.detail}`).join('\n') || 'Input ready.';
   messages.textContent = latestEvents.map(event => event.type === 'message' ? event.text : event.type === 'visibleMovement' ? 'You move.' : event.type).join('\n') || 'No messages.';
   rawEvents.textContent = reveal.checked ? JSON.stringify(session.debugEvents(), null, 2) : '';

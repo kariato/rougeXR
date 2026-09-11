@@ -3,8 +3,10 @@ import { cellIndex, isPlayable, tileAt } from '../grid';
 import type { RawEventInput } from '../model/action';
 import type { Direction, EntityId, Position, Terrain, WorldState } from '../model/state';
 import { rnd } from '../random';
+import { attackMonster } from './combat';
+import { IS_CONFUSED } from './flags';
 
-export const IS_CONFUSED = 0o1000;
+export { IS_CONFUSED } from './flags';
 
 const OFFSETS: Record<Direction, Readonly<Position>> = {
   N: { x: 0, y: -1 }, NE: { x: 1, y: -1 }, E: { x: 1, y: 0 }, SE: { x: 1, y: 1 },
@@ -59,8 +61,10 @@ export function resolveMove(state: WorldState, direction: Direction, pickup: boo
     return { resolved: false, consumedSlot: false, reason: 'blocked', events, deferredPickup: null };
   }
   const monster = buildIndexes(state).monsters.get(cellIndex(state.level, to));
-  if (monster) return { resolved: false, consumedSlot: false, reason: 'combat-not-supported',
-    events: [{ type: 'sourceMessage', text: 'Combat is not available in this fixture yet.' }], deferredPickup: null };
+  if (monster) {
+    attackMonster(state, monster, event => events.push(event));
+    return { resolved: true, consumedSlot: true, reason: null, events, deferredPickup: null };
+  }
   transitionRegion(state, from, to);
   state.player.at = to;
   events.push({ type: 'actorMoved', actorId: 'player', from, to: { ...to } });
