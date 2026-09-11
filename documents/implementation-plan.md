@@ -220,7 +220,7 @@ Outcome: replace fixtures with a playable generated dungeon while retaining fixt
 | 9.7 | Connect seed field and New Game to generator; keep explicit fixture selector in debug UI. | User starts and plays a generated level without developer commands. |
 
 - [x] 9.1
-- [ ] 9.2
+- [x] 9.2
 - [ ] 9.3
 - [ ] 9.4
 - [ ] 9.5

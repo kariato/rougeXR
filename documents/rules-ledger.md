@@ -39,4 +39,6 @@ Phase 8.7 enables bear, sleep, arrow, dart, rust, and mystery traps. Hidden trap
 
 Phase 9.1 ports the ordinary branch of `rooms.c` as a headless layout builder. It uses fixed 80×24 dimensions, integer 3×3 room boxes, the source size and position draw order, the complete reroll when an ordinary top-row room lands on row zero, depth-based darkness, and distinct horizontal and vertical walls. Gone slots are accepted as explicit inputs without consuming ordinary-room draws; their source selection and maze carving remain assigned to Phase 9.3.
 
+Phase 9.2 ports `passages.c` graph construction for ordinary rooms. Reservoir selection retains source adjacency scan and RNG order, first building a spanning graph and then attempting zero to four extra edges. Corridor endpoints use wall-relative door draws, bends use the source distance countdown, and secret door/passage probability draws are retained at depth. A flood pass assigns stable passage IDs to connected corridor and exit components for serialized semantic state.
+
 Add an entry before intentionally changing source behavior. Record the relevant source function, the difference, its reason, and its verification case.
