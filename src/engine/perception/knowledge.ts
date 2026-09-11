@@ -67,11 +67,13 @@ export function observe(state: WorldState): PlayerObservation {
   });
   const inventory = state.player.packOrder.map(id => {
     const item = state.entities[id]; if (item?.kind !== 'item') throw new Error('Invalid player pack');
-    return { token: item.id, label: item.label ?? item.definitionId, quantity: item.quantity };
+    const equippedSlot = Object.entries(state.player.equipment).find(([, equipped]) => equipped === id)?.[0] ?? null;
+    return { token: item.id, label: item.label ?? item.definitionId, quantity: item.quantity, category: item.category, equippedSlot };
   });
   return { revision: state.timing.revision, width: state.level.width, height: state.level.height,
     playerAt: { ...state.player.at }, cells, entities,
-    status: { hp: state.player.stats.hp, maxHp: state.player.stats.maxHp, gold: state.player.gold, depth: state.level.depth }, inventory };
+    status: { hp: state.player.stats.hp, maxHp: state.player.stats.maxHp, gold: state.player.gold, depth: state.level.depth,
+      hungerStage: state.timing.hungerStage }, inventory };
 }
 
 function itemGlyph(item: ItemState): string {

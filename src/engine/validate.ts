@@ -32,8 +32,9 @@ export function validateWorld(input: unknown): ValidationIssue[] {
     check(s.rng.algorithm === 'xorshift32-v1' && integer(s.rng.word, 1) && s.rng.word <= 0xffffffff && integer(s.rng.draws), 'rng', 'Invalid random state');
     check(integer(s.nextEntitySerial, 1) && s.nextEntitySerial < Number.MAX_SAFE_INTEGER, 'nextEntitySerial', 'Invalid serial');
     const timing = s.timing;
-    check([timing.revision, timing.actionSequence, timing.tick, timing.noCommand, timing.noMove]
+    check([timing.revision, timing.actionSequence, timing.tick, timing.noCommand, timing.noMove, timing.noFood, timing.quiet, timing.between, timing.hungerStage]
       .every(value => integer(value)), 'timing', 'Invalid timing counter');
+    check(Number.isSafeInteger(timing.foodLeft) && timing.hungerStage <= 3, 'timing', 'Invalid hunger state');
     check(typeof timing.hasted === 'boolean' && ['playing', 'dead', 'won'].includes(timing.status), 'timing', 'Invalid timing state');
     check(['begin', 'input', 'after', 'terminal'].includes(timing.cycle.phase)
       && integer(timing.cycle.slotsRemaining) && timing.cycle.slotsRemaining <= 2, 'timing.cycle', 'Invalid cycle');

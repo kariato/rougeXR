@@ -1,4 +1,4 @@
-import type { Direction, Position } from './state';
+import type { Direction, EquipmentSlot, Position } from './state';
 
 export type GameAction =
   | { type: 'move'; direction: Direction; pickup: boolean }
@@ -6,6 +6,9 @@ export type GameAction =
   | { type: 'search' }
   | { type: 'pickup' }
   | { type: 'drop'; itemId: string }
+  | { type: 'equip'; itemId: string; slot: EquipmentSlot }
+  | { type: 'unequip'; slot: EquipmentSlot }
+  | { type: 'eat'; itemId: string }
   | { type: 'fixture'; name: string };
 
 export interface ActionRequest { expectedRevision: number; action: GameAction }
@@ -21,6 +24,8 @@ export type RawEventInput =
   | { type: 'actorDefeated'; actorId: string; byActorId: string }
   | { type: 'itemCollected'; itemId: string; category: string; quantity: number }
   | { type: 'itemDropped'; itemId: string; category: string; quantity: number }
+  | { type: 'equipmentChanged'; slot: string; itemId: string | null }
+  | { type: 'itemConsumed'; itemId: string; category: string }
   | { type: 'featureRevealed'; at: Position; feature: string }
   | { type: 'sourceMessage'; text: string };
 export type RawEvent = RawEventInput & { ordinal: number; actionSequence: number };

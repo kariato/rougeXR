@@ -27,8 +27,8 @@ export interface PlayerObservation {
   playerAt: Position;
   cells: ObservedCell[];
   entities: ObservedEntity[];
-  status: { hp: number; maxHp: number; gold: number; depth: number };
-  inventory: Array<{ token: string; label: string; quantity: number }>;
+  status: { hp: number; maxHp: number; gold: number; depth: number; hungerStage: number };
+  inventory: Array<{ token: string; label: string; quantity: number; category: string; equippedSlot: string | null }>;
 }
 
 export interface DebugCell {

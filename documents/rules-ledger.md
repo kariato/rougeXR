@@ -31,4 +31,6 @@ Phase 7 ports the `fight.c` strength tables, independent slash-separated damage 
 
 Phase 8.1 activates the deferred `command.c` pickup point. Gold transfers its quantity into the purse and removes the floor entity atomically; ordinary items transfer through the shared ownership primitive. Pack accounting follows `pack.c`: ungrouped quantities consume one slot per unit while a grouped stack consumes one slot, with `MAXPACK` fixed at 23. Pickup events expose category and quantity to the presentation layer without leaking an item's definition.
 
+Phase 8.2–8.4 adds monotonic-ID stack splitting, compatibility-checked merging, one-unit drops, and player equipment. Grouped stacks retain their source group and consume one pack slot; ordinary multiple items retain per-unit capacity. Weapon enchantments participate in compatibility. Equip actions validate ownership and category before mutation, reject cursed removal or replacement, and feed weapon hit/damage bonuses and worn armor class into `fight.c` calculations. The player observation exposes only carried labels, quantities, categories, and equipped slots needed by browser controls.
+
 Add an entry before intentionally changing source behavior. Record the relevant source function, the difference, its reason, and its verification case.

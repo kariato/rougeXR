@@ -198,8 +198,8 @@ Outcome: a small but meaningful set of Rogue interactions works end to end.
 - [x] 8.1
 - [x] 8.2
 - [x] 8.3
-- [ ] 8.4
-- [ ] 8.5
+- [x] 8.4
+- [x] 8.5
 - [ ] 8.6
 - [ ] 8.7
 

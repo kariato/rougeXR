@@ -5,7 +5,7 @@ Based on [Davidslv/rogue (Rogue 5.4.4)](https://github.com/Davidslv/rogue), init
 
 Development starts in a regular desktop browser with keyboard and mouse controls, a 2D dungeon view, and a state inspector. Desktop 3D follows; XR is added after the game can be debugged without a headset.
 
-Current implementation: Phase 8 is underway. Its first slice resolves movement's deferred pickup hook, collects gold exactly once into the purse, enforces the source's 23-slot pack accounting for ordinary items, and exposes browser pickup through the comma key and button. Phase 7 combat and deterministic replay remain active in the browser encounter.
+Current implementation: Phase 8 is underway through equipment. Gold pickup, source-style pack accounting, stack split/merge, browser inventory and drop controls, weapon/armor equip and removal, curse restrictions, and equipment combat modifiers now run through the deterministic engine. Phase 7 combat and replay remain active in the browser encounter.
 
 - [Browser-first design](documents/design.md)
 - [Detailed TypeScript implementation specification](documents/typescript-implementation.md)

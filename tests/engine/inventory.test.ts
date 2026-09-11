@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { createTwoRoomFixture } from '../../src/debug/fixtures';
 import { allocateId, mergeStacks, splitStack, transferItem } from '../../src/engine/entities';
-import { collectAtPlayer, collectItem, dropItem, MAX_PACK_SLOTS, packSlots } from '../../src/engine/rules/inventory';
+import { collectAtPlayer, collectItem, dropItem, equipItem, MAX_PACK_SLOTS, packSlots, unequipItem } from '../../src/engine/rules/inventory';
+import { IS_CURSED } from '../../src/engine/rules/flags';
 import { GameSession } from '../../src/engine/session';
 
 describe('inventory pickup', () => {
@@ -51,6 +52,18 @@ describe('inventory pickup', () => {
     if (weapon?.kind !== 'item') throw new Error('missing item');
     weapon.category = 'weapon'; Object.assign(weapon, { hitBonus: 0, damageBonus: 0 }); state.player.equipment.weapon = weaponId;
     const before = structuredClone(state); expect(dropItem(state, weaponId, () => {})).toMatchObject({ reason: 'equipped' }); expect(state).toEqual(before);
+  });
+
+  it('equips the right category and prevents cursed removal or replacement (I03)', () => {
+    const state = createTwoRoomFixture(); const weapon = state.entities.e2;
+    if (weapon?.kind !== 'item') throw new Error('missing item');
+    weapon.category = 'weapon'; Object.assign(weapon, { hitBonus: 2, damageBonus: 3 });
+    transferItem(state, weapon.id, { kind: 'pack', owner: 'player' });
+    expect(equipItem(state, weapon.id, 'armor', () => {})).toMatchObject({ reason: 'wrong-slot' });
+    expect(equipItem(state, weapon.id, 'weapon', () => {})).toMatchObject({ resolved: true, consumedSlot: true });
+    weapon.flags |= IS_CURSED; const before = structuredClone(state);
+    expect(unequipItem(state, 'weapon', () => {})).toMatchObject({ reason: 'cursed' }); expect(state).toEqual(before);
+    expect(dropItem(state, weapon.id, () => {})).toMatchObject({ reason: 'equipped' }); expect(state).toEqual(before);
   });
 
   it('rejects stale or remote item identities without mutation', () => {

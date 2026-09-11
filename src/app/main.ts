@@ -53,12 +53,24 @@ function render(): void {
     ? ['Click a cell to inspect it.']
     : [...describeObservedCell(observation, selectedIndex), ...(reveal.checked ? describeDebugCell(debugSnapshot, selectedIndex) : [])];
   inspector.textContent = lines.join('\n');
-  stateSummary.textContent = `HP ${state.player.stats.hp}/${state.player.stats.maxHp} · Seed ${state.seed} · Tick ${state.timing.tick} · Revision ${state.timing.revision} · ${state.timing.status}`;
+  const hunger = ['Fed', 'Hungry', 'Weak', 'Faint'][state.timing.hungerStage] ?? 'Unknown';
+  stateSummary.textContent = `HP ${state.player.stats.hp}/${state.player.stats.maxHp} · ${hunger} · Seed ${state.seed} · Tick ${state.timing.tick} · Revision ${state.timing.revision} · ${state.timing.status}`;
   phaseTrace.textContent = session.trace().map(entry => `[${entry.tick}] ${entry.kind}: ${entry.detail}`).join('\n') || 'Input ready.';
   messages.textContent = latestEvents.map(event => event.type === 'message' ? event.text : event.type === 'visibleMovement' ? 'You move.' : event.type).join('\n') || 'No messages.';
   inventory.replaceChildren(...observation.inventory.map(item => {
-    const row = document.createElement('button'); row.type = 'button'; row.textContent = `${item.label} ×${item.quantity} — Drop`;
-    row.addEventListener('click', () => submit({ type: 'drop', itemId: item.token })); return row;
+    const row = document.createElement('div'); row.append(`${item.label} ×${item.quantity} `);
+    if (item.category === 'weapon' || item.category === 'armor') {
+      const equipment = document.createElement('button'); equipment.type = 'button'; equipment.textContent = item.equippedSlot ? 'Remove' : 'Equip';
+      equipment.addEventListener('click', () => submit(item.equippedSlot
+        ? { type: 'unequip', slot: item.equippedSlot as 'weapon' | 'armor' }
+        : { type: 'equip', itemId: item.token, slot: item.category as 'weapon' | 'armor' })); row.append(equipment);
+    }
+    if (item.category === 'food') {
+      const eat = document.createElement('button'); eat.type = 'button'; eat.textContent = 'Eat';
+      eat.addEventListener('click', () => submit({ type: 'eat', itemId: item.token })); row.append(eat);
+    }
+    const drop = document.createElement('button'); drop.type = 'button'; drop.textContent = 'Drop';
+    drop.addEventListener('click', () => submit({ type: 'drop', itemId: item.token })); row.append(drop); return row;
   }));
   if (!observation.inventory.length) inventory.textContent = 'Pack is empty.';
   rawEvents.textContent = reveal.checked ? JSON.stringify(session.debugEvents(), null, 2) : '';

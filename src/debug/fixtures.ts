@@ -13,6 +13,7 @@ export function createTwoRoomFixture(seed = 12345): WorldState {
   const state: WorldState = {
     seed, rng: createRandom(seed), nextEntitySerial: 1, entities: {},
     timing: { revision: 0, actionSequence: 0, tick: 0, status: 'playing', noCommand: 0, noMove: 0, hasted: false,
+      foodLeft: 1300, noFood: 0, quiet: 0, between: 0, hungerStage: 0,
       scheduler: { slots: Array.from({ length: 20 }, () => null) }, cycle: { phase: 'begin', slotsRemaining: 0 } },
     knowledge: { levelId: 1, remembered: Array.from({ length: GRID_WIDTH * GRID_HEIGHT }, () => null) },
     player: { at: { x: 5, y: 5 }, stats: stats(), flags: 0, packOrder: [], roomId: 0, gold: 0,
@@ -57,6 +58,7 @@ export function createKestrelEncounterFixture(seed = 12345): WorldState {
   monster.stats = { ...KESTREL.stats, hp: 4, maxHp: 4, damage: KESTREL.stats.damage.map(group => ({ ...group })) };
   monster.flags = KESTREL.flags | IS_RUNNING; monster.target = { kind: 'player' }; monster.disguise = KESTREL.glyph; monster.slowTurn = false;
   startDaemon(state.timing.scheduler, 'runners', 0, 'after');
+  startDaemon(state.timing.scheduler, 'stomach', 0, 'after');
   state.knowledge.remembered.fill(null); updateKnowledge(state);
   return state;
 }

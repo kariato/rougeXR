@@ -13,12 +13,18 @@ export function attackMonster(state: WorldState, id: EntityId, emit: EmitRaw): v
   const monster = state.entities[id];
   if (monster?.kind !== 'monster') throw new Error('Unknown monster');
   monster.flags |= IS_RUNNING; monster.target = { kind: 'player' };
-  strike(state, 'player', state.player.stats, id, monster.stats, emit);
+  const weapon = state.player.equipment.weapon ? state.entities[state.player.equipment.weapon] : null;
+  const hitBonus = weapon?.kind === 'item' && weapon.category === 'weapon' ? weapon.hitBonus : 0;
+  const damageBonus = weapon?.kind === 'item' && weapon.category === 'weapon' ? weapon.damageBonus : 0;
+  strike(state, 'player', state.player.stats, id, monster.stats, emit, hitBonus, damageBonus);
   if (monster.stats.hp === 0) destroyMonster(state, monster, emit);
 }
 
 export function attackPlayer(state: WorldState, monster: MonsterState, emit: EmitRaw): void {
-  strike(state, monster.id, monster.stats, 'player', state.player.stats, emit);
+  const armor = state.player.equipment.armor ? state.entities[state.player.equipment.armor] : null;
+  const defender = armor?.kind === 'item' && armor.category === 'armor' ? { ...state.player.stats, armorClass: armor.armorClass } : state.player.stats;
+  strike(state, monster.id, monster.stats, 'player', defender, emit);
+  state.player.stats.hp = defender.hp;
   if (state.player.stats.hp === 0) {
     state.timing.status = 'dead';
     emit({ type: 'actorDefeated', actorId: 'player', byActorId: monster.id });
@@ -26,11 +32,11 @@ export function attackPlayer(state: WorldState, monster: MonsterState, emit: Emi
   }
 }
 
-function strike(state: WorldState, attackerId: string, attacker: CombatStats, defenderId: string, defender: CombatStats, emit: EmitRaw): void {
+function strike(state: WorldState, attackerId: string, attacker: CombatStats, defenderId: string, defender: CombatStats, emit: EmitRaw, weaponHit = 0, weaponDamage = 0): void {
   const strength = attacker.strength;
   if (!Number.isSafeInteger(strength) || strength < 0 || strength >= STRENGTH_HIT_BONUS.length) throw new Error('Strength is outside source table');
   const defenderFlags = defenderId === 'player' ? state.player.flags : (state.entities[defenderId] as MonsterState).flags;
-  const hitBonus = STRENGTH_HIT_BONUS[strength]! + ((defenderFlags & IS_RUNNING) === 0 ? 4 : 0);
+  const hitBonus = weaponHit + STRENGTH_HIT_BONUS[strength]! + ((defenderFlags & IS_RUNNING) === 0 ? 4 : 0);
   for (let groupIndex = 0; groupIndex < attacker.damage.length && defender.hp > 0; groupIndex++) {
     const group = attacker.damage[groupIndex]!;
     const roll = rnd(state.rng, 20);
@@ -38,7 +44,7 @@ function strike(state: WorldState, attackerId: string, attacker: CombatStats, de
     let damage = 0;
     if (hit) {
       for (let die = 0; die < group.count; die++) damage += rnd(state.rng, group.sides) + 1;
-      damage = Math.max(0, damage + STRENGTH_DAMAGE_BONUS[strength]!);
+      damage = Math.max(0, damage + weaponDamage + STRENGTH_DAMAGE_BONUS[strength]!);
       const before = defender.hp; defender.hp = Math.max(0, defender.hp - damage);
       emit({ type: 'hpChanged', actorId: defenderId, from: before, to: defender.hp });
     }

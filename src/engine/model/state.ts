@@ -2,6 +2,7 @@
 export type EntityId = string;
 export interface Position { x: number; y: number }
 export type Direction = 'N' | 'NE' | 'E' | 'SE' | 'S' | 'SW' | 'W' | 'NW';
+export type EquipmentSlot = 'weapon' | 'armor' | 'leftRing' | 'rightRing';
 export interface DiceGroup { count: number; sides: number }
 export type Terrain = 'void' | 'floor' | 'wallH' | 'wallV' | 'door' | 'passage';
 export type TrapKind = 'trapDoor' | 'bear' | 'sleep' | 'arrow' | 'teleport' | 'dart' | 'rust' | 'mystery';
@@ -65,6 +66,7 @@ export interface TimingState {
   revision: number; actionSequence: number; tick: number;
   status: 'playing' | 'dead' | 'won';
   noCommand: number; noMove: number; hasted: boolean;
+  foodLeft: number; noFood: number; quiet: number; between: number; hungerStage: number;
   scheduler: SchedulerState; cycle: CycleState;
 }
 export interface WorldState {
