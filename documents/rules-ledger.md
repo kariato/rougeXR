@@ -35,4 +35,6 @@ Phase 8.2–8.4 adds monotonic-ID stack splitting, compatibility-checked merging
 
 Phase 8.5–8.6 saves food, hunger stage, quiet turns, and related continuation counters. Eating follows `misc.c`: negative food is raised to zero, nutrition adds `HUNGERTIME - 200 + rnd(400)` up to `STOMACHSIZE`, and the taste roll retains its experience side effect. The AFTER stomach daemon preserves threshold crossings, fainting draws, forced turns, and starvation. The AFTER doctor daemon preserves level-dependent quiet healing and regeneration rings; combat resets quiet before the daemon runs. Blindness and confusion recovery are registered as serializable fuse effects.
 
+Phase 8.7 enables bear, sleep, arrow, dart, rust, and mystery traps. Hidden traps reveal on contact, levitation bypasses activation, projectile traps retain swing, damage, and save draw order, missed arrows create floor entities when the cell is available, and armor rust operates on the equipped entity. Teleport and trap-door are recognized but reject before movement because their source behavior depends on Phase 9 level construction and legal random placement; generation must not emit them until those handlers are activated.
+
 Add an entry before intentionally changing source behavior. Record the relevant source function, the difference, its reason, and its verification case.

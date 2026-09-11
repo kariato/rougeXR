@@ -5,6 +5,7 @@ import type { Direction, EntityId, Position, Terrain, WorldState } from '../mode
 import { rnd } from '../random';
 import { attackMonster } from './combat';
 import { IS_CONFUSED } from './flags';
+import { ACTIVE_TRAPS, DEFERRED_TRAPS, triggerTrap } from './traps';
 
 export { IS_CONFUSED } from './flags';
 
@@ -65,9 +66,15 @@ export function resolveMove(state: WorldState, direction: Direction, pickup: boo
     attackMonster(state, monster, event => events.push(event));
     return { resolved: true, consumedSlot: true, reason: null, events, deferredPickup: null };
   }
+  const destinationFeature = tileAt(state.level, to).feature;
+  if (destinationFeature?.kind === 'trap' && !destinationFeature.revealed && DEFERRED_TRAPS.has(destinationFeature.trap)) {
+    events.push({ type: 'sourceMessage', text: `${destinationFeature.trap} traps require level generation.` });
+    return { resolved: false, consumedSlot: false, reason: `unsupported-trap:${destinationFeature.trap}`, events, deferredPickup: null };
+  }
   transitionRegion(state, from, to);
   state.player.at = to;
   events.push({ type: 'actorMoved', actorId: 'player', from, to: { ...to } });
+  if (destinationFeature?.kind === 'trap' && ACTIVE_TRAPS.has(destinationFeature.trap)) triggerTrap(state, to, event => events.push(event));
   const item = buildIndexes(state).objects.get(cellIndex(state.level, to)) ?? null;
   return { resolved: true, consumedSlot: true, reason: null, events, deferredPickup: pickup ? item : null };
 }

@@ -1,6 +1,6 @@
 # Implementation plan
 
-Status: implementation complete through Phase 7. This plan breaks the [TypeScript implementation specification](typescript-implementation.md) into small reviewable changes. The reference remains Davidslv/rogue commit `f4653c2a2ee6981a73abe9dfda055134285e1e79`.
+Status: implementation complete through Phase 8. This plan breaks the [TypeScript implementation specification](typescript-implementation.md) into small reviewable changes. The reference remains Davidslv/rogue commit `f4653c2a2ee6981a73abe9dfda055134285e1e79`.
 
 ## Working method
 
@@ -201,7 +201,7 @@ Outcome: a small but meaningful set of Rogue interactions works end to end.
 - [x] 8.4
 - [x] 8.5
 - [x] 8.6
-- [ ] 8.7
+- [x] 8.7
 
 Gate: slice capability manifest is accurate. Extend validation with every new state field; keep older save versions explicitly compatible or explicitly rejected.
 
