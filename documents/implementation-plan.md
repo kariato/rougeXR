@@ -200,7 +200,7 @@ Outcome: a small but meaningful set of Rogue interactions works end to end.
 - [x] 8.3
 - [x] 8.4
 - [x] 8.5
-- [ ] 8.6
+- [x] 8.6
 - [ ] 8.7
 
 Gate: slice capability manifest is accurate. Extend validation with every new state field; keep older save versions explicitly compatible or explicitly rejected.

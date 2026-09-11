@@ -9,6 +9,7 @@ import { runMonsters } from './rules/combat';
 import { collectAtPlayer, collectItem, dropItem, equipItem, unequipItem } from './rules/inventory';
 import { eatItem } from './rules/inventory';
 import { runStomach } from './rules/hunger';
+import { recoverConfusion, recoverSight, runDoctor } from './rules/effects';
 
 export interface RuleResult { resolved: boolean; consumedSlot: boolean; reason: string | null; deferredPickup?: string | null }
 export interface RuleContext { state: WorldState; emit(event: PresentationEvent): void; emitRaw(event: RawEventInput): void }
@@ -30,7 +31,10 @@ export class GameSession {
   constructor(initial: WorldState, options: SessionOptions = {}) {
     this.state = detached(initial);
     this.effects = { runners: (state, _entry, emitRaw) => runMonsters(state, emitRaw),
-      stomach: (state, _entry, emitRaw) => runStomach(state, emitRaw), ...(options.effects ?? {}) };
+      doctor: (state, _entry, emitRaw) => runDoctor(state, emitRaw),
+      stomach: (state, _entry, emitRaw) => runStomach(state, emitRaw),
+      unconfuse: (state, _entry, emitRaw) => recoverConfusion(state, emitRaw),
+      sight: (state, _entry, emitRaw) => recoverSight(state, emitRaw), ...(options.effects ?? {}) };
     this.actionHandler = options.actionHandler ?? defaultAction;
     this.operationLimit = options.operationLimit ?? 10000;
     this.prepareInitialBoundary();

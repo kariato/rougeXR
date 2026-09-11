@@ -12,7 +12,7 @@ export type EmitRaw = (event: RawEventInput) => void;
 export function attackMonster(state: WorldState, id: EntityId, emit: EmitRaw): void {
   const monster = state.entities[id];
   if (monster?.kind !== 'monster') throw new Error('Unknown monster');
-  monster.flags |= IS_RUNNING; monster.target = { kind: 'player' };
+  state.timing.quiet = 0; monster.flags |= IS_RUNNING; monster.target = { kind: 'player' };
   const weapon = state.player.equipment.weapon ? state.entities[state.player.equipment.weapon] : null;
   const hitBonus = weapon?.kind === 'item' && weapon.category === 'weapon' ? weapon.hitBonus : 0;
   const damageBonus = weapon?.kind === 'item' && weapon.category === 'weapon' ? weapon.damageBonus : 0;
@@ -21,6 +21,7 @@ export function attackMonster(state: WorldState, id: EntityId, emit: EmitRaw): v
 }
 
 export function attackPlayer(state: WorldState, monster: MonsterState, emit: EmitRaw): void {
+  state.timing.quiet = 0;
   const armor = state.player.equipment.armor ? state.entities[state.player.equipment.armor] : null;
   const defender = armor?.kind === 'item' && armor.category === 'armor' ? { ...state.player.stats, armorClass: armor.armorClass } : state.player.stats;
   strike(state, monster.id, monster.stats, 'player', defender, emit);

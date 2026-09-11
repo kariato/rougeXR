@@ -58,6 +58,7 @@ export function createKestrelEncounterFixture(seed = 12345): WorldState {
   monster.stats = { ...KESTREL.stats, hp: 4, maxHp: 4, damage: KESTREL.stats.damage.map(group => ({ ...group })) };
   monster.flags = KESTREL.flags | IS_RUNNING; monster.target = { kind: 'player' }; monster.disguise = KESTREL.glyph; monster.slowTurn = false;
   startDaemon(state.timing.scheduler, 'runners', 0, 'after');
+  startDaemon(state.timing.scheduler, 'doctor', 0, 'after');
   startDaemon(state.timing.scheduler, 'stomach', 0, 'after');
   state.knowledge.remembered.fill(null); updateKnowledge(state);
   return state;
