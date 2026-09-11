@@ -41,4 +41,6 @@ Phase 9.1 ports the ordinary branch of `rooms.c` as a headless layout builder. I
 
 Phase 9.2 ports `passages.c` graph construction for ordinary rooms. Reservoir selection retains source adjacency scan and RNG order, first building a spanning graph and then attempting zero to four extra edges. Corridor endpoints use wall-relative door draws, bends use the source distance countdown, and secret door/passage probability draws are retained at depth. A flood pass assigns stable passage IDs to connected corridor and exit components for serialized semantic state.
 
+Phase 9.3 adds `rooms.c` gone-room selection and maze carving. Gone slots are chosen uniquely through the source `rnd_room` retry pattern and retain their random corridor anchors. Maze rooms use the source slot dimensions, even-coordinate start, fixed neighbor scan, reservoir choice, and recursive two-cell carving with intermediate passage cells. Passage endpoints now distinguish ordinary doors, gone anchors, and existing maze openings; hidden maze and corridor cells participate in semantic passage numbering.
+
 Add an entry before intentionally changing source behavior. Record the relevant source function, the difference, its reason, and its verification case.

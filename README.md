@@ -5,7 +5,7 @@ Based on [Davidslv/rogue (Rogue 5.4.4)](https://github.com/Davidslv/rogue), init
 
 Development starts in a regular desktop browser with keyboard and mouse controls, a 2D dungeon view, and a state inspector. Desktop 3D follows; XR is added after the game can be debugged without a headset.
 
-Current implementation: Phase 9 now builds deterministic ordinary rooms and the source room-connectivity graph, including door selection, bent corridor carving, optional extra edges, and numbered passage components. Phase 8's survival slice remains the playable browser application while special regions and generated population are added.
+Current implementation: Phase 9 now builds deterministic ordinary, gone, and maze regions plus the source room-connectivity graph. Special-region anchors, maze carving, ordinary doors, maze openings, bent corridors, hidden cells, and numbered passage components share one seeded pipeline. Phase 8 remains the playable browser application while placement and population are added.
 
 - [Browser-first design](documents/design.md)
 - [Detailed TypeScript implementation specification](documents/typescript-implementation.md)

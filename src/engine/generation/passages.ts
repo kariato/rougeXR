@@ -23,7 +23,7 @@ export function buildPassages(rng: RandomState, depth: number, source: RoomLayou
     for (const candidate of ADJACENT[from]!) if (!connected[from]![candidate] && rnd(rng, ++choices) === 0) target = candidate;
     if (choices > 0) { connect(rng, depth, rooms, tiles, from, target); connected[from]![target] = connected[target]![from] = true; }
   }
-  return { rooms, tiles, passages: numberPassages(tiles, rooms) };
+  return { rooms, tiles, passages: numberPassages(tiles) };
 }
 
 function connect(rng: RandomState, depth: number, rooms: RoomState[], tiles: TileState[], first: number, second: number): void {
@@ -31,19 +31,19 @@ function connect(rng: RandomState, depth: number, rooms: RoomState[], tiles: Til
   const from = rooms[low]!; const to = rooms[low + (horizontal ? 1 : 3)]!;
   let start: Position; let end: Position; let delta: Position; let turnDelta: Position; let distance: number; let turnDistance: number;
   if (horizontal) {
-    start = { x: from.origin.x + from.width - 1, y: from.origin.y + rnd(rng, from.height - 2) + 1 };
-    end = { x: to.origin.x, y: to.origin.y + rnd(rng, to.height - 2) + 1 };
+    start = from.kind === 'gone' ? { ...from.origin } : pickVerticalWall(rng, tiles, from, 'right');
+    end = to.kind === 'gone' ? { ...to.origin } : pickVerticalWall(rng, tiles, to, 'left');
     delta = { x: 1, y: 0 }; turnDelta = { x: 0, y: start.y < end.y ? 1 : -1 };
     distance = Math.abs(start.x - end.x) - 1; turnDistance = Math.abs(start.y - end.y);
   } else {
-    start = { x: from.origin.x + rnd(rng, from.width - 2) + 1, y: from.origin.y + from.height - 1 };
-    end = { x: to.origin.x + rnd(rng, to.width - 2) + 1, y: to.origin.y };
+    start = from.kind === 'gone' ? { ...from.origin } : pickHorizontalWall(rng, tiles, from, 'bottom');
+    end = to.kind === 'gone' ? { ...to.origin } : pickHorizontalWall(rng, tiles, to, 'top');
     delta = { x: 0, y: 1 }; turnDelta = { x: start.x < end.x ? 1 : -1, y: 0 };
     distance = Math.abs(start.y - end.y) - 1; turnDistance = Math.abs(start.x - end.x);
   }
   if (distance < 1) throw new Error('Room boxes leave no legal corridor turn');
   const turnSpot = rnd(rng, distance - 1) + 1;
-  makeDoor(rng, depth, rooms[low]!, tiles, start); makeDoor(rng, depth, rooms[low + (horizontal ? 1 : 3)]!, tiles, end);
+  makeEndpoint(rng, depth, rooms[low]!, tiles, start); makeEndpoint(rng, depth, rooms[low + (horizontal ? 1 : 3)]!, tiles, end);
   const current = { ...start };
   while (distance > 0) {
     current.x += delta.x; current.y += delta.y;
@@ -54,11 +54,24 @@ function connect(rng: RandomState, depth: number, rooms: RoomState[], tiles: Til
   if (current.x !== end.x || current.y !== end.y) throw new Error('Corridor connectivity mismatch');
 }
 
-function makeDoor(rng: RandomState, depth: number, room: RoomState, tiles: TileState[], at: Position): void {
-  room.exits.push({ ...at }); const tile = tiles[cellIndex({ width: GRID_WIDTH, height: GRID_HEIGHT }, at)]!;
+function makeEndpoint(rng: RandomState, depth: number, room: RoomState, tiles: TileState[], at: Position): void {
+  room.exits.push({ ...at });
+  if (room.kind === 'gone') { putPassage(rng, depth, tiles, at); return; }
+  if (room.kind === 'maze') return;
+  const tile = tiles[cellIndex({ width: GRID_WIDTH, height: GRID_HEIGHT }, at)]!;
   if (rnd(rng, 10) + 1 < depth && rnd(rng, 5) === 0) { tile.secret = true; }
   else { tile.terrain = 'door'; tile.secret = false; }
 }
+
+function pickVerticalWall(rng: RandomState, tiles: TileState[], room: RoomState, side: 'left' | 'right'): Position {
+  let at: Position; do at = { x: room.origin.x + (side === 'right' ? room.width - 1 : 0), y: room.origin.y + rnd(rng, room.height - 2) + 1 };
+  while (room.kind === 'maze' && !isMazePassage(tiles, at)); return at;
+}
+function pickHorizontalWall(rng: RandomState, tiles: TileState[], room: RoomState, side: 'top' | 'bottom'): Position {
+  let at: Position; do at = { x: room.origin.x + rnd(rng, room.width - 2) + 1, y: room.origin.y + (side === 'bottom' ? room.height - 1 : 0) };
+  while (room.kind === 'maze' && !isMazePassage(tiles, at)); return at;
+}
+function isMazePassage(tiles: TileState[], at: Position): boolean { const tile = tiles[cellIndex({ width: GRID_WIDTH, height: GRID_HEIGHT }, at)]!; return tile.terrain === 'passage' || tile.secret; }
 
 function putPassage(rng: RandomState, depth: number, tiles: TileState[], at: Position): void {
   const tile = tiles[cellIndex({ width: GRID_WIDTH, height: GRID_HEIGHT }, at)]!;
@@ -67,10 +80,9 @@ function putPassage(rng: RandomState, depth: number, tiles: TileState[], at: Pos
   else { tile.terrain = 'passage'; tile.secret = false; }
 }
 
-function numberPassages(tiles: TileState[], rooms: RoomState[]): PassageState[] {
-  const exits = new Set(rooms.flatMap(room => room.exits.map(at => cellIndex({ width: GRID_WIDTH, height: GRID_HEIGHT }, at))));
+function numberPassages(tiles: TileState[]): PassageState[] {
   const traversable = (index: number): boolean => {
-    const tile = tiles[index]; return !!tile && (tile.terrain === 'passage' || tile.terrain === 'door' || tile.secret && (tile.roomId === null || exits.has(index)));
+    const tile = tiles[index]; return !!tile && (tile.terrain === 'passage' || tile.terrain === 'door' || tile.secret);
   };
   const seen = new Set<number>(); const passages: PassageState[] = [];
   for (let index = 0; index < tiles.length; index++) {
