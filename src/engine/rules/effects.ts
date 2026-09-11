@@ -1,7 +1,8 @@
 import type { RawEventInput } from '../model/action';
 import type { WorldState } from '../model/state';
-import { rnd } from '../random';
+import { rnd, roll } from '../random';
 import { IS_BLIND, IS_CONFUSED } from './flags';
+import { killDaemon, scheduleFuse, startDaemon } from '../scheduler';
 
 export function runDoctor(state: WorldState, emit: (event: RawEventInput) => void): void {
   const stats = state.player.stats; const before = stats.hp; state.timing.quiet++;
@@ -25,3 +26,14 @@ export function recoverConfusion(state: WorldState, emit: (event: RawEventInput)
 export function recoverSight(state: WorldState, emit: (event: RawEventInput) => void): void {
   state.player.flags &= ~IS_BLIND; emit({ type: 'sourceMessage', text: 'The veil of darkness lifts.' });
 }
+
+export function startWanderChecks(state: WorldState): void { startDaemon(state.timing.scheduler, 'rollwand', 0, 'before'); }
+export function rollWanderCheck(state: WorldState): void {
+  if (++state.timing.between < 4) return;
+  if (roll(state.rng, 1, 6) === 4) {
+    // Full monster selection arrives in Phase 11; preserve timing and RNG now.
+    killDaemon(state.timing.scheduler, 'rollwand'); scheduleFuse(state.timing.scheduler, 'swander', 0, 'before', spread(state, 70));
+  }
+  state.timing.between = 0;
+}
+function spread(state: WorldState, value: number): number { return value - Math.trunc(value / 20) + rnd(state.rng, Math.trunc(value / 10)); }

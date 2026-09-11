@@ -12,9 +12,13 @@ export interface GeneratedLevelContent {
 }
 
 export function generateLevelContent(seed: number, depth: number): GeneratedLevelContent {
-  const rng = createRandom(seed); const layout = buildPassages(rng, depth, buildRooms(rng, depth));
+  return generateLevelContentFromRandom(createRandom(seed), depth);
+}
+
+export function generateLevelContentFromRandom(rng: RandomState, depth: number, firstEntitySerial = 1): GeneratedLevelContent {
+  const layout = buildPassages(rng, depth, buildRooms(rng, depth));
   const entities: Record<EntityId, EntityState> = {}; const monsterOrder: EntityId[] = []; const floorObjectOrder: EntityId[] = [];
-  let serial = 1; const allocate = (): EntityId => `e${serial++}`;
+  let serial = firstEntitySerial; const allocate = (): EntityId => `e${serial++}`;
   const occupiedObjects = new Set<number>(); const occupiedMonsters = new Set<number>();
   const floorRooms = layout.rooms.filter(room => room.kind !== 'gone');
   for (const room of floorRooms) {

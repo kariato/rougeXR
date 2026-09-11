@@ -45,4 +45,6 @@ Phase 9.3 adds `rooms.c` gone-room selection and maze carving. Gone slots are ch
 
 Phase 9.4 adds the supported-slice population pipeline. It runs room and passage generation before floor objects, enabled traps, stairs, and player placement. Room gold and monster probabilities are retained, while unsupported monster selections map explicitly to Kestrels. Nine ordinary object attempts emit only food or weapons; unsupported treasure rooms and full object tables remain gated. Placement rejects occupied cells, traps remain off maze passages as in `new_level.c`, monster room references are resolved, and every order array validates as serialized authority.
 
+Phase 9.5 assembles the generated content into a production `WorldState`. Starting inventory follows `init_player`: one ration, known +1 ring mail, a known +1/+1 mace, a known +1 short bow, and 25–39 known grouped arrows, allocated before level entities. Player stats start at strength 16 and 12 HP. Runners, doctor, wandering fuse, and stomach occupy scheduler slots in `main.c` order; the wandering check preserves counters and timing while full wandering population remains gated. Knowledge initializes before `GameSession` prepares the first input boundary.
+
 Add an entry before intentionally changing source behavior. Record the relevant source function, the difference, its reason, and its verification case.

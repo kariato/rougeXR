@@ -9,7 +9,7 @@ import { runMonsters } from './rules/combat';
 import { collectAtPlayer, collectItem, dropItem, equipItem, unequipItem } from './rules/inventory';
 import { eatItem } from './rules/inventory';
 import { runStomach } from './rules/hunger';
-import { recoverConfusion, recoverSight, runDoctor } from './rules/effects';
+import { recoverConfusion, recoverSight, rollWanderCheck, runDoctor, startWanderChecks } from './rules/effects';
 
 export interface RuleResult { resolved: boolean; consumedSlot: boolean; reason: string | null; deferredPickup?: string | null }
 export interface RuleContext { state: WorldState; emit(event: PresentationEvent): void; emitRaw(event: RawEventInput): void }
@@ -33,6 +33,7 @@ export class GameSession {
     this.effects = { runners: (state, _entry, emitRaw) => runMonsters(state, emitRaw),
       doctor: (state, _entry, emitRaw) => runDoctor(state, emitRaw),
       stomach: (state, _entry, emitRaw) => runStomach(state, emitRaw),
+      swander: state => startWanderChecks(state), rollwand: state => rollWanderCheck(state),
       unconfuse: (state, _entry, emitRaw) => recoverConfusion(state, emitRaw),
       sight: (state, _entry, emitRaw) => recoverSight(state, emitRaw), ...(options.effects ?? {}) };
     this.actionHandler = options.actionHandler ?? defaultAction;

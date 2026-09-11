@@ -2,7 +2,7 @@ import type { ScheduledEntry, SchedulerState } from './model/state';
 
 export const SCHEDULER_CAPACITY = 20;
 /** Effect identifiers allowed in serialized state for the implemented slice. */
-export const KNOWN_EFFECT_IDS = new Set(['before', 'after', 'fixture', 'runners', 'doctor', 'stomach', 'unconfuse', 'sight']);
+export const KNOWN_EFFECT_IDS = new Set(['before', 'after', 'fixture', 'runners', 'doctor', 'stomach', 'swander', 'rollwand', 'unconfuse', 'sight']);
 export type EffectRunner = (entry: Readonly<ScheduledEntry>) => void | boolean;
 
 function allocate(scheduler: SchedulerState, entry: ScheduledEntry): number {

@@ -5,7 +5,7 @@ Based on [Davidslv/rogue (Rogue 5.4.4)](https://github.com/Davidslv/rogue), init
 
 Development starts in a regular desktop browser with keyboard and mouse controls, a 2D dungeon view, and a state inspector. Desktop 3D follows; XR is added after the game can be debugged without a headset.
 
-Current implementation: Phase 9 now produces a validated supported-slice level: ordinary, gone, and maze regions; connected passages; gold, food, weapons, and Kestrels; enabled traps; stairs; and a collision-free player position. The Phase 8 fixture remains the browser default until starting inventory and production scheduler registration land in Phase 9.5.
+Current implementation: Phase 9 now assembles reproducible generated worlds with Rogue's starting food, ring mail, mace, bow, and arrow stack; equipped armor and weapon; initialized knowledge; and production scheduler entries in source order. The generated world validates at its first input boundary, while the browser remains on the explicit fixture until Phase 9.7.
 
 - [Browser-first design](documents/design.md)
 - [Detailed TypeScript implementation specification](documents/typescript-implementation.md)

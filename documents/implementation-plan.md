@@ -223,7 +223,7 @@ Outcome: replace fixtures with a playable generated dungeon while retaining fixt
 - [x] 9.2
 - [x] 9.3
 - [x] 9.4
-- [ ] 9.5
+- [x] 9.5
 - [ ] 9.6
 - [ ] 9.7
 
