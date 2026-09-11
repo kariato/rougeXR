@@ -37,4 +37,6 @@ Phase 8.5–8.6 saves food, hunger stage, quiet turns, and related continuation 
 
 Phase 8.7 enables bear, sleep, arrow, dart, rust, and mystery traps. Hidden traps reveal on contact, levitation bypasses activation, projectile traps retain swing, damage, and save draw order, missed arrows create floor entities when the cell is available, and armor rust operates on the equipped entity. Teleport and trap-door are recognized but reject before movement because their source behavior depends on Phase 9 level construction and legal random placement; generation must not emit them until those handlers are activated.
 
+Phase 9.1 ports the ordinary branch of `rooms.c` as a headless layout builder. It uses fixed 80×24 dimensions, integer 3×3 room boxes, the source size and position draw order, the complete reroll when an ordinary top-row room lands on row zero, depth-based darkness, and distinct horizontal and vertical walls. Gone slots are accepted as explicit inputs without consuming ordinary-room draws; their source selection and maze carving remain assigned to Phase 9.3.
+
 Add an entry before intentionally changing source behavior. Record the relevant source function, the difference, its reason, and its verification case.

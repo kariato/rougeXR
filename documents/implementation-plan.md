@@ -219,7 +219,7 @@ Outcome: replace fixtures with a playable generated dungeon while retaining fixt
 | 9.6 | Implement stairs and level cleanup, including trap-driven changes already enabled. | L01 passes; carried items survive, old floor entities do not, source timing preserved. |
 | 9.7 | Connect seed field and New Game to generator; keep explicit fixture selector in debug UI. | User starts and plays a generated level without developer commands. |
 
-- [ ] 9.1
+- [x] 9.1
 - [ ] 9.2
 - [ ] 9.3
 - [ ] 9.4

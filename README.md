@@ -5,7 +5,7 @@ Based on [Davidslv/rogue (Rogue 5.4.4)](https://github.com/Davidslv/rogue), init
 
 Development starts in a regular desktop browser with keyboard and mouse controls, a 2D dungeon view, and a state inspector. Desktop 3D follows; XR is added after the game can be debugged without a headset.
 
-Current implementation: Phase 8 completes the browser survival slice: inventory, equipment, food, hunger, healing, timed recovery, and six source trap handlers share the deterministic turn engine. Trap-door and teleport traps are explicitly gated until Phase 9 supplies level construction and legal destination placement.
+Current implementation: Phase 9 has begun with deterministic ordinary-room generation using Rogue's 3×3 placement grid, random draw order, room bounds, darkness flags, and wall orientation. Phase 8's complete browser survival slice remains the playable debug application while passages and generated-level population are built.
 
 - [Browser-first design](documents/design.md)
 - [Detailed TypeScript implementation specification](documents/typescript-implementation.md)
