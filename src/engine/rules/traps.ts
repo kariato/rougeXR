@@ -10,9 +10,9 @@ export const DEFERRED_TRAPS = new Set<TrapKind>(['trapDoor', 'teleport']);
 
 export function triggerTrap(state: WorldState, at: Position, emit: (event: RawEventInput) => void): void {
   const feature = state.level.tiles[cellIndex(state.level, at)]?.feature;
-  if (feature?.kind !== 'trap' || feature.revealed || (state.player.flags & IS_LEVITATING) !== 0) return;
+  if (feature?.kind !== 'trap' || (state.player.flags & IS_LEVITATING) !== 0) return;
   if (!ACTIVE_TRAPS.has(feature.trap)) throw new Error(`Trap requires a later phase: ${feature.trap}`);
-  feature.revealed = true; emit({ type: 'featureRevealed', at: { ...at }, feature: feature.trap });
+  if (!feature.revealed) { feature.revealed = true; emit({ type: 'featureRevealed', at: { ...at }, feature: feature.trap }); }
   switch (feature.trap) {
     case 'bear': state.timing.noMove += spread(state, 3); message(emit, 'You are caught in a bear trap.'); break;
     case 'sleep': state.timing.noCommand += spread(state, 5); state.player.flags &= ~0o20000;

@@ -53,13 +53,21 @@ export function parseReplay(text: string): ParseReplayResult {
   return { ok: true, value: { ...detached(bundle as ReplayBundle), initial: initial.value } };
 }
 
+const DIRECTIONS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+const EQUIPMENT_SLOTS = ['weapon', 'armor', 'leftRing', 'rightRing'];
+
 function validAction(value: unknown): value is GameAction {
   if (!value || typeof value !== 'object') return false;
-  const action = value as Partial<GameAction> & { direction?: unknown; pickup?: unknown; name?: unknown };
-  if (action.type === 'rest' || action.type === 'search') return true;
-  if (action.type === 'fixture') return typeof action.name === 'string';
-  return action.type === 'move' && typeof action.direction === 'string'
-    && ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'].includes(action.direction) && typeof action.pickup === 'boolean';
+  const action = value as Record<string, unknown>;
+  switch (action.type) {
+    case 'rest': case 'search': case 'pickup': return true;
+    case 'fixture': return typeof action.name === 'string';
+    case 'drop': case 'eat': return typeof action.itemId === 'string';
+    case 'unequip': return typeof action.slot === 'string' && EQUIPMENT_SLOTS.includes(action.slot);
+    case 'equip': return typeof action.itemId === 'string' && typeof action.slot === 'string' && EQUIPMENT_SLOTS.includes(action.slot);
+    case 'move': return typeof action.direction === 'string' && DIRECTIONS.includes(action.direction) && typeof action.pickup === 'boolean';
+    default: return false;
+  }
 }
 
 const detached = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;

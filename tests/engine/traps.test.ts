@@ -38,6 +38,16 @@ describe('trap handlers', () => {
       expect(result).toMatchObject({ status: 'rejected', consumedSlot: false, reason: `unsupported-trap:${kind}` }); expect(session.exportState().player.at).toEqual({ x: 5, y: 5 });
     }
   });
+  it('keeps firing after being revealed instead of becoming permanently disarmed', () => {
+    const state = trapped('bear'); triggerTrap(state, { x: 6, y: 5 }, () => {});
+    const afterFirst = state.timing.noMove; expect(afterFirst).toBeGreaterThan(0);
+    triggerTrap(state, { x: 6, y: 5 }, () => {}); expect(state.timing.noMove).toBeGreaterThan(afterFirst);
+  });
+  it('only emits featureRevealed once across repeated triggers', () => {
+    const state = trapped('bear'); const events: Array<{ type: string }> = [];
+    triggerTrap(state, { x: 6, y: 5 }, e => events.push(e)); triggerTrap(state, { x: 6, y: 5 }, e => events.push(e));
+    expect(events.filter(e => e.type === 'featureRevealed')).toHaveLength(1);
+  });
   it('replays a trap trigger with identical state hashes', async () => {
     const session = new GameSession(trapped('dart', 42)); const recorder = new ReplayRecorder(session.exportState());
     const action = { type: 'move', direction: 'E', pickup: true } as const; session.submit({ expectedRevision: 0, action });
