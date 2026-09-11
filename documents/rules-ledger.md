@@ -43,4 +43,6 @@ Phase 9.2 ports `passages.c` graph construction for ordinary rooms. Reservoir se
 
 Phase 9.3 adds `rooms.c` gone-room selection and maze carving. Gone slots are chosen uniquely through the source `rnd_room` retry pattern and retain their random corridor anchors. Maze rooms use the source slot dimensions, even-coordinate start, fixed neighbor scan, reservoir choice, and recursive two-cell carving with intermediate passage cells. Passage endpoints now distinguish ordinary doors, gone anchors, and existing maze openings; hidden maze and corridor cells participate in semantic passage numbering.
 
+Phase 9.4 adds the supported-slice population pipeline. It runs room and passage generation before floor objects, enabled traps, stairs, and player placement. Room gold and monster probabilities are retained, while unsupported monster selections map explicitly to Kestrels. Nine ordinary object attempts emit only food or weapons; unsupported treasure rooms and full object tables remain gated. Placement rejects occupied cells, traps remain off maze passages as in `new_level.c`, monster room references are resolved, and every order array validates as serialized authority.
+
 Add an entry before intentionally changing source behavior. Record the relevant source function, the difference, its reason, and its verification case.
