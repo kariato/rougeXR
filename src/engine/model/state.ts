@@ -32,7 +32,8 @@ export type MonsterTarget = { kind: 'player' } | { kind: 'position'; at: Positio
 export interface MonsterState {
   kind: 'monster'; id: EntityId; definitionId: string; at: Position;
   stats: CombatStats; flags: number; slowTurn: boolean;
-  target: MonsterTarget | null; disguise: string | null; packOrder: EntityId[];
+  target: MonsterTarget | null; disguise: string | null; roomId: number | null;
+  packOrder: EntityId[];
 }
 interface ItemBase {
   kind: 'item'; id: EntityId; definitionId: string; location: ItemLocation;
@@ -52,7 +53,20 @@ export interface PlayerState {
   roomId: number | null; gold: number;
 }
 export interface RandomState { algorithm: 'xorshift32-v1'; word: number; draws: number }
+export type CyclePhase = 'begin' | 'input' | 'after' | 'terminal';
+export interface CycleState { phase: CyclePhase; slotsRemaining: number }
+export interface ScheduledEntry {
+  effect: string; arg: number; phase: 'before' | 'after'; remaining: number;
+}
+export interface SchedulerState { slots: Array<ScheduledEntry | null> }
+export interface TimingState {
+  revision: number; actionSequence: number; tick: number;
+  status: 'playing' | 'dead' | 'won';
+  noCommand: number; noMove: number; hasted: boolean;
+  scheduler: SchedulerState; cycle: CycleState;
+}
 export interface WorldState {
   seed: number; rng: RandomState; nextEntitySerial: number;
   level: LevelState; player: PlayerState; entities: Record<EntityId, EntityState>;
+  timing: TimingState;
 }

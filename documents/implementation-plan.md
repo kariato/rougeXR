@@ -1,6 +1,6 @@
 # Implementation plan
 
-Status: planned; no implementation steps are complete. This plan breaks the [TypeScript implementation specification](typescript-implementation.md) into small reviewable changes. The reference remains Davidslv/rogue commit `f4653c2a2ee6981a73abe9dfda055134285e1e79`.
+Status: implementation in progress through Phase 4. This plan breaks the [TypeScript implementation specification](typescript-implementation.md) into small reviewable changes. The reference remains Davidslv/rogue commit `f4653c2a2ee6981a73abe9dfda055134285e1e79`.
 
 ## Working method
 
@@ -43,11 +43,13 @@ Outcome: a small dungeon fixture exists as validated data with predictable rando
 | 1.4 | Implement ownership transfer and ordered containers, without stacking yet. | Transfer preserves one owner; failed transfer leaves source unchanged. |
 | 1.5 | Add a two-room fixture builder and initial structural validator. | Fixture validates; corrupted IDs, positions, and ownership are rejected. |
 
-- [ ] 1.1
-- [ ] 1.2
-- [ ] 1.3
-- [ ] 1.4
-- [ ] 1.5
+- [x] 1.1
+- [x] 1.2
+- [x] 1.3
+- [x] 1.4
+- [x] 1.5
+
+Completed 2026-09-10. Validation at completion: TypeScript checks and production build passed; Phase 1 primitive/validation cases are included in the 30-test suite reported under Phase 2.
 
 Gate: fixtures are deterministic and structurally valid. Extend validation as later schema fields appear rather than pretending the initial validator covers the full game.
 
@@ -62,10 +64,12 @@ Outcome: the user can inspect a map before game simulation is implemented.
 | 2.3 | Add resize handling and cell hit testing. | Selection remains correct at multiple viewport sizes and devicePixelRatio values (B03). |
 | 2.4 | Add read-only selected-cell inspector and visibly marked debug reveal overlay. | Repeated inspection and reveal leave fixture state and RNG unchanged (P02). |
 
-- [ ] 2.1
-- [ ] 2.2
-- [ ] 2.3
-- [ ] 2.4
+- [x] 2.1
+- [x] 2.2
+- [x] 2.3
+- [x] 2.4
+
+Completed 2026-09-10. Validation at completion: 30 tests passed, TypeScript checks and production build passed, and the browser was manually checked for visible-cell inspection, the marked reveal overlay, hidden entity inspection, and browser console errors.
 
 Gate: inspectable fixture. The fixture projector is not yet a claim of source-compatible visibility; replace it with the rules projector in Phase 5.
 
@@ -81,11 +85,13 @@ Outcome: rest and free commands can be stepped and traced with correct cycle bou
 | 3.4 | Add hasted slots and forced no-command advancement. | T02/T07 pass; no browser input required during forced turns. |
 | 3.5 | Expose input-ready session snapshots and a debug phase trace in the browser. | One rest press produces one expected resolution; UI inspection never advances simulation. |
 
-- [ ] 3.1
-- [ ] 3.2
-- [ ] 3.3
-- [ ] 3.4
-- [ ] 3.5
+- [x] 3.1
+- [x] 3.2
+- [x] 3.3
+- [x] 3.4
+- [x] 3.5
+
+Completed 2026-09-10. Validation at completion: 41 tests passed, TypeScript checks and production build passed, and a browser smoke check confirmed that one Rest click advanced tick/revision once and displayed the expected action, AFTER, ring, next BEFORE, and input-ready trace.
 
 Gate: timing state machine passes headless tests. Test callbacks remain fixture-only; production effects are added later. Save-between-haste test T04 waits for Phase 6.
 
@@ -101,11 +107,13 @@ Outcome: keyboard movement works in a regular browser, with visible rule outcome
 | 4.4 | Implement room/passage transitions and deferred pickup hook without item behavior yet. | Crossing a door updates logical region; no renderer mutation is required. |
 | 4.5 | Add confusion and no-move fixture behavior. | M02/M03 pass, including retained random draws on free confused moves. |
 
-- [ ] 4.1
-- [ ] 4.2
-- [ ] 4.3
-- [ ] 4.4
-- [ ] 4.5
+- [x] 4.1
+- [x] 4.2
+- [x] 4.3
+- [x] 4.4
+- [x] 4.5
+
+Completed 2026-09-10. Validation at completion: 50 tests passed, TypeScript checks and production build passed. Browser smoke checks confirmed a keyboard move advanced exactly one tick/revision and that movement keys are ignored while a control has focus.
 
 Gate: walkable debug fixture with reliable timing. Unavailable interactions are explicitly disabled or rejected.
 
@@ -335,4 +343,4 @@ Optional scheduling: 10 -> 12 for early spatial prototyping.
 | Spatial browser version | Phase 12 | Explore the same game in desktop 3D |
 | XR version | Phase 13 | Use a headset with verified input and presentation |
 
-The next implementation task is **0.1 only**: scaffold the project and verify the development URL, type checking, and build. Continue step by step from there; this plan itself does not start implementation.
+The next implementation task is **5.1 only**: port ordinary room/passage visibility and remembered terrain, replacing the fixture-only gameplay projection.

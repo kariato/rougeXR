@@ -30,6 +30,18 @@ export function validateWorld(input: unknown): ValidationIssue[] {
     check(integer(s.seed) && s.seed <= 0xffffffff, 'seed', 'Expected uint32');
     check(s.rng.algorithm === 'xorshift32-v1' && integer(s.rng.word, 1) && s.rng.word <= 0xffffffff && integer(s.rng.draws), 'rng', 'Invalid random state');
     check(integer(s.nextEntitySerial, 1) && s.nextEntitySerial < Number.MAX_SAFE_INTEGER, 'nextEntitySerial', 'Invalid serial');
+    const timing = s.timing;
+    check([timing.revision, timing.actionSequence, timing.tick, timing.noCommand, timing.noMove]
+      .every(value => integer(value)), 'timing', 'Invalid timing counter');
+    check(typeof timing.hasted === 'boolean' && ['playing', 'dead', 'won'].includes(timing.status), 'timing', 'Invalid timing state');
+    check(['begin', 'input', 'after', 'terminal'].includes(timing.cycle.phase)
+      && integer(timing.cycle.slotsRemaining) && timing.cycle.slotsRemaining <= 2, 'timing.cycle', 'Invalid cycle');
+    check(timing.scheduler.slots.length === 20, 'timing.scheduler', 'Expected 20 scheduler slots');
+    for (const entry of timing.scheduler.slots) if (entry !== null) {
+      check(typeof entry.effect === 'string' && entry.effect.length > 0 && Number.isSafeInteger(entry.arg)
+        && ['before', 'after'].includes(entry.phase) && Number.isSafeInteger(entry.remaining) && entry.remaining >= -1,
+      'timing.scheduler', 'Invalid scheduled entry');
+    }
     check(level.width === GRID_WIDTH && level.height === GRID_HEIGHT, 'level', 'Expected 80 by 24 grid');
     check(integer(level.id, 1) && integer(level.depth, 1), 'level', 'Invalid level identity');
     check(level.tiles.length === GRID_WIDTH * GRID_HEIGHT, 'level.tiles', 'Incorrect tile count');
@@ -78,6 +90,7 @@ export function validateWorld(input: unknown): ValidationIssue[] {
         expected.get('monsters')?.push(id);
         stats(entity.stats, `entities.${id}.stats`);
         check(typeof entity.slowTurn === 'boolean' && (entity.disguise === null || typeof entity.disguise === 'string'), id, 'Invalid monster state');
+        check(entity.roomId === null || level.rooms.some(room => room.id === entity.roomId), id, 'Invalid monster room');
         if (entity.target !== null) check(entity.target.kind === 'player'
           || (entity.target.kind === 'position' && isPlayable(level, entity.target.at))
           || (entity.target.kind === 'item' && s.entities[entity.target.id]?.kind === 'item'), id, 'Invalid monster target');

@@ -8,6 +8,8 @@ export function createTwoRoomFixture(seed = 12345): WorldState {
   const stats = (): CombatStats => ({ strength: 10, experience: 0, level: 1, armorClass: 10, hp: 10, maxHp: 10, damage: [{ count: 1, sides: 4 }] });
   const state: WorldState = {
     seed, rng: createRandom(seed), nextEntitySerial: 1, entities: {},
+    timing: { revision: 0, actionSequence: 0, tick: 0, status: 'playing', noCommand: 0, noMove: 0, hasted: false,
+      scheduler: { slots: Array.from({ length: 20 }, () => null) }, cycle: { phase: 'begin', slotsRemaining: 0 } },
     player: { at: { x: 5, y: 5 }, stats: stats(), flags: 0, packOrder: [], roomId: 0, gold: 0,
       equipment: { weapon: null, armor: null, leftRing: null, rightRing: null } },
     level: { id: 1, depth: 1, width: GRID_WIDTH, height: GRID_HEIGHT,
@@ -33,7 +35,7 @@ export function createTwoRoomFixture(seed = 12345): WorldState {
   state.level.tiles[cellIndex(state.level, state.level.stairs)]!.feature = { kind: 'stairs' };
   const monsterId = allocateId(state);
   const objectId = allocateId(state);
-  state.entities[monsterId] = { kind: 'monster', id: monsterId, definitionId: 'fixture.monster', at: { x: 23, y: 5 }, stats: stats(), flags: 0, slowTurn: false, target: null, disguise: null, packOrder: [] };
+  state.entities[monsterId] = { kind: 'monster', id: monsterId, definitionId: 'fixture.monster', at: { x: 23, y: 5 }, stats: stats(), flags: 0, slowTurn: false, target: null, disguise: null, roomId: 1, packOrder: [] };
   state.entities[objectId] = { kind: 'item', id: objectId, definitionId: 'fixture.gold', category: 'gold', location: { kind: 'floor', levelId: 1, at: { x: 23, y: 5 } }, quantity: rnd(state.rng, 10) + 1, flags: 0, group: 0, label: null };
   state.level.monsterOrder.push(monsterId);
   state.level.floorObjectOrder.push(objectId);
