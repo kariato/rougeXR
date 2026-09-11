@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>rougeXR — Phase 4</title>
+    <title>rougeXR — Phase 6</title>
     <style>
       :root { color-scheme: dark; font-family: system-ui, sans-serif; background: #070b12; color: #dbeafe; }
       * { box-sizing: border-box; }
@@ -20,6 +20,7 @@
       aside h2 { margin: 0 0 .75rem; font-size: 1rem; }
       pre { min-height: 8rem; padding: .75rem; overflow: auto; white-space: pre-wrap; background: #070b12; border: 1px solid #334155; }
       #state-summary { color: #94a3b8; font-size: .85rem; }
+      #save-status { color: #93c5fd; font-size: .8rem; }
       button { color: #dbeafe; background: #1e293b; border: 1px solid #475569; border-radius: .35rem; padding: .45rem .8rem; cursor: pointer; }
       button:hover { border-color: #38bdf8; }
       .debug-badge { display: none; color: #fecdd3; background: #881337; padding: .25rem .5rem; border-radius: .25rem; font-weight: 700; }
@@ -29,8 +30,8 @@
   </head>
   <body>
     <main>
-      <header><h1>rougeXR</h1><p>Phase 4 movement fixture</p><button id="rest" type="button">Rest one slot</button><span class="debug-badge">DEBUG REVEAL</span><label><input id="reveal" type="checkbox"> Reveal authoritative state</label></header>
-      <div class="layout"><section class="map"><canvas id="dungeon" aria-label="Dungeon fixture"></canvas></section><aside><h2>Selected cell</h2><pre id="inspector"></pre><p id="state-summary"></p><h2>Cycle trace</h2><pre id="phase-trace"></pre><p>Move with arrows, WASD, HJKL, or diagonal QEZC/YUBN. Period or Space rests. Focused controls ignore game keys.</p></aside></div>
+      <header><h1>rougeXR</h1><p>Phase 6 reproducible fixture</p><button id="rest" type="button">Rest</button><button id="search" type="button">Search</button><button id="save" type="button">Save JSON</button><button id="load" type="button">Load JSON</button><button id="export-report" type="button">Export bug report</button><input id="load-file" type="file" accept="application/json,.json" hidden><span class="debug-badge">DEBUG REVEAL</span><label><input id="reveal" type="checkbox"> Reveal authoritative state</label></header>
+      <div class="layout"><section class="map"><canvas id="dungeon" aria-label="Dungeon fixture"></canvas></section><aside><h2>Selected cell</h2><pre id="inspector"></pre><p id="state-summary"></p><p id="save-status">Ready for manual save.</p><h2>Messages</h2><pre id="messages"></pre><h2>Cycle trace</h2><pre id="phase-trace"></pre><div class="debug-badge"><h2>Raw events</h2><pre id="raw-events"></pre></div><p>Move with arrows, WASD, HJKL, or diagonal QEZC/YUBN. F searches; Period or Space rests.</p></aside></div>
     </main>
     <script type="module" src="/src/app/main.ts"></script>
   </body>

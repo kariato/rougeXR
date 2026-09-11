@@ -105,6 +105,6 @@ describe('command timing session', () => {
     const session = new GameSession(createTwoRoomFixture(), { actionHandler: handler });
     const result = session.submit({ expectedRevision: 0, action: { type: 'rest' } });
     expect(result.ticksAdvanced).toBe(3);
-    expect(result.events).toContainEqual({ type: 'recovered', message: 'You can move again.' });
+    expect(result.events).toContainEqual({ type: 'message', text: 'You can move again.' });
   });
 });

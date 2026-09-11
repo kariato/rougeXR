@@ -23,7 +23,7 @@ describe('movement rules', () => {
     const session = new GameSession(createTwoRoomFixture());
     const result = session.submit({ expectedRevision: 0, action: { type: 'move', direction: 'E', pickup: true } });
     expect(result).toMatchObject({ status: 'resolved', consumedSlot: true, ticksAdvanced: 1 });
-    expect(result.events).toContainEqual({ type: 'move', message: 'Moved E.' });
+    expect(result.events).toContainEqual({ type: 'visibleMovement', token: 'player', from: { x: 5, y: 5 }, to: { x: 6, y: 5 } });
     expect(session.exportState().player.at).toEqual({ x: 6, y: 5 });
   });
   it('updates logical region when crossing room doors', () => {

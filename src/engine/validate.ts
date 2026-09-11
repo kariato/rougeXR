@@ -1,6 +1,7 @@
 import { buildIndexes } from './entities';
 import { GRID_HEIGHT, GRID_WIDTH, inBounds, isPlayable, supportsOccupant, tileAt } from './grid';
 import type { CombatStats, WorldState } from './model/state';
+import { KNOWN_EFFECT_IDS } from './scheduler';
 
 export interface ValidationIssue { path: string; message: string }
 /** Initial structural validator, not the future versioned save parser. */
@@ -36,11 +37,19 @@ export function validateWorld(input: unknown): ValidationIssue[] {
     check(typeof timing.hasted === 'boolean' && ['playing', 'dead', 'won'].includes(timing.status), 'timing', 'Invalid timing state');
     check(['begin', 'input', 'after', 'terminal'].includes(timing.cycle.phase)
       && integer(timing.cycle.slotsRemaining) && timing.cycle.slotsRemaining <= 2, 'timing.cycle', 'Invalid cycle');
+    check(timing.status === 'playing' ? timing.cycle.phase !== 'terminal'
+      : timing.cycle.phase === 'terminal' && timing.cycle.slotsRemaining === 0, 'timing.cycle', 'Cycle does not match game status');
     check(timing.scheduler.slots.length === 20, 'timing.scheduler', 'Expected 20 scheduler slots');
     for (const entry of timing.scheduler.slots) if (entry !== null) {
-      check(typeof entry.effect === 'string' && entry.effect.length > 0 && Number.isSafeInteger(entry.arg)
+      check(typeof entry.effect === 'string' && KNOWN_EFFECT_IDS.has(entry.effect) && Number.isSafeInteger(entry.arg)
         && ['before', 'after'].includes(entry.phase) && Number.isSafeInteger(entry.remaining) && entry.remaining >= -1,
       'timing.scheduler', 'Invalid scheduled entry');
+    }
+    check(s.knowledge.levelId === level.id && s.knowledge.remembered.length === level.tiles.length,
+      'knowledge', 'Knowledge does not match level');
+    for (const memory of s.knowledge.remembered) if (memory !== null) {
+      check(typeof memory.glyph === 'string' && typeof memory.terrainLabel === 'string'
+        && (memory.featureLabel === null || typeof memory.featureLabel === 'string'), 'knowledge', 'Invalid remembered appearance');
     }
     check(level.width === GRID_WIDTH && level.height === GRID_HEIGHT, 'level', 'Expected 80 by 24 grid');
     check(integer(level.id, 1) && integer(level.depth, 1), 'level', 'Invalid level identity');
@@ -80,6 +89,7 @@ export function validateWorld(input: unknown): ValidationIssue[] {
       check(v.damage.every(d => integer(d.count) && integer(d.sides)), path, 'Invalid damage groups');
     };
     stats(s.player.stats, 'player.stats');
+    check(timing.status === 'dead' ? s.player.stats.hp === 0 : s.player.stats.hp > 0, 'player.stats.hp', 'HP does not match game status');
     const expected = new Map<string, string[]>([['floor', []], ['player', []], ['monsters', []]]);
     for (const entity of Object.values(s.entities)) if (entity.kind === 'monster') expected.set(entity.id, []);
     for (const [id, entity] of Object.entries(s.entities)) {

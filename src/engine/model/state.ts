@@ -59,6 +59,8 @@ export interface ScheduledEntry {
   effect: string; arg: number; phase: 'before' | 'after'; remaining: number;
 }
 export interface SchedulerState { slots: Array<ScheduledEntry | null> }
+export interface RememberedAppearance { glyph: string; terrainLabel: string; featureLabel: string | null }
+export interface KnowledgeState { levelId: number; remembered: Array<RememberedAppearance | null> }
 export interface TimingState {
   revision: number; actionSequence: number; tick: number;
   status: 'playing' | 'dead' | 'won';
@@ -68,5 +70,5 @@ export interface TimingState {
 export interface WorldState {
   seed: number; rng: RandomState; nextEntitySerial: number;
   level: LevelState; player: PlayerState; entities: Record<EntityId, EntityState>;
-  timing: TimingState;
+  timing: TimingState; knowledge: KnowledgeState;
 }

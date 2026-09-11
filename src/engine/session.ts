@@ -1,11 +1,13 @@
-import type { ActionRequest, ActionResolution, EngineEvent, GameAction, TraceEntry } from './model/action';
+import type { ActionRequest, ActionResolution, GameAction, PresentationEvent, RawEvent, RawEventInput, TraceEntry } from './model/action';
 import type { ScheduledEntry, WorldState } from './model/state';
 import { runDaemons, runFuses } from './scheduler';
 import { validateWorld } from './validate';
 import { resolveMove } from './rules/movement';
+import { resolveSearch } from './rules/search';
+import { isPositionVisible, updateKnowledge } from './perception/knowledge';
 
 export interface RuleResult { resolved: boolean; consumedSlot: boolean; reason: string | null; deferredPickup?: string | null }
-export interface RuleContext { state: WorldState; emit(event: EngineEvent): void }
+export interface RuleContext { state: WorldState; emit(event: PresentationEvent): void; emitRaw(event: RawEventInput): void }
 export type ActionHandler = (action: GameAction, context: RuleContext) => RuleResult;
 export type EffectHandler = (state: WorldState, entry: Readonly<ScheduledEntry>) => void;
 export interface SessionOptions { actionHandler?: ActionHandler; effects?: Record<string, EffectHandler>; operationLimit?: number }
@@ -19,6 +21,7 @@ export class GameSession {
   private readonly actionHandler: ActionHandler;
   private readonly operationLimit: number;
   private latestTrace: TraceEntry[] = [];
+  private latestRaw: RawEvent[] = [];
 
   constructor(initial: WorldState, options: SessionOptions = {}) {
     this.state = detached(initial);
@@ -30,16 +33,21 @@ export class GameSession {
   observe(): Readonly<WorldState> { return detached(this.state); }
   exportState(): WorldState { return detached(this.state); }
   trace(): TraceEntry[] { return detached(this.latestTrace); }
+  debugEvents(): RawEvent[] { return detached(this.latestRaw); }
 
   submit(request: ActionRequest): ActionResolution {
     if (!validRequest(request)) throw new TypeError('Malformed action request');
     if (request.expectedRevision !== this.state.timing.revision) throw new RangeError('Stale action request');
     if (this.state.timing.cycle.phase === 'terminal') throw new RangeError('Game is terminal');
-    const draft = detached(this.state); const events: EngineEvent[] = []; const trace: TraceEntry[] = [];
+    const draft = detached(this.state); const events: PresentationEvent[] = []; const raw: RawEvent[] = []; const trace: TraceEntry[] = [];
     const startTick = draft.timing.tick;
     try {
       draft.timing.actionSequence++;
-      const result = this.actionHandler(request.action, { state: draft, emit: event => events.push(event) });
+      const emitRaw = (input: RawEventInput): void => {
+        const event = { ...input, ordinal: raw.length, actionSequence: draft.timing.actionSequence } as RawEvent;
+        raw.push(event); const safe = projectEvent(draft, event); if (safe) events.push(safe);
+      };
+      const result = this.actionHandler(request.action, { state: draft, emit: event => events.push(event), emitRaw });
       trace.push({ kind: 'action', detail: `${request.action.type}:${result.resolved ? 'resolved' : 'rejected'}`, tick: draft.timing.tick });
       if (result.deferredPickup) trace.push({ kind: 'pickup', detail: `deferred:${result.deferredPickup}`, tick: draft.timing.tick });
       if (result.consumedSlot) draft.timing.cycle.slotsRemaining--;
@@ -47,7 +55,7 @@ export class GameSession {
       draft.timing.revision++;
       assertTiming(draft);
       const issues = validateWorld(draft); if (issues.length) throw new Error(issues[0]!.message);
-      this.state = draft; this.latestTrace = trace;
+      this.state = draft; this.latestTrace = trace; this.latestRaw = raw;
       return { actionSequence: draft.timing.actionSequence, status: result.resolved ? 'resolved' : 'rejected',
         reason: result.reason, consumedSlot: result.consumedSlot, ticksAdvanced: draft.timing.tick - startTick,
         revision: draft.timing.revision, events: detached(events) };
@@ -62,7 +70,7 @@ export class GameSession {
     catch (error) { throw new EngineFault(error instanceof Error ? error.message : String(error)); }
     this.latestTrace = trace;
   }
-  private pump(state: WorldState, trace: TraceEntry[], events: EngineEvent[]): void {
+  private pump(state: WorldState, trace: TraceEntry[], events: PresentationEvent[]): void {
     let operations = 0;
     const step = (): void => { if (++operations > this.operationLimit) throw new Error('Cycle operation limit exceeded'); };
     const effects = (entry: Readonly<ScheduledEntry>): void => {
@@ -82,10 +90,11 @@ export class GameSession {
       if (state.timing.cycle.phase === 'input' && state.timing.cycle.slotsRemaining > 0 && state.timing.noCommand > 0) {
         state.timing.noCommand--; state.timing.cycle.slotsRemaining--;
         trace.push({ kind: 'action', detail: 'forced-rest', tick: state.timing.tick });
-        if (state.timing.noCommand === 0) events.push({ type: 'recovered', message: 'You can move again.' });
+        if (state.timing.noCommand === 0) events.push({ type: 'message', text: 'You can move again.' });
         continue;
       }
       if (state.timing.cycle.phase === 'input' && state.timing.cycle.slotsRemaining > 0) {
+        updateKnowledge(state);
         trace.push({ kind: 'inputReady', detail: `${state.timing.cycle.slotsRemaining} slot(s)`, tick: state.timing.tick }); return;
       }
       state.timing.cycle.phase = 'after';
@@ -103,9 +112,10 @@ function defaultAction(action: GameAction, context: RuleContext): RuleResult {
   if (action.type === 'rest') return { resolved: true, consumedSlot: true, reason: null };
   if (action.type === 'move') {
     const result = resolveMove(context.state, action.direction, action.pickup);
-    result.events.forEach(context.emit);
+    result.events.forEach(context.emitRaw);
     return result;
   }
+  if (action.type === 'search') return resolveSearch(context.state, context.emitRaw);
   if (action.name === 'free') return { resolved: true, consumedSlot: false, reason: null };
   return { resolved: false, consumedSlot: false, reason: `Unsupported fixture action: ${action.name}` };
 }
@@ -113,11 +123,20 @@ function validRequest(value: unknown): value is ActionRequest {
   if (!value || typeof value !== 'object') return false;
   const request = value as Partial<ActionRequest>;
   return Number.isSafeInteger(request.expectedRevision) && request.action !== null && typeof request.action === 'object'
-    && ((request.action as GameAction).type === 'rest'
+    && ((request.action as GameAction).type === 'rest' || (request.action as GameAction).type === 'search'
       || ((request.action as GameAction).type === 'move'
         && Object.hasOwn({ N: 1, NE: 1, E: 1, SE: 1, S: 1, SW: 1, W: 1, NW: 1 }, (request.action as { direction?: string }).direction ?? '')
         && typeof (request.action as { pickup?: unknown }).pickup === 'boolean')
       || ((request.action as GameAction).type === 'fixture' && typeof (request.action as { name?: unknown }).name === 'string'));
+}
+function projectEvent(state: WorldState, event: RawEvent): PresentationEvent | null {
+  if (event.type === 'sourceMessage') return { type: 'message', text: event.text };
+  if (event.type === 'featureRevealed') return { type: 'message', text: `You found ${event.feature}.` };
+  if (event.actorId === 'player' || isPositionVisible(state, event.from) || isPositionVisible(state, event.to)) {
+    return { type: 'visibleMovement', token: event.actorId === 'player' ? 'player' : `monster-${event.actorId}`,
+      from: { ...event.from }, to: { ...event.to } };
+  }
+  return null;
 }
 function assertTiming(state: WorldState): void {
   const t = state.timing;

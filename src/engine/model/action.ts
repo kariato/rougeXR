@@ -1,12 +1,22 @@
-import type { Direction } from './state';
+import type { Direction, Position } from './state';
 
 export type GameAction =
   | { type: 'move'; direction: Direction; pickup: boolean }
   | { type: 'rest' }
+  | { type: 'search' }
   | { type: 'fixture'; name: string };
 
 export interface ActionRequest { expectedRevision: number; action: GameAction }
-export interface EngineEvent { type: string; message?: string }
+export type PresentationEvent =
+  | { type: 'message'; text: string }
+  | { type: 'visibleMovement'; token: string; from: Position; to: Position }
+  | { type: 'inventoryUpdate' }
+  | { type: 'levelViewReset' };
+export type RawEventInput =
+  | { type: 'actorMoved'; actorId: 'player' | string; from: Position; to: Position }
+  | { type: 'featureRevealed'; at: Position; feature: string }
+  | { type: 'sourceMessage'; text: string };
+export type RawEvent = RawEventInput & { ordinal: number; actionSequence: number };
 export interface ActionResolution {
   actionSequence: number;
   status: 'resolved' | 'rejected';
@@ -14,7 +24,7 @@ export interface ActionResolution {
   consumedSlot: boolean;
   ticksAdvanced: number;
   revision: number;
-  events: EngineEvent[];
+  events: PresentationEvent[];
 }
 
 export type TraceKind = 'phase' | 'effect' | 'action' | 'pickup' | 'ring' | 'inputReady';

@@ -5,7 +5,7 @@ Based on [Davidslv/rogue (Rogue 5.4.4)](https://github.com/Davidslv/rogue), init
 
 Development starts in a regular desktop browser with keyboard and mouse controls, a 2D dungeon view, and a state inspector. Desktop 3D follows; XR is added after the game can be debugged without a headset.
 
-Current implementation: Phase 4 provides a walkable two-room browser fixture on the deterministic command-cycle engine. Keyboard movement supports cardinal and diagonal directions, source-compatible blocking and confusion timing, room/passage transitions, and a deferred pickup trace; combat and item pickup remain explicitly unavailable.
+Current implementation: Phase 6 adds versioned manual JSON saves, validated atomic restore, canonical SHA-256 state hashes, and deterministic replay bug reports to the walkable browser fixture. Save state preserves pending haste slots, scheduler/RNG state, knowledge, and counters; imported replay reports reproduce each recorded action checksum before replacing the live session.
 
 - [Browser-first design](documents/design.md)
 - [Detailed TypeScript implementation specification](documents/typescript-implementation.md)

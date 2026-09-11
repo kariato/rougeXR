@@ -1,6 +1,6 @@
 # Implementation plan
 
-Status: implementation in progress through Phase 4. This plan breaks the [TypeScript implementation specification](typescript-implementation.md) into small reviewable changes. The reference remains Davidslv/rogue commit `f4653c2a2ee6981a73abe9dfda055134285e1e79`.
+Status: implementation in progress through Phase 6. This plan breaks the [TypeScript implementation specification](typescript-implementation.md) into small reviewable changes. The reference remains Davidslv/rogue commit `f4653c2a2ee6981a73abe9dfda055134285e1e79`.
 
 ## Working method
 
@@ -128,10 +128,12 @@ Outcome: the normal map displays what the player knows; reveal stays separate.
 | 5.3 | Add event-time safe presentation messages separately from raw debug events. | P01 passes with a fixture actor moving while unseen. |
 | 5.4 | Add blind/detection/disguise projection cases as explicit fixtures; enable only supported statuses. | Observation does not leak true identity or unexplored geometry. |
 
-- [ ] 5.1
-- [ ] 5.2
-- [ ] 5.3
-- [ ] 5.4
+- [x] 5.1
+- [x] 5.2
+- [x] 5.3
+- [x] 5.4
+
+Completed 2026-09-11. Validation at completion: 56 tests passed, TypeScript checks and production build passed. Browser smoke checks confirmed Search consumes one turn, safe movement feedback contains no raw coordinates, and raw actor IDs/positions appear only inside the enabled DEBUG REVEAL panel.
 
 Gate: observation reads are pure and normal events do not reveal hidden state. Hallucination and other unimplemented full-content effects remain disabled until Phase 11.
 
@@ -147,11 +149,13 @@ Outcome: every subsequent gameplay bug can be reproduced from a saved state and 
 | 6.4 | Record accepted requests, rejected rule actions, and expected hashes; replay headlessly. | Rest/move/search sequence reproduces every checksum. |
 | 6.5 | Add manual download/upload and a minimal export-bug-report button. | Fresh browser session imports and reproduces the fixture report. |
 
-- [ ] 6.1
-- [ ] 6.2
-- [ ] 6.3
-- [ ] 6.4
-- [ ] 6.5
+- [x] 6.1
+- [x] 6.2
+- [x] 6.3
+- [x] 6.4
+- [x] 6.5
+
+Completed 2026-09-11. Validation at completion: 63 tests passed, TypeScript checks and production build passed. Browser smoke checks recorded an action hash and downloaded both the manual save and replay bug report; the same report parser/reproduction path was verified headlessly through every expected checksum.
 
 Gate: manual save and reproduction work before adding more rules. This checkpoint is a development tool, not a complete persistence UI.
 
@@ -343,4 +347,4 @@ Optional scheduling: 10 -> 12 for early spatial prototyping.
 | Spatial browser version | Phase 12 | Explore the same game in desktop 3D |
 | XR version | Phase 13 | Use a headset with verified input and presentation |
 
-The next implementation task is **5.1 only**: port ordinary room/passage visibility and remembered terrain, replacing the fixture-only gameplay projection.
+The next implementation task is **7.1 only**: transcribe the required combat and strength tables plus one monster definition from the pinned source.

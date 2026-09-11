@@ -1,53 +1,14 @@
 import { cellIndex, positionAt } from '../grid';
-import type { CellAppearance, DebugSnapshot, PlayerObservation, Visibility } from '../model/observation';
-import type { ItemState, TileState, WorldState } from '../model/state';
-
-const GLYPHS: Record<TileState['terrain'], string> = {
-  void: ' ', floor: '.', wallH: '─', wallV: '│', door: '+', passage: '#',
-};
-
-function appearance(tile: TileState): CellAppearance {
-  const featureLabel = tile.feature?.kind === 'stairs'
-    ? 'stairs'
-    : tile.feature?.kind === 'trap' && tile.feature.revealed ? `${tile.feature.trap} trap` : null;
-  return {
-    glyph: featureLabel === 'stairs' ? '%' : featureLabel?.endsWith('trap') ? '^' : GLYPHS[tile.terrain],
-    terrainLabel: tile.terrain,
-    featureLabel,
-  };
-}
+import type { DebugSnapshot, PlayerObservation } from '../model/observation';
+import type { WorldState } from '../model/state';
+import { observe } from './knowledge';
 
 /**
  * Temporary fixture visibility: the player's room is visible and passage 0 is remembered.
  * This is deliberately replaced by source-compatible perception in Phase 5.
  */
 export function observeFixture(state: WorldState): PlayerObservation {
-  const visibilityAt = (tile: TileState): Visibility => state.player.roomId !== null && tile.roomId === state.player.roomId
-    ? 'visible'
-    : tile.passageId === 0 ? 'remembered' : 'unknown';
-  const cells = state.level.tiles.map(tile => {
-    const visibility = visibilityAt(tile);
-    return { visibility, appearance: visibility === 'unknown' ? null : appearance(tile) };
-  });
-  const entities = Object.values(state.entities).flatMap(entity => {
-    const at = entity.kind === 'monster' ? entity.at : entity.location.kind === 'floor' ? entity.location.at : null;
-    if (at === null || cells[cellIndex(state.level, at)]?.visibility !== 'visible') return [];
-    const glyph = entity.kind === 'monster' ? 'M' : itemGlyph(entity);
-    return [{ token: `visible-${entity.id}`, at: { ...at }, appearance: glyph, label: entity.definitionId }];
-  });
-  return {
-    revision: state.timing.revision,
-    width: state.level.width,
-    height: state.level.height,
-    playerAt: { ...state.player.at },
-    cells,
-    entities,
-    status: { hp: state.player.stats.hp, maxHp: state.player.stats.maxHp, gold: state.player.gold, depth: state.level.depth },
-  };
-}
-
-function itemGlyph(item: ItemState): string {
-  return ({ gold: '*', potion: '!', scroll: '?', food: ':', weapon: ')', armor: ']', amulet: ',', ring: '=', stick: '/' } as const)[item.category];
+  return observe(state);
 }
 
 /** Detached, read-only input for the separately marked debug layer. */

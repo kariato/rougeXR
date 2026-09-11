@@ -16,6 +16,7 @@ export function actionForKeyboardEvent(event: KeyboardInput): GameAction | null 
   const direction = MOVEMENT_KEYS[event.key];
   if (direction) return { type: 'move', direction, pickup: true };
   if (event.key === '.' || event.key === ' ') return { type: 'rest' };
+  if (event.key === 'f') return { type: 'search' };
   return null;
 }
 

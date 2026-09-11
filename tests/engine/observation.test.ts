@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createTwoRoomFixture } from '../../src/debug/fixtures';
 import { cellIndex } from '../../src/engine/grid';
 import { debugFixtureSnapshot, describeDebugCell, describeObservedCell, observeFixture } from '../../src/engine/perception/fixture-observation';
+import { updateKnowledge } from '../../src/engine/perception/knowledge';
 
 describe('fixture observation', () => {
   it('contains no appearance or entity information for unknown cells', () => {
@@ -15,6 +16,9 @@ describe('fixture observation', () => {
 
   it('distinguishes visible, remembered, and unknown cells', () => {
     const state = createTwoRoomFixture();
+    state.player.at = { x: 15, y: 5 }; state.player.roomId = null;
+    updateKnowledge(state);
+    state.player.at = { x: 5, y: 5 }; state.player.roomId = 0; updateKnowledge(state);
     const observation = observeFixture(state);
     expect(observation.cells[cellIndex(state.level, { x: 5, y: 5 })]?.visibility).toBe('visible');
     expect(observation.cells[cellIndex(state.level, { x: 15, y: 5 })]?.visibility).toBe('remembered');

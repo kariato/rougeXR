@@ -1,6 +1,8 @@
 import type { ScheduledEntry, SchedulerState } from './model/state';
 
 export const SCHEDULER_CAPACITY = 20;
+/** Fixture effects currently allowed in serialized Phase 6 state. */
+export const KNOWN_EFFECT_IDS = new Set(['before', 'after', 'fixture']);
 export type EffectRunner = (entry: Readonly<ScheduledEntry>) => void;
 
 function allocate(scheduler: SchedulerState, entry: ScheduledEntry): number {

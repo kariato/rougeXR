@@ -1,6 +1,6 @@
 import { buildIndexes } from '../entities';
 import { cellIndex, isPlayable, tileAt } from '../grid';
-import type { EngineEvent } from '../model/action';
+import type { RawEventInput } from '../model/action';
 import type { Direction, EntityId, Position, Terrain, WorldState } from '../model/state';
 import { rnd } from '../random';
 
@@ -13,7 +13,7 @@ const OFFSETS: Record<Direction, Readonly<Position>> = {
 
 export interface MoveResult {
   resolved: boolean; consumedSlot: boolean; reason: string | null;
-  events: EngineEvent[]; deferredPickup: EntityId | null;
+  events: RawEventInput[]; deferredPickup: EntityId | null;
 }
 
 export function canStepTerrain(terrain: Terrain): boolean {
@@ -36,10 +36,10 @@ export function transitionRegion(state: WorldState, from: Position, to: Position
 }
 
 export function resolveMove(state: WorldState, direction: Direction, pickup: boolean): MoveResult {
-  const events: EngineEvent[] = [];
+  const events: RawEventInput[] = [];
   if (state.timing.noMove > 0) {
     state.timing.noMove--;
-    events.push({ type: 'stuck', message: 'You are still stuck in the bear trap.' });
+    events.push({ type: 'sourceMessage', text: 'You are still stuck in the bear trap.' });
     return { resolved: false, consumedSlot: true, reason: 'stuck', events, deferredPickup: null };
   }
   const from = { ...state.player.at };
@@ -47,7 +47,7 @@ export function resolveMove(state: WorldState, direction: Direction, pickup: boo
   if ((state.player.flags & IS_CONFUSED) !== 0 && rnd(state.rng, 5) !== 0) {
     to = { x: from.x + rnd(state.rng, 3) - 1, y: from.y + rnd(state.rng, 3) - 1 };
     if ((to.x === from.x && to.y === from.y) || !isLegalDestination(state, from, to)) {
-      events.push({ type: 'confused', message: 'You stumble in confusion.' });
+      events.push({ type: 'sourceMessage', text: 'You stumble in confusion.' });
       return { resolved: false, consumedSlot: false, reason: 'confused-no-move', events, deferredPickup: null };
     }
   } else {
@@ -55,15 +55,15 @@ export function resolveMove(state: WorldState, direction: Direction, pickup: boo
     to = { x: from.x + offset.x, y: from.y + offset.y };
   }
   if (!isLegalDestination(state, from, to)) {
-    events.push({ type: 'blocked', message: 'You cannot move there.' });
+    events.push({ type: 'sourceMessage', text: 'You cannot move there.' });
     return { resolved: false, consumedSlot: false, reason: 'blocked', events, deferredPickup: null };
   }
   const monster = buildIndexes(state).monsters.get(cellIndex(state.level, to));
   if (monster) return { resolved: false, consumedSlot: false, reason: 'combat-not-supported',
-    events: [{ type: 'unsupported', message: 'Combat is not available in this fixture yet.' }], deferredPickup: null };
+    events: [{ type: 'sourceMessage', text: 'Combat is not available in this fixture yet.' }], deferredPickup: null };
   transitionRegion(state, from, to);
   state.player.at = to;
-  events.push({ type: 'move', message: `Moved ${direction}.` });
+  events.push({ type: 'actorMoved', actorId: 'player', from, to: { ...to } });
   const item = buildIndexes(state).objects.get(cellIndex(state.level, to)) ?? null;
   return { resolved: true, consumedSlot: true, reason: null, events, deferredPickup: pickup ? item : null };
 }
