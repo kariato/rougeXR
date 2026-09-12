@@ -9,6 +9,7 @@ import type { PresentationEvent } from '../engine/model/action';
 import type { GameAction } from '../engine/model/action';
 import { parseSave, restoreGame, serializeSave } from '../persistence/save';
 import { parseReplay, ReplayRecorder, reproduceReplay } from '../persistence/replay';
+import { IndexedDbSaveStore, storeLatestSafely } from '../persistence/indexed-db-save-store';
 import { createSelectedWorld, parseSeed, type WorldMode } from './world-selection';
 
 const initialWorld = createSelectedWorld('generated', 12345);
@@ -36,6 +37,7 @@ const exportReport = required<HTMLButtonElement>('#export-report');
 const loadFile = required<HTMLInputElement>('#load-file');
 const saveStatus = required<HTMLElement>('#save-status');
 const view = new CanvasGridView(canvas);
+const saveStore = new IndexedDbSaveStore();
 let session = new GameSession(initialWorld);
 let recorder = new ReplayRecorder(session.exportState());
 let actionQueue = Promise.resolve();
@@ -96,7 +98,7 @@ search.addEventListener('click', () => submit({ type: 'search' }));
 pickup.addEventListener('click', () => submit({ type: 'pickup' }));
 descend.addEventListener('click', () => submit({ type: 'descend' }));
 newGame.addEventListener('click', () => {
-  actionQueue = actionQueue.then(() => {
+  actionQueue = actionQueue.then(async () => {
     const seed = parseSeed(seedInput.value);
     const mode = worldMode.value as WorldMode;
     const state = createSelectedWorld(mode, seed);
@@ -104,6 +106,7 @@ newGame.addEventListener('click', () => {
     if (validation.length) throw new Error(`New world validation failed: ${JSON.stringify(validation)}`);
     session = new GameSession(state); recorder = new ReplayRecorder(state); selectedIndex = null; latestEvents = [];
     saveStatus.textContent = `Started ${mode} world with seed ${seed}.`; render();
+    await autosave(state);
   }).catch(error => { saveStatus.textContent = error instanceof Error ? error.message : String(error); });
 });
 bindDesktopInput(window, enqueue);
@@ -116,7 +119,7 @@ function enqueue(action: GameAction): void {
     latestEvents = session.submit({ expectedRevision, action }).events;
     const snapshot = session.exportState();
     await recorder.record(action, expectedRevision, snapshot);
-    saveStatus.textContent = `Recorded revision ${snapshot.timing.revision}.`;
+    saveStatus.textContent = `Recorded revision ${snapshot.timing.revision}.`; await autosave(snapshot);
     render();
   }).catch(error => { saveStatus.textContent = error instanceof Error ? error.message : String(error); });
 }
@@ -132,13 +135,13 @@ loadFile.addEventListener('change', () => {
       if (!reproduced.result.ok) { saveStatus.textContent = `Replay diverged at action ${reproduced.result.completed}.`; return; }
       const candidate = restoreGame(reproduced.state);
       session = candidate; recorder = new ReplayRecorder(candidate.exportState()); selectedIndex = null; latestEvents = []; seedInput.value = String(candidate.exportState().seed);
-      saveStatus.textContent = `Reproduced ${reproduced.result.completed} actions.`; render(); return;
+      saveStatus.textContent = `Reproduced ${reproduced.result.completed} actions.`; render(); await autosave(candidate.exportState()); return;
     }
     const parsed = parseSave(text);
     if (!parsed.ok) { saveStatus.textContent = parsed.errors.map(error => `${error.path}: ${error.message}`).join('; '); return; }
     const candidate = restoreGame(parsed.value.state);
     session = candidate; recorder = new ReplayRecorder(candidate.exportState()); selectedIndex = null; latestEvents = []; seedInput.value = String(candidate.exportState().seed);
-    saveStatus.textContent = `Loaded revision ${candidate.exportState().timing.revision}.`; render();
+    saveStatus.textContent = `Loaded revision ${candidate.exportState().timing.revision}.`; render(); await autosave(candidate.exportState());
   }).catch(error => { saveStatus.textContent = error instanceof Error ? error.message : String(error); })
     .finally(() => { loadFile.value = ''; });
 });
@@ -151,9 +154,28 @@ function download(filename: string, text: string): void {
   setTimeout(() => URL.revokeObjectURL(url), 0);
   saveStatus.textContent = `Downloaded ${filename}.`;
 }
+async function autosave(state: ReturnType<GameSession['exportState']>): Promise<void> {
+  const result = await storeLatestSafely(saveStore, serializeSave(state));
+  if (!result.ok) saveStatus.textContent = `Autosave unavailable: ${result.error} Manual save remains available.`;
+}
+async function restoreLatestAutosave(): Promise<void> {
+  try {
+    const text = await saveStore.loadLatest();
+    if (text === null) { saveStatus.textContent = 'No autosave found. Ready for manual save.'; return; }
+    const parsed = parseSave(text);
+    if (!parsed.ok) { saveStatus.textContent = `Autosave rejected: ${parsed.errors[0]?.message ?? 'invalid save'}. Started a new game.`; return; }
+    const candidate = restoreGame(parsed.value.state);
+    session = candidate; recorder = new ReplayRecorder(candidate.exportState()); selectedIndex = null; latestEvents = [];
+    seedInput.value = String(candidate.exportState().seed);
+    saveStatus.textContent = `Restored autosave at revision ${candidate.exportState().timing.revision}.`; render();
+  } catch (error) {
+    saveStatus.textContent = `Autosave unavailable: ${error instanceof Error ? error.message : String(error)} Manual save remains available.`;
+  }
+}
 let resizeFrame: number | null = null;
 new ResizeObserver(() => {
   if (resizeFrame !== null) cancelAnimationFrame(resizeFrame);
   resizeFrame = requestAnimationFrame(() => { resizeFrame = null; render(); });
 }).observe(canvas.parentElement ?? canvas);
 render();
+actionQueue = actionQueue.then(restoreLatestAutosave);

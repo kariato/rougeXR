@@ -241,7 +241,7 @@ Outcome: sustained browser play and bug reporting are practical.
 | 10.4 | Add event filters, action timing display, and first-divergence reporting. | Report identifies action and hashes without inventing unavailable expected-state differences. |
 | 10.5 | Complete browser smoke suite in Chromium and Firefox. | Startup, focus, inventory, load/export, resize, and generated-game smoke checks pass. |
 
-- [ ] 10.1
+- [x] 10.1
 - [ ] 10.2
 - [ ] 10.3
 - [ ] 10.4

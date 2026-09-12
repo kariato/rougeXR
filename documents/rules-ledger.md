@@ -51,4 +51,6 @@ Phase 9.6 adds atomic downward level replacement. Stair descent requires the pla
 
 Phase 9.7 makes the production generator the regular browser's default start path. A validated unsigned 32-bit seed drives New Game, while the Kestrel encounter and two-room worlds remain explicit debug choices. Entering a room wakes its `IS_MEAN` monsters and assigns the player as their target, matching the `rooms.c` `enter_room` behavior needed for generated play. The browser still labels this as a supported slice because unsupported Phase 11 populations are intentionally substituted.
 
+Phase 10.1 adds browser-owned IndexedDB persistence behind a small `SaveStore` interface. Completed actions and successful New Game or import swaps enqueue versioned JSON writes in dispatch order. Startup accepts an autosave only after the same bounded parse and world validation used for manual imports. Open, read, and write failures remain browser status messages; they neither roll back gameplay nor disable manual JSON download, satisfying B04.
+
 Add an entry before intentionally changing source behavior. Record the relevant source function, the difference, its reason, and its verification case.
