@@ -23,6 +23,7 @@ const phaseTrace = required<HTMLElement>('#phase-trace');
 const rest = required<HTMLButtonElement>('#rest');
 const search = required<HTMLButtonElement>('#search');
 const pickup = required<HTMLButtonElement>('#pickup');
+const descend = required<HTMLButtonElement>('#descend');
 const messages = required<HTMLElement>('#messages');
 const rawEvents = required<HTMLElement>('#raw-events');
 const inventory = required<HTMLElement>('#inventory');
@@ -90,6 +91,7 @@ rest.addEventListener('click', () => {
 });
 search.addEventListener('click', () => submit({ type: 'search' }));
 pickup.addEventListener('click', () => submit({ type: 'pickup' }));
+descend.addEventListener('click', () => submit({ type: 'descend' }));
 bindDesktopInput(window, enqueue);
 function submit(action: GameAction): void {
   enqueue(action);

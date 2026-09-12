@@ -6,6 +6,7 @@ import { rnd } from '../random';
 import { attackMonster } from './combat';
 import { IS_CONFUSED } from './flags';
 import { ACTIVE_TRAPS, DEFERRED_TRAPS, triggerTrap } from './traps';
+import { descendLevel } from '../level-transition';
 
 export { IS_CONFUSED } from './flags';
 
@@ -67,6 +68,10 @@ export function resolveMove(state: WorldState, direction: Direction, pickup: boo
     return { resolved: true, consumedSlot: true, reason: null, events, deferredPickup: null };
   }
   const destinationFeature = tileAt(state.level, to).feature;
+  if (destinationFeature?.kind === 'trap' && !destinationFeature.revealed && destinationFeature.trap === 'trapDoor') {
+    descendLevel(state, event => events.push(event), 'trapDoor');
+    return { resolved: true, consumedSlot: true, reason: null, events, deferredPickup: null };
+  }
   if (destinationFeature?.kind === 'trap' && !destinationFeature.revealed && DEFERRED_TRAPS.has(destinationFeature.trap)) {
     events.push({ type: 'sourceMessage', text: `${destinationFeature.trap} traps require level generation.` });
     return { resolved: false, consumedSlot: false, reason: `unsupported-trap:${destinationFeature.trap}`, events, deferredPickup: null };

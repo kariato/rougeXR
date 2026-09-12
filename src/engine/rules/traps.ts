@@ -6,7 +6,7 @@ import { rnd, roll } from '../random';
 import { IS_LEVITATING, IS_PROTECTED } from './flags';
 
 export const ACTIVE_TRAPS = new Set<TrapKind>(['bear', 'sleep', 'arrow', 'dart', 'rust', 'mystery']);
-export const DEFERRED_TRAPS = new Set<TrapKind>(['trapDoor', 'teleport']);
+export const DEFERRED_TRAPS = new Set<TrapKind>(['teleport']);
 
 export function triggerTrap(state: WorldState, at: Position, emit: (event: RawEventInput) => void): void {
   const feature = state.level.tiles[cellIndex(state.level, at)]?.feature;

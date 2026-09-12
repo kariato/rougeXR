@@ -224,7 +224,7 @@ Outcome: replace fixtures with a playable generated dungeon while retaining fixt
 - [x] 9.3
 - [x] 9.4
 - [x] 9.5
-- [ ] 9.6
+- [x] 9.6
 - [ ] 9.7
 
 Gate: first playable browser slice. Supported-only population is a documented slice deviation; it must not be presented as exact full-source generation. Source-correct full populations are enabled in Phase 11.

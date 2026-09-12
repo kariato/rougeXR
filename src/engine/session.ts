@@ -10,6 +10,7 @@ import { collectAtPlayer, collectItem, dropItem, equipItem, unequipItem } from '
 import { eatItem } from './rules/inventory';
 import { runStomach } from './rules/hunger';
 import { recoverConfusion, recoverSight, rollWanderCheck, runDoctor, startWanderChecks } from './rules/effects';
+import { descendAtStairs } from './level-transition';
 
 export interface RuleResult { resolved: boolean; consumedSlot: boolean; reason: string | null; deferredPickup?: string | null }
 export interface RuleContext { state: WorldState; emit(event: PresentationEvent): void; emitRaw(event: RawEventInput): void }
@@ -137,6 +138,7 @@ function defaultAction(action: GameAction, context: RuleContext): RuleResult {
   if (action.type === 'equip') return equipItem(context.state, action.itemId, action.slot, context.emitRaw);
   if (action.type === 'unequip') return unequipItem(context.state, action.slot, context.emitRaw);
   if (action.type === 'eat') return eatItem(context.state, action.itemId, context.emitRaw);
+  if (action.type === 'descend') return descendAtStairs(context.state, context.emitRaw);
   if (action.name === 'free') return { resolved: true, consumedSlot: false, reason: null };
   return { resolved: false, consumedSlot: false, reason: `Unsupported fixture action: ${action.name}` };
 }
@@ -144,7 +146,7 @@ function validRequest(value: unknown): value is ActionRequest {
   if (!value || typeof value !== 'object') return false;
   const request = value as Partial<ActionRequest>;
   return Number.isSafeInteger(request.expectedRevision) && request.action !== null && typeof request.action === 'object'
-    && ((request.action as GameAction).type === 'rest' || (request.action as GameAction).type === 'search' || (request.action as GameAction).type === 'pickup'
+    && ((request.action as GameAction).type === 'rest' || (request.action as GameAction).type === 'search' || (request.action as GameAction).type === 'pickup' || (request.action as GameAction).type === 'descend'
       || ((request.action as GameAction).type === 'move'
         && Object.hasOwn({ N: 1, NE: 1, E: 1, SE: 1, S: 1, SW: 1, W: 1, NW: 1 }, (request.action as { direction?: string }).direction ?? '')
         && typeof (request.action as { pickup?: unknown }).pickup === 'boolean')
@@ -164,6 +166,7 @@ function projectEvent(state: WorldState, event: RawEvent): PresentationEvent | n
   }
   if (event.type === 'hpChanged' || event.type === 'actorDefeated') return null;
   if (event.type === 'itemCollected' || event.type === 'itemDropped' || event.type === 'equipmentChanged' || event.type === 'itemConsumed') return { type: 'inventoryUpdate' };
+  if (event.type === 'levelChanged') return { type: 'levelViewReset' };
   if (event.actorId === 'player' || isPositionVisible(state, event.from) || isPositionVisible(state, event.to)) {
     return { type: 'visibleMovement', token: event.actorId === 'player' ? 'player' : `monster-${event.actorId}`,
       from: { ...event.from }, to: { ...event.to } };

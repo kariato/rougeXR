@@ -56,10 +56,15 @@ export function parseReplay(text: string): ParseReplayResult {
 function validAction(value: unknown): value is GameAction {
   if (!value || typeof value !== 'object') return false;
   const action = value as Partial<GameAction> & { direction?: unknown; pickup?: unknown; name?: unknown };
-  if (action.type === 'rest' || action.type === 'search') return true;
+  if (action.type === 'rest' || action.type === 'search' || action.type === 'pickup' || action.type === 'descend') return true;
   if (action.type === 'fixture') return typeof action.name === 'string';
-  return action.type === 'move' && typeof action.direction === 'string'
+  if (action.type === 'move') return typeof action.direction === 'string'
     && ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'].includes(action.direction) && typeof action.pickup === 'boolean';
+  if (action.type === 'drop' || action.type === 'eat') return typeof (action as { itemId?: unknown }).itemId === 'string';
+  if (action.type === 'unequip') return typeof (action as { slot?: unknown }).slot === 'string'
+    && ['weapon', 'armor', 'leftRing', 'rightRing'].includes((action as { slot: string }).slot);
+  return action.type === 'equip' && typeof (action as { itemId?: unknown }).itemId === 'string'
+    && typeof (action as { slot?: unknown }).slot === 'string' && ['weapon', 'armor', 'leftRing', 'rightRing'].includes((action as { slot: string }).slot);
 }
 
 const detached = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;

@@ -5,7 +5,7 @@ Based on [Davidslv/rogue (Rogue 5.4.4)](https://github.com/Davidslv/rogue), init
 
 Development starts in a regular desktop browser with keyboard and mouse controls, a 2D dungeon view, and a state inspector. Desktop 3D follows; XR is added after the game can be debugged without a headset.
 
-Current implementation: Phase 9 now assembles reproducible generated worlds with Rogue's starting food, ring mail, mace, bow, and arrow stack; equipped armor and weapon; initialized knowledge; and production scheduler entries in source order. The generated world validates at its first input boundary, while the browser remains on the explicit fixture until Phase 9.7.
+Current implementation: Phase 9 now supports atomic downward level transitions from stairs and trap doors. Carried and equipped item identities survive, prior floor objects and monsters are removed, new entities retain monotonic IDs, knowledge resets, and source timing continues across deterministic generated levels. Teleport remains gated to its same-level placement implementation.
 
 - [Browser-first design](documents/design.md)
 - [Detailed TypeScript implementation specification](documents/typescript-implementation.md)
