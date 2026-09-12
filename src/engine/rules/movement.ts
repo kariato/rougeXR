@@ -3,7 +3,7 @@ import { cellIndex, isPlayable, tileAt } from '../grid';
 import type { RawEventInput } from '../model/action';
 import type { Direction, EntityId, Position, Terrain, WorldState } from '../model/state';
 import { rnd } from '../random';
-import { attackMonster } from './combat';
+import { attackMonster, wakeRoomMonsters } from './combat';
 import { IS_CONFUSED } from './flags';
 import { ACTIVE_TRAPS, DEFERRED_TRAPS, triggerTrap } from './traps';
 import { descendLevel } from '../level-transition';
@@ -78,6 +78,7 @@ export function resolveMove(state: WorldState, direction: Direction, pickup: boo
   }
   transitionRegion(state, from, to);
   state.player.at = to;
+  wakeRoomMonsters(state);
   events.push({ type: 'actorMoved', actorId: 'player', from, to: { ...to } });
   if (destinationFeature?.kind === 'trap' && ACTIVE_TRAPS.has(destinationFeature.trap)) triggerTrap(state, to, event => events.push(event));
   const item = buildIndexes(state).objects.get(cellIndex(state.level, to)) ?? null;

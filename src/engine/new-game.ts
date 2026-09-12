@@ -4,6 +4,7 @@ import { createRandom, rnd } from './random';
 import { createScheduler, scheduleFuse, startDaemon } from './scheduler';
 import { updateKnowledge } from './perception/knowledge';
 import { validateWorld } from './validate';
+import { wakeRoomMonsters } from './rules/combat';
 
 const KNOWN = 0o2; const MISSILE = 0o4; const MANY = 0o10;
 
@@ -31,7 +32,7 @@ export function createNewGame(seed: number): WorldState {
       foodLeft: 1300, noFood: 1, quiet: 0, between: 0, hungerStage: 0, scheduler, cycle: { phase: 'begin', slotsRemaining: 0 } },
     knowledge: { levelId: generated.level.id, remembered: Array.from({ length: generated.level.tiles.length }, () => null) },
   };
-  updateKnowledge(state); const issues = validateWorld(state); if (issues.length) throw new Error(`Generated world invalid: ${issues[0]!.path}: ${issues[0]!.message}`);
+  wakeRoomMonsters(state); updateKnowledge(state); const issues = validateWorld(state); if (issues.length) throw new Error(`Generated world invalid: ${issues[0]!.path}: ${issues[0]!.message}`);
   return state;
 }
 

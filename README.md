@@ -5,7 +5,7 @@ Based on [Davidslv/rogue (Rogue 5.4.4)](https://github.com/Davidslv/rogue), init
 
 Development starts in a regular desktop browser with keyboard and mouse controls, a 2D dungeon view, and a state inspector. Desktop 3D follows; XR is added after the game can be debugged without a headset.
 
-Current implementation: Phase 9 now supports atomic downward level transitions from stairs and trap doors. Carried and equipped item identities survive, prior floor objects and monsters are removed, new entities retain monotonic IDs, knowledge resets, and source timing continues across deterministic generated levels. Teleport remains gated to its same-level placement implementation.
+Current implementation: Phase 9 is playable in the regular browser. The default New Game path creates a deterministic generated dungeon from a user-supplied seed; explicit Kestrel and two-room fixtures remain available for focused debugging. The supported slice includes exploration, combat, basic inventory and survival rules, and downward level changes. Population still maps unsupported monsters and objects to the implemented subset until Phase 11.
 
 - [Browser-first design](documents/design.md)
 - [Detailed TypeScript implementation specification](documents/typescript-implementation.md)

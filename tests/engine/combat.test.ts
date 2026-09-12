@@ -1,12 +1,23 @@
 import { describe, expect, it } from 'vitest';
 import { parseDamage, STRENGTH_DAMAGE_BONUS, STRENGTH_HIT_BONUS } from '../../src/definitions/combat';
-import { createKestrelEncounterFixture } from '../../src/debug/fixtures';
+import { createKestrelEncounterFixture, createTwoRoomFixture } from '../../src/debug/fixtures';
 import { transferItem } from '../../src/engine/entities';
-import { attackMonster } from '../../src/engine/rules/combat';
+import { attackMonster, wakeRoomMonsters } from '../../src/engine/rules/combat';
+import { IS_MEAN, IS_RUNNING } from '../../src/engine/rules/flags';
 import { GameSession } from '../../src/engine/session';
 import { ReplayRecorder, replay } from '../../src/persistence/replay';
 
 describe('source combat encounter', () => {
+  it('wakes mean monsters when the player enters their room', () => {
+    const state = createTwoRoomFixture();
+    const monster = state.entities.e1;
+    if (monster?.kind !== 'monster') throw new Error('missing monster');
+    monster.roomId = state.player.roomId; monster.flags = IS_MEAN; monster.target = null;
+    wakeRoomMonsters(state);
+    expect(monster.flags & IS_RUNNING).toBe(IS_RUNNING);
+    expect(monster.target).toEqual({ kind: 'player' });
+  });
+
   it('transcribes strength tables and parses every damage group', () => {
     expect(STRENGTH_HIT_BONUS).toHaveLength(32); expect(STRENGTH_DAMAGE_BONUS).toHaveLength(32);
     expect(parseDamage('1x6/2x4/0x0')).toEqual([{ count: 1, sides: 6 }, { count: 2, sides: 4 }, { count: 0, sides: 0 }]);

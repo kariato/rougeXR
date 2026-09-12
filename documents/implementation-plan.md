@@ -1,6 +1,6 @@
 # Implementation plan
 
-Status: implementation complete through Phase 8. This plan breaks the [TypeScript implementation specification](typescript-implementation.md) into small reviewable changes. The reference remains Davidslv/rogue commit `f4653c2a2ee6981a73abe9dfda055134285e1e79`.
+Status: implementation complete through Phase 9. This plan breaks the [TypeScript implementation specification](typescript-implementation.md) into small reviewable changes. The reference remains Davidslv/rogue commit `f4653c2a2ee6981a73abe9dfda055134285e1e79`.
 
 ## Working method
 
@@ -225,7 +225,7 @@ Outcome: replace fixtures with a playable generated dungeon while retaining fixt
 - [x] 9.4
 - [x] 9.5
 - [x] 9.6
-- [ ] 9.7
+- [x] 9.7
 
 Gate: first playable browser slice. Supported-only population is a documented slice deviation; it must not be presented as exact full-source generation. Source-correct full populations are enabled in Phase 11.
 

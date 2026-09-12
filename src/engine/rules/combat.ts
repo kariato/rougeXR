@@ -5,9 +5,19 @@ import type { RawEventInput } from '../model/action';
 import type { CombatStats, EntityId, MonsterState, Position, WorldState } from '../model/state';
 import { rnd } from '../random';
 import { canMoveDiagonally, canStepTerrain } from './movement';
-import { IS_FLYING, IS_HELD, IS_RUNNING, IS_SLOWED } from './flags';
+import { IS_FLYING, IS_HELD, IS_MEAN, IS_RUNNING, IS_SLOWED } from './flags';
 
 export type EmitRaw = (event: RawEventInput) => void;
+
+export function wakeRoomMonsters(state: WorldState): void {
+  const roomId = state.player.roomId; if (roomId === null) return;
+  for (const id of state.level.monsterOrder) {
+    const monster = state.entities[id];
+    if (monster?.kind === 'monster' && monster.roomId === roomId && (monster.flags & IS_MEAN) !== 0) {
+      monster.flags |= IS_RUNNING; monster.target = { kind: 'player' };
+    }
+  }
+}
 
 export function attackMonster(state: WorldState, id: EntityId, emit: EmitRaw): void {
   const monster = state.entities[id];

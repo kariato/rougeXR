@@ -49,4 +49,6 @@ Phase 9.5 assembles the generated content into a production `WorldState`. Starti
 
 Phase 9.6 adds atomic downward level replacement. Stair descent requires the player to occupy the stair feature; a hidden trap door enters the same transition before assigning the attempted movement cell. Player-owned entities and equipment references survive unchanged, while prior floor objects, monsters, and monster packs are discarded. New floor entities continue the monotonic ID sequence, held state clears, food-level tracking updates, knowledge resets to the new level, and the existing scheduler/cycle continues through the action's AFTER phase. Level-change presentation emits a view reset and replay parsing accepts the action.
 
+Phase 9.7 makes the production generator the regular browser's default start path. A validated unsigned 32-bit seed drives New Game, while the Kestrel encounter and two-room worlds remain explicit debug choices. Entering a room wakes its `IS_MEAN` monsters and assigns the player as their target, matching the `rooms.c` `enter_room` behavior needed for generated play. The browser still labels this as a supported slice because unsupported Phase 11 populations are intentionally substituted.
+
 Add an entry before intentionally changing source behavior. Record the relevant source function, the difference, its reason, and its verification case.

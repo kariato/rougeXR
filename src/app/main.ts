@@ -1,4 +1,3 @@
-import { createKestrelEncounterFixture } from '../debug/fixtures';
 import { cellIndex } from '../engine/grid';
 import { debugFixtureSnapshot, describeDebugCell, describeObservedCell } from '../engine/perception/fixture-observation';
 import { observe } from '../engine/perception/knowledge';
@@ -10,10 +9,11 @@ import type { PresentationEvent } from '../engine/model/action';
 import type { GameAction } from '../engine/model/action';
 import { parseSave, restoreGame, serializeSave } from '../persistence/save';
 import { parseReplay, ReplayRecorder, reproduceReplay } from '../persistence/replay';
+import { createSelectedWorld, parseSeed, type WorldMode } from './world-selection';
 
-const fixture = createKestrelEncounterFixture();
-const issues = validateWorld(fixture);
-if (issues.length) throw new Error(`Fixture validation failed: ${JSON.stringify(issues)}`);
+const initialWorld = createSelectedWorld('generated', 12345);
+const issues = validateWorld(initialWorld);
+if (issues.length) throw new Error(`Initial world validation failed: ${JSON.stringify(issues)}`);
 
 const canvas = required<HTMLCanvasElement>('#dungeon');
 const inspector = required<HTMLElement>('#inspector');
@@ -24,6 +24,9 @@ const rest = required<HTMLButtonElement>('#rest');
 const search = required<HTMLButtonElement>('#search');
 const pickup = required<HTMLButtonElement>('#pickup');
 const descend = required<HTMLButtonElement>('#descend');
+const worldMode = required<HTMLSelectElement>('#world-mode');
+const seedInput = required<HTMLInputElement>('#seed');
+const newGame = required<HTMLButtonElement>('#new-game');
 const messages = required<HTMLElement>('#messages');
 const rawEvents = required<HTMLElement>('#raw-events');
 const inventory = required<HTMLElement>('#inventory');
@@ -33,7 +36,7 @@ const exportReport = required<HTMLButtonElement>('#export-report');
 const loadFile = required<HTMLInputElement>('#load-file');
 const saveStatus = required<HTMLElement>('#save-status');
 const view = new CanvasGridView(canvas);
-let session = new GameSession(fixture);
+let session = new GameSession(initialWorld);
 let recorder = new ReplayRecorder(session.exportState());
 let actionQueue = Promise.resolve();
 let selectedIndex: number | null = null;
@@ -92,6 +95,17 @@ rest.addEventListener('click', () => {
 search.addEventListener('click', () => submit({ type: 'search' }));
 pickup.addEventListener('click', () => submit({ type: 'pickup' }));
 descend.addEventListener('click', () => submit({ type: 'descend' }));
+newGame.addEventListener('click', () => {
+  actionQueue = actionQueue.then(() => {
+    const seed = parseSeed(seedInput.value);
+    const mode = worldMode.value as WorldMode;
+    const state = createSelectedWorld(mode, seed);
+    const validation = validateWorld(state);
+    if (validation.length) throw new Error(`New world validation failed: ${JSON.stringify(validation)}`);
+    session = new GameSession(state); recorder = new ReplayRecorder(state); selectedIndex = null; latestEvents = [];
+    saveStatus.textContent = `Started ${mode} world with seed ${seed}.`; render();
+  }).catch(error => { saveStatus.textContent = error instanceof Error ? error.message : String(error); });
+});
 bindDesktopInput(window, enqueue);
 function submit(action: GameAction): void {
   enqueue(action);
@@ -117,13 +131,13 @@ loadFile.addEventListener('change', () => {
       const reproduced = await reproduceReplay(report.value);
       if (!reproduced.result.ok) { saveStatus.textContent = `Replay diverged at action ${reproduced.result.completed}.`; return; }
       const candidate = restoreGame(reproduced.state);
-      session = candidate; recorder = new ReplayRecorder(candidate.exportState()); selectedIndex = null; latestEvents = [];
+      session = candidate; recorder = new ReplayRecorder(candidate.exportState()); selectedIndex = null; latestEvents = []; seedInput.value = String(candidate.exportState().seed);
       saveStatus.textContent = `Reproduced ${reproduced.result.completed} actions.`; render(); return;
     }
     const parsed = parseSave(text);
     if (!parsed.ok) { saveStatus.textContent = parsed.errors.map(error => `${error.path}: ${error.message}`).join('; '); return; }
     const candidate = restoreGame(parsed.value.state);
-    session = candidate; recorder = new ReplayRecorder(candidate.exportState()); selectedIndex = null; latestEvents = [];
+    session = candidate; recorder = new ReplayRecorder(candidate.exportState()); selectedIndex = null; latestEvents = []; seedInput.value = String(candidate.exportState().seed);
     saveStatus.textContent = `Loaded revision ${candidate.exportState().timing.revision}.`; render();
   }).catch(error => { saveStatus.textContent = error instanceof Error ? error.message : String(error); })
     .finally(() => { loadFile.value = ''; });
