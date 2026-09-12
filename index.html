@@ -8,15 +8,15 @@
       :root { color-scheme: dark; font-family: system-ui, sans-serif; background: #070b12; color: #dbeafe; }
       * { box-sizing: border-box; }
       body { margin: 0; min-height: 100vh; }
-      main { display: grid; grid-template-rows: auto minmax(0, 1fr); min-height: 100vh; }
+      main { display: grid; grid-template-rows: auto minmax(0, 1fr); height: 100vh; }
       header { display: flex; align-items: center; gap: 1rem; padding: .7rem 1rem; border-bottom: 1px solid #334155; background: #0f172a; }
       h1 { margin: 0; font-size: 1.1rem; }
       header p { margin: 0; color: #94a3b8; }
       label { margin-left: auto; padding: .35rem .6rem; border: 1px solid #475569; border-radius: .35rem; cursor: pointer; }
-      .layout { display: grid; grid-template-columns: minmax(0, 1fr) 19rem; min-height: 0; }
-      .map { min-width: 0; min-height: 26rem; padding: 1rem; }
+      .layout { display: grid; grid-template-columns: minmax(0, 1fr) 19rem; min-height: 0; overflow: hidden; }
+      .map { min-width: 0; min-height: 26rem; padding: 1rem; overflow: hidden; }
       canvas { display: block; width: 100%; height: 100%; min-height: 24rem; border: 1px solid #334155; background: #070b12; }
-      aside { padding: 1rem; border-left: 1px solid #334155; background: #0f172a; }
+      aside { padding: 1rem; overflow: auto; border-left: 1px solid #334155; background: #0f172a; }
       aside h2 { margin: 0 0 .75rem; font-size: 1rem; }
       pre { min-height: 8rem; padding: .75rem; overflow: auto; white-space: pre-wrap; background: #070b12; border: 1px solid #334155; }
       #state-summary { color: #94a3b8; font-size: .85rem; }
@@ -28,7 +28,7 @@
       button:disabled, select:disabled { cursor: not-allowed; opacity: .5; }
       .debug-badge { display: none; color: #fecdd3; background: #881337; padding: .25rem .5rem; border-radius: .25rem; font-weight: 700; }
       .debug-reveal .debug-badge { display: inline; }
-      @media (max-width: 760px) { .layout { grid-template-columns: 1fr; } aside { border-left: 0; border-top: 1px solid #334155; } header { flex-wrap: wrap; } label { margin-left: 0; } }
+      @media (max-width: 760px) { main { height: auto; min-height: 100vh; } .layout { grid-template-columns: 1fr; overflow: visible; } .map { overflow: visible; } aside { overflow: visible; border-left: 0; border-top: 1px solid #334155; } header { flex-wrap: wrap; } label { margin-left: 0; } }
     </style>
   </head>
   <body>

@@ -59,4 +59,6 @@ Phase 10.3 bounds each replay bundle to 1,000 actions. Before appending beyond c
 
 Phase 10.4 adds browser-only diagnostics that remain outside canonical game state. Event filters group player-safe and raw debug events as messages, movement, combat, inventory, or world changes while retaining event order. Live actions display engine time, combined replay-record/autosave time, and deterministic ticks advanced; replay steps display combined submit/hash time. On the first checksum mismatch, playback stops and reports the exact recorded action plus full expected and actual hashes. No state difference is inferred from those hashes.
 
+Phase 10.5 establishes the regular browser as the cross-browser debugging gate. Playwright runs the same six-case matrix across Chromium and Firefox with device pixel ratio 2: startup with `navigator.xr` unavailable, editable-control input isolation, generated New Game and inventory, manual save/import and report export, and exact canvas selection after two viewport sizes. The shell now bounds its desktop grid to the viewport and scrolls diagnostics independently, preventing intrinsic canvas dimensions from feeding back into resize layout.
+
 Add an entry before intentionally changing source behavior. Record the relevant source function, the difference, its reason, and its verification case.

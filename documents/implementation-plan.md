@@ -1,6 +1,6 @@
 # Implementation plan
 
-Status: implementation complete through Phase 9. This plan breaks the [TypeScript implementation specification](typescript-implementation.md) into small reviewable changes. The reference remains Davidslv/rogue commit `f4653c2a2ee6981a73abe9dfda055134285e1e79`.
+Status: implementation complete through Phase 10. This plan breaks the [TypeScript implementation specification](typescript-implementation.md) into small reviewable changes. The reference remains Davidslv/rogue commit `f4653c2a2ee6981a73abe9dfda055134285e1e79`.
 
 ## Working method
 
@@ -245,9 +245,11 @@ Outcome: sustained browser play and bug reporting are practical.
 - [x] 10.2
 - [x] 10.3
 - [x] 10.4
-- [ ] 10.5
+- [x] 10.5
 
 Gate: browser slice is the stable debugging platform for all subsequent work.
+
+Completed 2026-09-12. Validation at completion: 116 headless tests and six Playwright smoke cases passed. The smoke matrix runs startup without WebXR, focused-input isolation, generated inventory, manual load/export, and DPR2 resizing in both Chromium and Firefox.
 
 ## Phase 11 — Complete Rogue rules in small content batches
 
