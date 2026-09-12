@@ -7,15 +7,34 @@ export interface ReplayEntry { action: GameAction; expectedRevision: number; exp
 export interface ReplayBundle { format: 'rougexr-replay'; version: 1; initial: SaveEnvelope; entries: ReplayEntry[] }
 export interface ReplayResult { ok: boolean; completed: number; expectedHash?: string; actualHash?: string }
 export type ParseReplayResult = { ok: true; value: ReplayBundle } | { ok: false; error: string };
+export const MAX_REPLAY_ENTRIES = 1000;
 
 export class ReplayRecorder {
-  private readonly initial: SaveEnvelope;
+  private initial: SaveEnvelope;
   private readonly entries: ReplayEntry[] = [];
-  constructor(initialState: WorldState) { this.initial = createSaveEnvelope(initialState); }
+  constructor(initialState: WorldState, private readonly maxEntries = MAX_REPLAY_ENTRIES) {
+    if (!Number.isSafeInteger(maxEntries) || maxEntries < 1 || maxEntries > MAX_REPLAY_ENTRIES) {
+      throw new RangeError(`Replay capacity must be between 1 and ${MAX_REPLAY_ENTRIES}`);
+    }
+    this.initial = createSaveEnvelope(initialState);
+  }
   async record(action: GameAction, expectedRevision: number, resultingState: WorldState): Promise<void> {
-    this.entries.push({ action: detached(action), expectedRevision, expectedHash: await hashState(resultingState) });
+    const entry = { action: detached(action), expectedRevision, expectedHash: await hashState(resultingState) };
+    if (this.entries.length === this.maxEntries) await this.advanceCheckpoint();
+    this.entries.push(entry);
   }
   bundle(): ReplayBundle { return { format: 'rougexr-replay', version: 1, initial: detached(this.initial), entries: detached(this.entries) }; }
+
+  private async advanceCheckpoint(): Promise<void> {
+    const evicted = this.entries[0];
+    if (!evicted) return;
+    const checkpoint = restoreGame(this.initial.state);
+    checkpoint.submit({ expectedRevision: evicted.expectedRevision, action: detached(evicted.action) });
+    const actualHash = await hashState(checkpoint.exportState());
+    if (actualHash !== evicted.expectedHash) throw new Error('Cannot rotate a divergent replay checkpoint');
+    this.initial = createSaveEnvelope(checkpoint.exportState());
+    this.entries.shift();
+  }
 }
 
 export async function replay(bundle: ReplayBundle): Promise<ReplayResult> {
@@ -42,7 +61,7 @@ export function parseReplay(text: string): ParseReplayResult {
   if (bundle.format !== 'rougexr-replay' || bundle.version !== 1 || !bundle.initial || !Array.isArray(bundle.entries)) {
     return { ok: false, error: 'Unsupported replay bundle' };
   }
-  if (bundle.entries.length > 1000) return { ok: false, error: 'Replay exceeds 1000 actions' };
+  if (bundle.entries.length > MAX_REPLAY_ENTRIES) return { ok: false, error: `Replay exceeds ${MAX_REPLAY_ENTRIES} actions` };
   const initial = parseSave(JSON.stringify(bundle.initial));
   if (!initial.ok) return { ok: false, error: `Invalid replay checkpoint: ${initial.errors[0]?.message ?? 'unknown error'}` };
   for (const entry of bundle.entries) {

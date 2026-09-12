@@ -55,4 +55,6 @@ Phase 10.1 adds browser-owned IndexedDB persistence behind a small `SaveStore` i
 
 Phase 10.2 adds an interactive replay cursor over the existing deterministic replay bundle. Loading a replay restores only its checkpoint, then restart, step, play, pause, and speed controls advance through the same `GameSession.submit` boundary and verify the recorded hash after each action. One step submits exactly one entry. Live keyboard, action, and inventory input stays disabled for the entire replay mode; New Game or a validated save import returns to live play. Playback scheduling uses one replaceable timer so speed changes cannot enqueue duplicate steps.
 
+Phase 10.3 bounds each replay bundle to 1,000 actions. Before appending beyond capacity, the recorder restores the current checkpoint, submits the oldest retained action through `GameSession`, verifies its recorded hash, and promotes that resulting state to the replacement checkpoint. It then removes only that action and appends the new entry. Absolute revisions remain intact, divergent history refuses rotation, and S03 verifies the final state after seven successive rotations with a three-entry test capacity.
+
 Add an entry before intentionally changing source behavior. Record the relevant source function, the difference, its reason, and its verification case.
