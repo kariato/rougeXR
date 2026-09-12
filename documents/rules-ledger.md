@@ -57,4 +57,6 @@ Phase 10.2 adds an interactive replay cursor over the existing deterministic rep
 
 Phase 10.3 bounds each replay bundle to 1,000 actions. Before appending beyond capacity, the recorder restores the current checkpoint, submits the oldest retained action through `GameSession`, verifies its recorded hash, and promotes that resulting state to the replacement checkpoint. It then removes only that action and appends the new entry. Absolute revisions remain intact, divergent history refuses rotation, and S03 verifies the final state after seven successive rotations with a three-entry test capacity.
 
+Phase 10.4 adds browser-only diagnostics that remain outside canonical game state. Event filters group player-safe and raw debug events as messages, movement, combat, inventory, or world changes while retaining event order. Live actions display engine time, combined replay-record/autosave time, and deterministic ticks advanced; replay steps display combined submit/hash time. On the first checksum mismatch, playback stops and reports the exact recorded action plus full expected and actual hashes. No state difference is inferred from those hashes.
+
 Add an entry before intentionally changing source behavior. Record the relevant source function, the difference, its reason, and its verification case.

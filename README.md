@@ -7,7 +7,7 @@ Development starts in a regular desktop browser with keyboard and mouse controls
 
 Current implementation: Phase 9 is playable in the regular browser. The default New Game path creates a deterministic generated dungeon from a user-supplied seed; explicit Kestrel and two-room fixtures remain available for focused debugging. The supported slice includes exploration, combat, basic inventory and survival rules, and downward level changes. Population still maps unsupported monsters and objects to the implemented subset until Phase 11.
 
-Phase 10 browser debugging work has begun. Versioned saves autosave to IndexedDB after completed actions and restore on startup; storage failures leave gameplay and manual JSON downloads available. Imported replay bundles can be restarted, stepped one action at a time, played, paused, and viewed at selectable speeds while live game input is locked. Replay history is capped at 1,000 actions and advances its verified checkpoint as older entries rotate out.
+Phase 10 browser debugging work has begun. Versioned saves autosave to IndexedDB after completed actions and restore on startup; storage failures leave gameplay and manual JSON downloads available. Imported replay bundles can be restarted, stepped one action at a time, played, paused, and viewed at selectable speeds while live game input is locked. Replay history is capped at 1,000 actions and advances its verified checkpoint as older entries rotate out. Browser diagnostics include event-category filters, action timing, and first-divergence action and hash details.
 
 - [Browser-first design](documents/design.md)
 - [Detailed TypeScript implementation specification](documents/typescript-implementation.md)

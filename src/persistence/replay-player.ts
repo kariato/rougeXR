@@ -1,4 +1,5 @@
 import type { ActionResolution } from '../engine/model/action';
+import type { GameAction } from '../engine/model/action';
 import { GameSession } from '../engine/session';
 import { hashState } from './canonical';
 import type { ReplayBundle } from './replay';
@@ -6,7 +7,7 @@ import { restoreGame } from './save';
 
 export type ReplayStepResult =
   | { status: 'advanced' | 'complete'; index: number; total: number; resolution: ActionResolution }
-  | { status: 'diverged'; index: number; total: number; expectedHash: string; actualHash: string; resolution: ActionResolution };
+  | { status: 'diverged'; index: number; total: number; action: GameAction; expectedHash: string; actualHash: string; resolution: ActionResolution };
 
 export class ReplayPlayer {
   private current: GameSession;
@@ -32,7 +33,7 @@ export class ReplayPlayer {
     const actualHash = await hashState(this.current.exportState());
     if (actualHash !== entry.expectedHash) {
       this.stopped = true;
-      return { status: 'diverged', index: this.cursor, total: this.total(), expectedHash: entry.expectedHash, actualHash, resolution };
+      return { status: 'diverged', index: this.cursor, total: this.total(), action: structuredClone(entry.action), expectedHash: entry.expectedHash, actualHash, resolution };
     }
     this.cursor++;
     return { status: this.cursor === this.total() ? 'complete' : 'advanced', index: this.cursor, total: this.total(), resolution };

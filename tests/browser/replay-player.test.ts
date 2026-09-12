@@ -28,7 +28,7 @@ describe('interactive replay player', () => {
   it('locks at the first divergent action until restart', async () => {
     const bundle = await recordedReplay(); bundle.entries[0]!.expectedHash = '0'.repeat(64);
     const player = new ReplayPlayer(bundle);
-    expect(await player.step()).toMatchObject({ status: 'diverged', index: 0 });
+    expect(await player.step()).toMatchObject({ status: 'diverged', index: 0, action: { type: 'rest' }, expectedHash: '0'.repeat(64), actualHash: expect.stringMatching(/^[0-9a-f]{64}$/) });
     expect(player.canStep()).toBe(false); await expect(player.step()).rejects.toThrow('no next action');
   });
 });

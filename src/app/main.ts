@@ -12,6 +12,7 @@ import { parseReplay, ReplayRecorder } from '../persistence/replay';
 import { ReplayPlayer, type ReplayStepResult } from '../persistence/replay-player';
 import { IndexedDbSaveStore, storeLatestSafely } from '../persistence/indexed-db-save-store';
 import { createSelectedWorld, parseSeed, type WorldMode } from './world-selection';
+import { filterEvents, type EventFilter } from './event-filter';
 
 const initialWorld = createSelectedWorld('generated', 12345);
 const issues = validateWorld(initialWorld);
@@ -35,6 +36,9 @@ const replayPlay = required<HTMLButtonElement>('#replay-play');
 const replayPause = required<HTMLButtonElement>('#replay-pause');
 const replaySpeed = required<HTMLSelectElement>('#replay-speed');
 const replayStatus = required<HTMLElement>('#replay-status');
+const replayDetails = required<HTMLElement>('#replay-details');
+const actionTiming = required<HTMLElement>('#action-timing');
+const eventFilter = required<HTMLSelectElement>('#event-filter');
 const messages = required<HTMLElement>('#messages');
 const rawEvents = required<HTMLElement>('#raw-events');
 const inventory = required<HTMLElement>('#inventory');
@@ -54,6 +58,7 @@ let replayPlayer: ReplayPlayer | null = null;
 let replayPlaying = false;
 let replayTimer: number | null = null;
 let replaySchedule = 0;
+let latestActionTiming = 'No action measured.';
 
 function required<T extends Element>(selector: string): T {
   const element = document.querySelector<T>(selector);
@@ -73,7 +78,8 @@ function render(): void {
   const hunger = ['Fed', 'Hungry', 'Weak', 'Faint'][state.timing.hungerStage] ?? 'Unknown';
   stateSummary.textContent = `HP ${state.player.stats.hp}/${state.player.stats.maxHp} · ${hunger} · Seed ${state.seed} · Tick ${state.timing.tick} · Revision ${state.timing.revision} · ${state.timing.status}`;
   phaseTrace.textContent = session.trace().map(entry => `[${entry.tick}] ${entry.kind}: ${entry.detail}`).join('\n') || 'Input ready.';
-  messages.textContent = latestEvents.map(event => event.type === 'message' ? event.text : event.type === 'visibleMovement' ? 'You move.' : event.type).join('\n') || 'No messages.';
+  const filter = eventFilter.value as EventFilter;
+  messages.textContent = filterEvents(latestEvents, filter).map(event => event.type === 'message' ? event.text : event.type === 'visibleMovement' ? 'You move.' : event.type).join('\n') || 'No matching events.';
   inventory.replaceChildren(...observation.inventory.map(item => {
     const row = document.createElement('div'); row.append(`${item.label} ×${item.quantity} `);
     if (item.category === 'weapon' || item.category === 'armor') {
@@ -90,7 +96,8 @@ function render(): void {
     drop.addEventListener('click', () => submit({ type: 'drop', itemId: item.token })); row.append(drop); return row;
   }));
   if (!observation.inventory.length) inventory.textContent = 'Pack is empty.';
-  rawEvents.textContent = reveal.checked ? JSON.stringify(session.debugEvents(), null, 2) : '';
+  rawEvents.textContent = reveal.checked ? JSON.stringify(filterEvents(session.debugEvents(), filter), null, 2) : '';
+  actionTiming.textContent = latestActionTiming;
   document.body.classList.toggle('debug-reveal', reveal.checked);
   const replayMode = replayPlayer !== null;
   for (const control of [rest, search, pickup, descend]) control.disabled = replayMode;
@@ -109,6 +116,7 @@ canvas.addEventListener('click', event => {
   render();
 });
 reveal.addEventListener('change', render);
+eventFilter.addEventListener('change', render);
 rest.addEventListener('click', () => {
   submit({ type: 'rest' });
 });
@@ -123,7 +131,7 @@ newGame.addEventListener('click', () => {
     const state = createSelectedWorld(mode, seed);
     const validation = validateWorld(state);
     if (validation.length) throw new Error(`New world validation failed: ${JSON.stringify(validation)}`);
-    session = new GameSession(state); recorder = new ReplayRecorder(state); selectedIndex = null; latestEvents = [];
+    session = new GameSession(state); recorder = new ReplayRecorder(state); selectedIndex = null; latestEvents = []; resetDiagnostics();
     saveStatus.textContent = `Started ${mode} world with seed ${seed}.`; render();
     await autosave(state);
   }).catch(error => { saveStatus.textContent = error instanceof Error ? error.message : String(error); });
@@ -132,7 +140,7 @@ replayRestart.addEventListener('click', () => {
   pauseReplay();
   actionQueue = actionQueue.then(() => {
     if (!replayPlayer) return;
-    session = replayPlayer.restart(); latestEvents = []; selectedIndex = null;
+    session = replayPlayer.restart(); latestEvents = []; selectedIndex = null; resetDiagnostics();
     replayStatus.textContent = `Replay restarted · 0/${replayPlayer.total()}.`; render();
   });
 });
@@ -157,10 +165,14 @@ function submit(action: GameAction): void {
 function enqueue(action: GameAction): void {
   actionQueue = actionQueue.then(async () => {
     const expectedRevision = session.exportState().timing.revision;
-    latestEvents = session.submit({ expectedRevision, action }).events;
+    const started = performance.now();
+    const resolution = session.submit({ expectedRevision, action }); latestEvents = resolution.events;
+    const engineMs = performance.now() - started;
     const snapshot = session.exportState();
     await recorder.record(action, expectedRevision, snapshot);
     saveStatus.textContent = `Recorded revision ${snapshot.timing.revision}.`; await autosave(snapshot);
+    const persistenceMs = performance.now() - started - engineMs;
+    latestActionTiming = `${describeAction(action)} · engine ${formatMs(engineMs)} · record/autosave ${formatMs(persistenceMs)} · tick +${resolution.ticksAdvanced}`;
     render();
   }).catch(error => { saveStatus.textContent = error instanceof Error ? error.message : String(error); });
 }
@@ -173,14 +185,14 @@ loadFile.addEventListener('change', () => {
     const report = parseReplay(text);
     if (report.ok) {
       pauseReplay(); replayPlayer = new ReplayPlayer(report.value); session = replayPlayer.session();
-      recorder = new ReplayRecorder(session.exportState()); selectedIndex = null; latestEvents = []; seedInput.value = String(session.exportState().seed);
+      recorder = new ReplayRecorder(session.exportState()); selectedIndex = null; latestEvents = []; resetDiagnostics(); seedInput.value = String(session.exportState().seed);
       replayStatus.textContent = `Replay loaded · 0/${replayPlayer.total()}. Live input locked.`;
       saveStatus.textContent = 'Replay ready.'; render(); return;
     }
     const parsed = parseSave(text);
     if (!parsed.ok) { saveStatus.textContent = parsed.errors.map(error => `${error.path}: ${error.message}`).join('; '); return; }
     leaveReplayMode(); const candidate = restoreGame(parsed.value.state);
-    session = candidate; recorder = new ReplayRecorder(candidate.exportState()); selectedIndex = null; latestEvents = []; seedInput.value = String(candidate.exportState().seed);
+    session = candidate; recorder = new ReplayRecorder(candidate.exportState()); selectedIndex = null; latestEvents = []; resetDiagnostics(); seedInput.value = String(candidate.exportState().seed);
     saveStatus.textContent = `Loaded revision ${candidate.exportState().timing.revision}.`; render(); await autosave(candidate.exportState());
   }).catch(error => { saveStatus.textContent = error instanceof Error ? error.message : String(error); })
     .finally(() => { loadFile.value = ''; });
@@ -193,7 +205,9 @@ function queueReplayStep(continuePlaying: boolean): void {
   actionQueue = actionQueue.then(async () => {
     const player = replayPlayer;
     if (!player?.canStep()) { pauseReplay(); render(); return; }
-    const result = await player.step(); session = player.session(); latestEvents = result.resolution.events;
+    const started = performance.now(); const result = await player.step(); const elapsed = performance.now() - started;
+    session = player.session(); latestEvents = result.resolution.events;
+    latestActionTiming = `Replay action ${result.index + (result.status === 'diverged' ? 1 : 0)}/${result.total} · submit/hash ${formatMs(elapsed)} · tick +${result.resolution.ticksAdvanced}`;
     updateReplayStatus(result); render();
     if (continuePlaying && replayPlaying && result.status === 'advanced') scheduleReplayStep();
     else if (result.status !== 'advanced') pauseReplay();
@@ -202,6 +216,7 @@ function queueReplayStep(continuePlaying: boolean): void {
 function updateReplayStatus(result: ReplayStepResult): void {
   if (result.status === 'diverged') {
     replayStatus.textContent = `Replay diverged at action ${result.index + 1}/${result.total}.`;
+    replayDetails.textContent = `Action: ${JSON.stringify(result.action)}\nExpected hash: ${result.expectedHash}\nActual hash:   ${result.actualHash}`;
   } else if (result.status === 'complete') replayStatus.textContent = `Replay complete · ${result.index}/${result.total}.`;
   else replayStatus.textContent = `${replayPlaying ? 'Playing' : 'Paused'} · ${result.index}/${result.total}.`;
 }
@@ -220,6 +235,13 @@ function pauseReplay(): void {
 function leaveReplayMode(): void {
   pauseReplay(); replayPlayer = null; replayStatus.textContent = 'Live input enabled.';
 }
+function resetDiagnostics(): void { latestActionTiming = 'No action measured.'; replayDetails.textContent = 'No divergence.'; }
+function describeAction(action: GameAction): string {
+  if (action.type === 'move') return `move ${action.direction}`;
+  if ('itemId' in action) return `${action.type} ${action.itemId}`;
+  return action.type;
+}
+function formatMs(value: number): string { return `${value.toFixed(2)} ms`; }
 function download(filename: string, text: string): void {
   const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
   const anchor = document.createElement('a'); anchor.href = url; anchor.download = filename; anchor.click();
@@ -237,7 +259,7 @@ async function restoreLatestAutosave(): Promise<void> {
     const parsed = parseSave(text);
     if (!parsed.ok) { saveStatus.textContent = `Autosave rejected: ${parsed.errors[0]?.message ?? 'invalid save'}. Started a new game.`; return; }
     const candidate = restoreGame(parsed.value.state);
-    session = candidate; recorder = new ReplayRecorder(candidate.exportState()); selectedIndex = null; latestEvents = [];
+    session = candidate; recorder = new ReplayRecorder(candidate.exportState()); selectedIndex = null; latestEvents = []; resetDiagnostics();
     seedInput.value = String(candidate.exportState().seed);
     saveStatus.textContent = `Restored autosave at revision ${candidate.exportState().timing.revision}.`; render();
   } catch (error) {

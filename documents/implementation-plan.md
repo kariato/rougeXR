@@ -244,7 +244,7 @@ Outcome: sustained browser play and bug reporting are practical.
 - [x] 10.1
 - [x] 10.2
 - [x] 10.3
-- [ ] 10.4
+- [x] 10.4
 - [ ] 10.5
 
 Gate: browser slice is the stable debugging platform for all subsequent work.
