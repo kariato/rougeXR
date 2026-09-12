@@ -242,7 +242,7 @@ Outcome: sustained browser play and bug reporting are practical.
 | 10.5 | Complete browser smoke suite in Chromium and Firefox. | Startup, focus, inventory, load/export, resize, and generated-game smoke checks pass. |
 
 - [x] 10.1
-- [ ] 10.2
+- [x] 10.2
 - [ ] 10.3
 - [ ] 10.4
 - [ ] 10.5

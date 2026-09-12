@@ -53,4 +53,6 @@ Phase 9.7 makes the production generator the regular browser's default start pat
 
 Phase 10.1 adds browser-owned IndexedDB persistence behind a small `SaveStore` interface. Completed actions and successful New Game or import swaps enqueue versioned JSON writes in dispatch order. Startup accepts an autosave only after the same bounded parse and world validation used for manual imports. Open, read, and write failures remain browser status messages; they neither roll back gameplay nor disable manual JSON download, satisfying B04.
 
+Phase 10.2 adds an interactive replay cursor over the existing deterministic replay bundle. Loading a replay restores only its checkpoint, then restart, step, play, pause, and speed controls advance through the same `GameSession.submit` boundary and verify the recorded hash after each action. One step submits exactly one entry. Live keyboard, action, and inventory input stays disabled for the entire replay mode; New Game or a validated save import returns to live play. Playback scheduling uses one replaceable timer so speed changes cannot enqueue duplicate steps.
+
 Add an entry before intentionally changing source behavior. Record the relevant source function, the difference, its reason, and its verification case.
