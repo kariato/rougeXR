@@ -2,11 +2,12 @@ import type { RawEventInput } from '../model/action';
 import type { EntityId, WorldState } from '../model/state';
 import { rnd, roll } from '../random';
 import { killDaemon, lengthen, scheduleFuse } from '../scheduler';
-import { IS_CONFUSED, IS_HALLUCINATING } from './flags';
+import { IS_BLIND, IS_CONFUSED, IS_HALLUCINATING } from './flags';
 import type { InventoryResult } from './inventory';
 import { recoverSight } from './effects';
 
 const CONFUSION_DURATION = 20;
+const SIGHT_DURATION = 850;
 
 /** Supported potion effects from potions.c quaff()/do_pot(). */
 export function drinkItem(state: WorldState, itemId: EntityId, emit: (event: RawEventInput) => void): InventoryResult {
@@ -17,7 +18,7 @@ export function drinkItem(state: WorldState, itemId: EntityId, emit: (event: Raw
     emit({ type: 'sourceMessage', text: 'Yuk! Why would you want to drink that?' });
     return { resolved: false, consumedSlot: false, reason: 'undrinkable' };
   }
-  if (!['potion.confuse', 'potion.poison', 'potion.strength', 'potion.healing'].includes(item.definitionId))
+  if (!['potion.confuse', 'potion.poison', 'potion.strength', 'potion.healing', 'potion.blindness'].includes(item.definitionId))
     return { resolved: false, consumedSlot: false, reason: `unsupported-potion:${item.definitionId}` };
 
   const entry = state.identification.find(candidate => candidate.definitionId === item.definitionId);
@@ -25,7 +26,8 @@ export function drinkItem(state: WorldState, itemId: EntityId, emit: (event: Raw
   if (item.definitionId === 'potion.confuse') applyConfusion(state, entry, emit);
   else if (item.definitionId === 'potion.poison') applyPoison(state, entry, emit);
   else if (item.definitionId === 'potion.strength') applyGainStrength(state, entry, emit);
-  else applyHealing(state, entry, emit);
+  else if (item.definitionId === 'potion.healing') applyHealing(state, entry, emit);
+  else applyBlindness(state, entry, emit);
 
   consumeOne(state, itemId);
   emit({ type: 'itemConsumed', itemId, category: 'potion' });
@@ -68,6 +70,16 @@ function applyHealing(state: WorldState, entry: WorldState['identification'][num
   if (stats.hp !== before) emit({ type: 'hpChanged', actorId: 'player', from: before, to: stats.hp });
   recoverSight(state, emit);
   emit({ type: 'sourceMessage', text: 'You begin to feel better.' });
+}
+
+function applyBlindness(state: WorldState, entry: WorldState['identification'][number], emit: (event: RawEventInput) => void): void {
+  learn(entry, emit); const duration = spread(state, SIGHT_DURATION);
+  if ((state.player.flags & IS_BLIND) === 0) {
+    state.player.flags |= IS_BLIND;
+    scheduleFuse(state.timing.scheduler, 'sight', 0, 'after', duration);
+  } else lengthen(state.timing.scheduler, 'sight', duration);
+  emit({ type: 'sourceMessage', text: (state.player.flags & IS_HALLUCINATING) !== 0
+    ? 'Oh, bummer! Everything is dark! Help!' : 'A cloak of darkness falls around you.' });
 }
 
 /** misc.c chg_str()/add_str(), including maximum base strength beneath add-strength rings. */

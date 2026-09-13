@@ -168,3 +168,39 @@ describe('healing potion', () => {
     expect(restoreGame(session.exportState()).exportState()).toEqual(session.exportState());
   });
 });
+
+describe('blindness potion', () => {
+  it('identifies blindness and schedules source-duration sight recovery', () => {
+    const state = createTwoRoomFixture(71); const itemId = addPotion(state, 2, 'potion.blindness'); const draws = state.rng.draws;
+    const session = new GameSession(state); session.submit({ expectedRevision: 0, action: { type: 'drink', itemId } }); const after = session.exportState();
+    const fuse = after.timing.scheduler.slots.find(slot => slot?.effect === 'sight');
+    expect(after.player.flags & IS_BLIND).not.toBe(0); expect(after.rng.draws).toBe(draws + 1);
+    expect(fuse?.remaining).toBeGreaterThanOrEqual(807); expect(fuse?.remaining).toBeLessThanOrEqual(891);
+    expect(after.entities[itemId]).toMatchObject({ quantity: 1 });
+    expect(after.identification.find(candidate => candidate.definitionId === 'potion.blindness')).toMatchObject({ known: true, called: null });
+  });
+
+  it('lengthens an existing sight fuse and uses the hallucination message', () => {
+    const state = createTwoRoomFixture(72); const itemId = addPotion(state, 1, 'potion.blindness');
+    state.player.flags |= IS_BLIND | IS_HALLUCINATING;
+    state.timing.scheduler.slots[0] = { effect: 'sight', arg: 0, phase: 'after', remaining: 10 };
+    const session = new GameSession(state); const result = session.submit({ expectedRevision: 0, action: { type: 'drink', itemId } });
+    const after = session.exportState(); const fuse = after.timing.scheduler.slots.find(slot => slot?.effect === 'sight');
+    expect(fuse?.remaining).toBeGreaterThanOrEqual(817); expect(fuse?.remaining).toBeLessThanOrEqual(901);
+    expect(result.events).toContainEqual({ type: 'message', text: 'Oh, bummer! Everything is dark! Help!' });
+  });
+
+  it('replays blindness and preserves its recovery fuse through restore', async () => {
+    const initial = createTwoRoomFixture(73); const itemId = addPotion(initial, 1, 'potion.blindness');
+    const session = new GameSession(initial); const recorder = new ReplayRecorder(session.exportState());
+    session.submit({ expectedRevision: 0, action: { type: 'drink', itemId } });
+    await recorder.record({ type: 'drink', itemId }, 0, session.exportState());
+    expect(await replay(recorder.bundle())).toEqual({ ok: true, completed: 1 });
+    const restored = restoreGame(session.exportState());
+    for (let revision = 1; revision <= 3; revision++) {
+      session.submit({ expectedRevision: revision, action: { type: 'rest' } });
+      restored.submit({ expectedRevision: revision, action: { type: 'rest' } });
+    }
+    expect(restored.exportState()).toEqual(session.exportState());
+  });
+});

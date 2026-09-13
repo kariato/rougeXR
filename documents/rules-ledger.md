@@ -71,4 +71,6 @@ Phase 11.1d ports the `P_STRENGTH` branch and completes the saved portion of `mi
 
 Phase 11.1e ports the `P_HEALING` branch and the relevant `daemons.c` `sight()` behavior. Healing rolls `player level` d4; an overflow raises maximum HP exactly once and clamps current HP to that new maximum. It always identifies the potion. When blind, it clears blindness, extinguishes the AFTER sight fuse, and uses the hallucination-sensitive recovery message; when sighted, `sight()` remains silent. Tests cover draw count, bounded and overflow healing, blindness recovery, replay, and restored state.
 
+Phase 11.1f ports `P_BLIND` through `potions.c` `do_pot()`. A dose always identifies its type and uses `spread(SEEDURATION)` (`850`) before scheduling the AFTER `sight` fuse or lengthening an existing one. The committed turn performs the source fuse decrement. Messaging selects the source hallucinating or ordinary text without drawing randomness. Tests cover duration bounds and draw count, stacked extension, both status flags, replay, and restored fuse continuation.
+
 Add an entry before intentionally changing source behavior. Record the relevant source function, the difference, its reason, and its verification case.
