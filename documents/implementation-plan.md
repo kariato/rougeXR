@@ -306,7 +306,8 @@ Phase 11.4 progress:
 - [x] Add all 14 randomized wand/staff materials, serialized charges, Zap input, and browser/replay support.
 - [x] Add light, invisibility, magic missile, haste monster, slow monster, nothing, and cancellation effects.
 - [x] Add drain life and teleport-away/to with direct damage, death, room membership, and save continuation.
-- [ ] Add polymorph and bouncing lightning/fire/cold bolts.
+- [x] Add the shared six-cell bouncing lightning/fire/cold bolt engine with magic saves, return-path player damage, death, identification, and replay.
+- [ ] Add polymorph after the monster definition catalog is available.
 
 Gate: enable `full` mode only after definition coverage and the command audit justify it. Deterministic TypeScript replay is not a claim of identical historical C RNG sequences. Any deferred gameplay command prevents claiming full source parity even if full content is available.
 

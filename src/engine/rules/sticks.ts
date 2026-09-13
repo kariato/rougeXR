@@ -9,7 +9,7 @@ import type { InventoryResult } from './inventory';
 import { canStepTerrain } from './movement';
 
 const VECTORS:Record<Direction,Position>={N:{x:0,y:-1},NE:{x:1,y:-1},E:{x:1,y:0},SE:{x:1,y:1},S:{x:0,y:1},SW:{x:-1,y:1},W:{x:-1,y:0},NW:{x:-1,y:-1}};
-const SUPPORTED=new Set(['stick.light','stick.invisibility','stick.magic-missile','stick.haste-monster','stick.slow-monster','stick.nothing','stick.cancellation','stick.drain-life','stick.teleport-away','stick.teleport-to']);
+const SUPPORTED=new Set(['stick.light','stick.invisibility','stick.magic-missile','stick.haste-monster','stick.slow-monster','stick.nothing','stick.cancellation','stick.drain-life','stick.teleport-away','stick.teleport-to','stick.lightning','stick.fire','stick.cold']);
 
 export function initializeStickCharges(state:WorldState,definitionId:string):number{return definitionId==='stick.light'?rnd(state.rng,10)+10:rnd(state.rng,5)+3;}
 
@@ -24,6 +24,7 @@ export function zapItem(state:WorldState,itemId:EntityId,direction:Direction,emi
     case'stick.magic-missile':missile(state,direction,emit);break;
     case'stick.nothing':break;case'stick.drain-life':drain(state,emit);break;
     case'stick.teleport-away':relocateTarget(state,direction,false);break;case'stick.teleport-to':relocateTarget(state,direction,true);break;
+    case'stick.lightning':case'stick.fire':case'stick.cold':elementalBolt(state,direction,item.definitionId,emit);break;
     default:{const target=firstMonster(state,direction);if(target)affect(state,target,item.definitionId);break;}
   }
   item.charges--;emit({type:'itemChargesChanged',itemId,charges:item.charges});return{resolved:true,consumedSlot:true,reason:null};
@@ -54,6 +55,13 @@ function relocateTarget(state:WorldState,direction:Direction,toPlayer:boolean):v
     const at={x:room.origin.x+rnd(state.rng,room.width-2)+1,y:room.origin.y+rnd(state.rng,room.height-2)+1};const occupied=indexes.monsters.get(cellIndex(state.level,at));
     if(!supportsOccupant(state.level,at)||(occupied&&occupied!==id)||(at.x===state.player.at.x&&at.y===state.player.at.y))continue;monster.at=at;monster.roomId=state.level.tiles[cellIndex(state.level,at)]!.roomId;break;}}
   monster.flags|=IS_RUNNING;monster.target={kind:'player'};
+}
+function elementalBolt(state:WorldState,direction:Direction,effect:string,emit:(event:RawEventInput)=>void):void{learn(state,effect,emit);let vector={...VECTORS[direction]};let at={...state.player.at};let returning=false;let traveled=0;let bounces=0;
+  while(traveled<6&&bounces<20){const next={x:at.x+vector.x,y:at.y+vector.y};if(!isPlayable(state.level,next)||!canStepTerrain(tileAt(state.level,next).terrain)||tileAt(state.level,next).terrain==='door'){
+    vector={x:-vector.x,y:-vector.y};returning=!returning;bounces++;message(emit,`The ${effect.slice(6)} bounces.`);continue;}at=next;traveled++;
+    const monsterId=buildIndexes(state).monsters.get(cellIndex(state.level,at));if(monsterId&&!returning){returning=true;const monster=state.entities[monsterId];if(monster?.kind==='monster'&&roll(state.rng,1,20)<17-Math.trunc(monster.stats.level/2)){damageMonster(state,monsterId,roll(state.rng,6,6),emit);return;}continue;}
+    if(returning&&at.x===state.player.at.x&&at.y===state.player.at.y){if(roll(state.rng,1,20)<17-Math.trunc(state.player.stats.level/2)){const before=state.player.stats.hp;state.player.stats.hp=Math.max(0,before-roll(state.rng,6,6));emit({type:'hpChanged',actorId:'player',from:before,to:state.player.stats.hp});
+      if(state.player.stats.hp===0){state.timing.status='dead';emit({type:'actorDefeated',actorId:'player',byActorId:'bolt'});}}return;}}
 }
 function firstMonster(state:WorldState,direction:Direction):EntityId|undefined{const vector=VECTORS[direction];const monsters=buildIndexes(state).monsters;let at={...state.player.at};
   while(true){at={x:at.x+vector.x,y:at.y+vector.y};if(!isPlayable(state.level,at))return;const id=monsters.get(cellIndex(state.level,at));if(id)return id;

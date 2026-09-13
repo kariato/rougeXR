@@ -34,4 +34,8 @@ describe('stick identities, charges, and first target effects',()=>{
   session.submit({expectedRevision:0,action:{type:'zap',itemId:to,direction:'E'}});let monster=session.exportState().entities.e1;if(monster?.kind!=='monster')throw new Error('missing monster');expect(monster.at).toEqual({x:6,y:5});
   session.submit({expectedRevision:1,action:{type:'zap',itemId:away,direction:'E'}});monster=session.exportState().entities.e1;if(monster?.kind!=='monster')throw new Error('missing monster');expect(monster.at).not.toEqual({x:6,y:5});expect(restoreGame(session.exportState()).exportState()).toEqual(session.exportState());
  });
+ it('identifies and resolves each six-cell elemental bolt with saved charges',async()=>{for(const [index,effect]of['stick.lightning','stick.fire','stick.cold'].entries()){const initial=createKestrelEncounterFixture(410+index);const id=stick(initial,effect,2);const session=new GameSession(initial);const recorder=new ReplayRecorder(session.exportState());
+   session.submit({expectedRevision:0,action:{type:'zap',itemId:id,direction:'E'}});await recorder.record({type:'zap',itemId:id,direction:'E'},0,session.exportState());const after=session.exportState();
+   expect(after.identification.find(value=>value.definitionId===effect)?.known).toBe(true);expect((after.entities[id]as ItemState)).toMatchObject({charges:1});expect(await replay(recorder.bundle())).toEqual({ok:true,completed:1});}}
+ );
 });
