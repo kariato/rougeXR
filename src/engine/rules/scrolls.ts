@@ -2,12 +2,16 @@ import { appearanceFor, updateKnowledge } from '../perception/knowledge';
 import type { RawEventInput } from '../model/action';
 import type { EntityId, ItemState, WorldState } from '../model/state';
 import { rnd } from '../random';
+import { buildIndexes } from '../entities';
+import { cellIndex, supportsOccupant } from '../grid';
 import { CAN_CONFUSE_MONSTER, IS_CURSED, IS_HELD, IS_PROTECTED, IS_RUNNING } from './flags';
 import type { InventoryResult } from './inventory';
 
 const SUPPORTED = new Set(['scroll.monster-confusion', 'scroll.magic-mapping', 'scroll.hold-monster', 'scroll.sleep',
   'scroll.enchant-armor', 'scroll.scare-monster', 'scroll.food-detection', 'scroll.enchant-weapon',
-  'scroll.remove-curse', 'scroll.aggravate-monsters', 'scroll.protect-armor']);
+  'scroll.remove-curse', 'scroll.aggravate-monsters', 'scroll.protect-armor', 'scroll.identify-potion', 'scroll.identify-scroll',
+  'scroll.identify-weapon', 'scroll.identify-armor', 'scroll.identify-ring-stick']);
+SUPPORTED.add('scroll.teleportation');
 
 export function readItem(state: WorldState, itemId: EntityId, emit: (event: RawEventInput) => void): InventoryResult {
   const item = state.entities[itemId];
@@ -18,7 +22,7 @@ export function readItem(state: WorldState, itemId: EntityId, emit: (event: RawE
   if (!SUPPORTED.has(item.definitionId)) return { resolved: false, consumedSlot: false, reason: `unsupported-scroll:${item.definitionId}` };
   const entry = state.identification.find(candidate => candidate.definitionId === item.definitionId);
   if (!entry) throw new Error(`Missing identification entry for ${item.definitionId}`);
-  apply(state, item, entry, emit); consumeOne(state, itemId); emit({ type: 'itemConsumed', itemId, category: 'scroll' });
+  consumeOne(state, itemId); apply(state, item, entry, emit); emit({ type: 'itemConsumed', itemId, category: 'scroll' });
   if (!entry.known && entry.called === null) state.pendingDecision = { kind: 'callItem', definitionId: entry.definitionId };
   return { resolved: true, consumedSlot: true, reason: null };
 }
@@ -36,6 +40,12 @@ function apply(state: WorldState, item: ItemState, entry: WorldState['identifica
     case 'scroll.remove-curse': removeCurse(state, emit); break;
     case 'scroll.aggravate-monsters': aggravate(state); message(emit, 'You hear a high pitched humming noise.'); break;
     case 'scroll.protect-armor': protectArmor(state, emit); break;
+    case 'scroll.identify-potion': identifyDecision(state, entry, ['potion'], emit); break;
+    case 'scroll.identify-scroll': identifyDecision(state, entry, ['scroll'], emit); break;
+    case 'scroll.identify-weapon': identifyDecision(state, entry, ['weapon'], emit); break;
+    case 'scroll.identify-armor': identifyDecision(state, entry, ['armor'], emit); break;
+    case 'scroll.identify-ring-stick': identifyDecision(state, entry, ['ring', 'stick'], emit); break;
+    case 'scroll.teleportation': teleport(state, entry, emit); break;
   }
 }
 
@@ -79,6 +89,34 @@ function detectFood(state: WorldState, entry: WorldState['identification'][numbe
     && entity.location.kind === 'floor' ? [{ ...entity.location.at }] : []);
   if (positions.length) { learn(entry, emit); emit({ type: 'itemsDetected', glyph: ':', positions }); message(emit, 'Your nose tingles and you smell food.'); }
   else message(emit, 'Your nose tingles.');
+}
+function identifyDecision(state: WorldState, entry: WorldState['identification'][number], categories: ItemState['category'][], emit: (event: RawEventInput) => void): void {
+  learn(entry, emit); message(emit, `This scroll is an ${entry.definitionId.slice(7).replaceAll('-', ' ')} scroll.`);
+  if (state.player.packOrder.some(id => { const item = state.entities[id]; return item?.kind === 'item' && categories.includes(item.category); }))
+    state.pendingDecision = { kind: 'identifyItem', categories };
+}
+function teleport(state: WorldState, entry: WorldState['identification'][number], emit: (event: RawEventInput) => void): void {
+  const from = { ...state.player.at }; const fromRoom = state.player.roomId; const monsters = buildIndexes(state).monsters;
+  for (let attempt = 0; attempt < 10000; attempt++) {
+    let room = state.level.rooms[rnd(state.rng, state.level.rooms.length)]!; while (room.kind === 'gone') room = state.level.rooms[rnd(state.rng, state.level.rooms.length)]!;
+    if (room.width <= 2 || room.height <= 2) continue;
+    const at = { x: room.origin.x + rnd(state.rng, room.width - 2) + 1, y: room.origin.y + rnd(state.rng, room.height - 2) + 1 };
+    if (!supportsOccupant(state.level, at) || monsters.has(cellIndex(state.level, at))) continue;
+    state.player.at = at; state.player.roomId = state.level.tiles[cellIndex(state.level, at)]!.roomId;
+    state.player.flags &= ~IS_HELD; state.timing.noMove = 0; state.player.flags &= ~IS_RUNNING;
+    if (state.player.roomId !== fromRoom) learn(entry, emit); emit({ type: 'actorMoved', actorId: 'player', from, to: { ...at } }); return;
+  }
+  throw new Error('Unable to find teleport destination');
+}
+
+export function answerIdentify(state: WorldState, itemId: EntityId, emit: (event: RawEventInput) => void): InventoryResult {
+  const pending = state.pendingDecision; const item = state.entities[itemId];
+  if (pending?.kind !== 'identifyItem') return { resolved: false, consumedSlot: false, reason: 'no-identify-decision' };
+  if (item?.kind !== 'item' || item.location.kind !== 'pack' || item.location.owner !== 'player' || !pending.categories.includes(item.category))
+    return { resolved: false, consumedSlot: false, reason: 'invalid-identify-item' };
+  const entry = state.identification.find(value => value.definitionId === item.definitionId);
+  if (entry) learn(entry, emit); item.flags |= 0o2; state.pendingDecision = null;
+  message(emit, 'You identify the item.'); return { resolved: true, consumedSlot: false, reason: null };
 }
 function equipped(state: WorldState, slot: 'weapon' | 'armor'): ItemState | null { const id = state.player.equipment[slot];
   const item = id ? state.entities[id] : null; return item?.kind === 'item' ? item : null; }

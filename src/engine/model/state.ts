@@ -66,7 +66,8 @@ export interface IdentificationEntry {
   definitionId: string; appearanceId: string; known: boolean;
   called: string | null; worth: number | null;
 }
-export type PendingDecision = { kind: 'callItem'; definitionId: string };
+export type PendingDecision = { kind: 'callItem'; definitionId: string }
+  | { kind: 'identifyItem'; categories: ItemState['category'][] };
 export interface TimingState {
   revision: number; actionSequence: number; tick: number;
   status: 'playing' | 'dead' | 'won';

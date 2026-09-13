@@ -296,7 +296,9 @@ Phase 11.3 progress:
 - [x] Add all 18 source scroll identities and `init_names()` title generation.
 - [x] Add the Read action and browser control with consumption, call decisions, replay, and save version 5.
 - [x] Add monster confusion, magic mapping, hold monster, sleep, enchant armor, scare monster, food detection, enchant weapon, remove curse, aggravate monsters, and protect armor.
-- [ ] Add identify-scroll decisions, teleportation, and create-monster behavior.
+- [x] Add serialized identify-item decisions for all five identify scrolls.
+- [x] Add teleportation with source-shaped room and interior-cell selection.
+- [ ] Add create-monster behavior after the monster definition catalog is available.
 
 Gate: enable `full` mode only after definition coverage and the command audit justify it. Deterministic TypeScript replay is not a claim of identical historical C RNG sequences. Any deferred gameplay command prevents claiming full source parity even if full content is available.
 
@@ -368,4 +370,4 @@ Optional scheduling: 10 -> 12 for early spatial prototyping.
 | Spatial browser version | Phase 12 | Explore the same game in desktop 3D |
 | XR version | Phase 13 | Use a headset with verified input and presentation |
 
-Current Phase 11 progress includes the complete potion table and the first eleven non-target scroll effects. Continue Phase 11.3 with serialized identify-item selection, teleportation, and create-monster behavior.
+Current Phase 11 progress includes the complete potion table and 17 of 18 scroll effects. Create-monster is ordered after the Phase 11.6 monster catalog so its source random selection does not substitute a single species.

@@ -12,7 +12,7 @@ import { runStomach } from './rules/hunger';
 import { comeDown, endMonsterDetection, land, loseSeeInvisible, recoverConfusion, recoverHaste, recoverSight, rollWanderCheck, runDoctor, runVisuals, startWanderChecks } from './rules/effects';
 import { descendAtStairs } from './level-transition';
 import { drinkItem } from './rules/potions';
-import { readItem } from './rules/scrolls';
+import { answerIdentify, readItem } from './rules/scrolls';
 
 export interface RuleResult { resolved: boolean; consumedSlot: boolean; reason: string | null; deferredPickup?: string | null }
 export interface RuleContext { state: WorldState; emit(event: PresentationEvent): void; emitRaw(event: RawEventInput): void }
@@ -104,7 +104,7 @@ export class GameSession {
       if (state.timing.status !== 'playing') { state.timing.cycle = { phase: 'terminal', slotsRemaining: 0 }; return; }
       if (state.pendingDecision !== null) {
         state.timing.cycle.phase = 'decision'; updateKnowledge(state);
-        trace.push({ kind: 'inputReady', detail: 'decision:callItem', tick: state.timing.tick }); return;
+        trace.push({ kind: 'inputReady', detail: `decision:${state.pendingDecision.kind}`, tick: state.timing.tick }); return;
       }
       if (state.timing.cycle.phase === 'decision') state.timing.cycle.phase = state.timing.cycle.slotsRemaining > 0 ? 'input' : 'after';
       if (state.timing.cycle.phase === 'begin') {
@@ -138,13 +138,19 @@ export class GameSession {
 
 function defaultAction(action: GameAction, context: RuleContext): RuleResult {
   if (context.state.pendingDecision !== null) {
+    if (context.state.pendingDecision.kind === 'identifyItem') {
+      if (action.type !== 'answerIdentify') return { resolved: false, consumedSlot: false, reason: 'decision-pending' };
+      return answerIdentify(context.state, action.itemId, context.emitRaw);
+    }
     if (action.type !== 'answerCall') return { resolved: false, consumedSlot: false, reason: 'decision-pending' };
-    const entry = context.state.identification.find(candidate => candidate.definitionId === context.state.pendingDecision?.definitionId);
+    const definitionId = context.state.pendingDecision.definitionId;
+    const entry = context.state.identification.find(candidate => candidate.definitionId === definitionId);
     if (!entry) throw new Error('Pending identification entry missing');
     const label = action.label ?? ''; if (label.length > 0) entry.called = label;
     context.state.pendingDecision = null; return { resolved: true, consumedSlot: false, reason: null };
   }
   if (action.type === 'answerCall') return { resolved: false, consumedSlot: false, reason: 'no-pending-decision' };
+  if (action.type === 'answerIdentify') return { resolved: false, consumedSlot: false, reason: 'no-identify-decision' };
   if (action.type === 'rest') return { resolved: true, consumedSlot: true, reason: null };
   if (action.type === 'move') {
     const result = resolveMove(context.state, action.direction, action.pickup);
@@ -176,6 +182,7 @@ function validRequest(value: unknown): value is ActionRequest {
     && ['weapon', 'armor', 'leftRing', 'rightRing'].includes(action.slot);
   if (action.type === 'unequip') return ['weapon', 'armor', 'leftRing', 'rightRing'].includes(action.slot);
   if (action.type === 'answerCall') return action.label === null || (typeof action.label === 'string' && action.label.length <= 80);
+  if (action.type === 'answerIdentify') return typeof action.itemId === 'string';
   return action.type === 'fixture' && typeof action.name === 'string';
 }
 function projectEvent(state: WorldState, event: RawEvent): PresentationEvent | null {

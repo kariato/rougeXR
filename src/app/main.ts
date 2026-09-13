@@ -104,16 +104,23 @@ function render(): void {
       read.addEventListener('click', () => submit({ type: 'read', itemId: item.token })); row.append(read);
     }
     const drop = document.createElement('button'); drop.type = 'button'; drop.textContent = 'Drop'; drop.disabled = replayPlayer !== null || decisionPending;
+    if (state.pendingDecision?.kind === 'identifyItem' && state.pendingDecision.categories.some(category => category === item.category)) {
+      const identify = document.createElement('button'); identify.type = 'button'; identify.textContent = 'Identify'; identify.disabled = replayPlayer !== null;
+      identify.addEventListener('click', () => submit({ type: 'answerIdentify', itemId: item.token })); row.append(identify);
+    }
     drop.addEventListener('click', () => submit({ type: 'drop', itemId: item.token })); row.append(drop); return row;
   }));
   if (!observation.inventory.length) inventory.textContent = 'Pack is empty.';
-  if (decisionPending) {
+  if (state.pendingDecision?.kind === 'callItem') {
     const decision = document.createElement('div'); decision.append('What do you want to call it? ');
     const label = document.createElement('input'); label.type = 'text'; label.maxLength = 80; label.setAttribute('aria-label', 'Item call name');
     const answer = document.createElement('button'); answer.type = 'button'; answer.textContent = 'Call'; answer.disabled = replayPlayer !== null;
     answer.addEventListener('click', () => submit({ type: 'answerCall', label: label.value }));
     const skip = document.createElement('button'); skip.type = 'button'; skip.textContent = 'Skip'; skip.disabled = replayPlayer !== null;
     skip.addEventListener('click', () => submit({ type: 'answerCall', label: null })); decision.append(label, answer, skip); inventory.prepend(decision);
+  }
+  if (state.pendingDecision?.kind === 'identifyItem') {
+    const decision = document.createElement('div'); decision.textContent = 'Choose an eligible carried item to identify.'; inventory.prepend(decision);
   }
   rawEvents.textContent = reveal.checked ? JSON.stringify(filterEvents(session.debugEvents(), filter), null, 2) : '';
   actionTiming.textContent = latestActionTiming;

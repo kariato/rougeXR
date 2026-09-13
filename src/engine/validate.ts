@@ -41,8 +41,11 @@ export function validateWorld(input: unknown): ValidationIssue[] {
       && integer(timing.cycle.slotsRemaining) && timing.cycle.slotsRemaining <= 2, 'timing.cycle', 'Invalid cycle');
     check(timing.status === 'playing' ? timing.cycle.phase !== 'terminal'
       : timing.cycle.phase === 'terminal' && timing.cycle.slotsRemaining === 0, 'timing.cycle', 'Cycle does not match game status');
-    check(s.pendingDecision === null || (s.pendingDecision.kind === 'callItem'
-      && typeof s.pendingDecision.definitionId === 'string'), 'pendingDecision', 'Invalid pending decision');
+    check(s.pendingDecision === null || (s.pendingDecision.kind === 'callItem' && typeof s.pendingDecision.definitionId === 'string')
+      || (s.pendingDecision?.kind === 'identifyItem' && Array.isArray(s.pendingDecision.categories)
+        && s.pendingDecision.categories.length > 0 && s.pendingDecision.categories.every(category =>
+          ['weapon', 'armor', 'stick', 'ring', 'potion', 'scroll', 'food', 'amulet', 'gold'].includes(category))),
+    'pendingDecision', 'Invalid pending decision');
     check((timing.cycle.phase === 'decision') === (s.pendingDecision !== null),
       'pendingDecision', 'Pending decision does not match cycle phase');
     check(timing.scheduler.slots.length === 20, 'timing.scheduler', 'Expected 20 scheduler slots');
@@ -73,9 +76,9 @@ export function validateWorld(input: unknown): ValidationIssue[] {
     }
     check(POTION_DEFINITIONS.every(([id]) => identificationDefinitions.has(id)), 'identification', 'Missing potion definition entry');
     check(SCROLL_DEFINITIONS.every(([id]) => identificationDefinitions.has(id)), 'identification', 'Missing scroll definition entry');
-    if (s.pendingDecision !== null) check(identificationDefinitions.has(s.pendingDecision.definitionId)
-      && s.identification.some(entry => entry.definitionId === s.pendingDecision?.definitionId && !entry.known),
-    'pendingDecision', 'Decision does not reference an unknown identification entry');
+    if (s.pendingDecision?.kind === 'callItem') { const definitionId = s.pendingDecision.definitionId;
+      check(identificationDefinitions.has(definitionId) && s.identification.some(entry => entry.definitionId === definitionId && !entry.known),
+      'pendingDecision', 'Decision does not reference an unknown identification entry'); }
     check(level.width === GRID_WIDTH && level.height === GRID_HEIGHT, 'level', 'Expected 80 by 24 grid');
     check(integer(level.id, 1) && integer(level.depth, 1), 'level', 'Invalid level identity');
     check(level.tiles.length === GRID_WIDTH * GRID_HEIGHT, 'level.tiles', 'Incorrect tile count');

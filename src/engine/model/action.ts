@@ -12,6 +12,7 @@ export type GameAction =
   | { type: 'drink'; itemId: string }
   | { type: 'read'; itemId: string }
   | { type: 'answerCall'; label: string | null }
+  | { type: 'answerIdentify'; itemId: string }
   | { type: 'descend' }
   | { type: 'fixture'; name: string };
 

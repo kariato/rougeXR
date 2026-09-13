@@ -63,4 +63,28 @@ describe('scroll reading foundation and status effects', () => {
     expect(foodEvents).toContainEqual({ type: 'itemsDetected', glyph: ':', positions: [{ x: 8, y: 5 }] });
     expect((after.entities.e1 as { flags: number }).flags & IS_RUNNING).not.toBe(0);
   });
+
+  it('serializes an identify decision and accepts only the requested category', async () => {
+    const initial = createTwoRoomFixture(205); const potionId = allocateId(initial);
+    initial.entities[potionId] = { kind: 'item', id: potionId, definitionId: 'potion.healing', category: 'potion',
+      location: { kind: 'pack', owner: 'player' }, quantity: 1, flags: 0, group: 0, label: null }; initial.player.packOrder.push(potionId);
+    const scrollId = addScroll(initial, 'scroll.identify-potion'); const session = new GameSession(initial); const recorder = new ReplayRecorder(session.exportState());
+    session.submit({ expectedRevision: 0, action: { type: 'read', itemId: scrollId } }); await recorder.record({ type: 'read', itemId: scrollId }, 0, session.exportState());
+    expect(session.exportState().pendingDecision).toEqual({ kind: 'identifyItem', categories: ['potion'] });
+    expect(session.submit({ expectedRevision: 1, action: { type: 'answerIdentify', itemId: 'e1' } })).toMatchObject({ status: 'rejected', reason: 'invalid-identify-item' });
+    await recorder.record({ type: 'answerIdentify', itemId: 'e1' }, 1, session.exportState());
+    session.submit({ expectedRevision: 2, action: { type: 'answerIdentify', itemId: potionId } });
+    await recorder.record({ type: 'answerIdentify', itemId: potionId }, 2, session.exportState());
+    expect(session.exportState().identification.find(entry => entry.definitionId === 'potion.healing')?.known).toBe(true);
+    expect(await replay(recorder.bundle())).toEqual({ ok: true, completed: 3 });
+  });
+
+  it('teleports to a legal unoccupied room cell and clears held movement', () => {
+    const state = createTwoRoomFixture(206); const scrollId = addScroll(state, 'scroll.teleportation');
+    state.player.flags |= IS_HELD | IS_RUNNING; state.timing.noMove = 7; const before = { ...state.player.at };
+    const session = new GameSession(state); const result = session.submit({ expectedRevision: 0, action: { type: 'read', itemId: scrollId } }); const after = session.exportState();
+    expect(after.player.at).not.toEqual(before); expect(after.player.flags & (IS_HELD | IS_RUNNING)).toBe(0); expect(after.timing.noMove).toBe(0);
+    expect(result.events).toContainEqual(expect.objectContaining({ type: 'visibleMovement', token: 'player', from: before }));
+    expect(restoreGame(after).exportState()).toEqual(after);
+  });
 });
