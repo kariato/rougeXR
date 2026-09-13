@@ -11,6 +11,7 @@ export type GameAction =
   | { type: 'eat'; itemId: string }
   | { type: 'drink'; itemId: string }
   | { type: 'read'; itemId: string }
+  | { type: 'throw'; itemId: string; direction: Direction }
   | { type: 'answerCall'; label: string | null }
   | { type: 'answerIdentify'; itemId: string }
   | { type: 'descend' }

@@ -31,6 +31,15 @@ export function attackMonster(state: WorldState, id: EntityId, emit: EmitRaw): v
   if (monster.stats.hp === 0) destroyMonster(state, monster, emit);
 }
 
+export function attackMonsterWithWeapon(state: WorldState, id: EntityId, damage: CombatStats['damage'], hitBonus: number,
+  damageBonus: number, emit: EmitRaw): boolean {
+  const monster = state.entities[id]; if (monster?.kind !== 'monster') throw new Error('Unknown monster');
+  state.timing.quiet = 0; monster.flags |= IS_RUNNING; monster.target = { kind: 'player' }; let hit = false;
+  const attacker = { ...state.player.stats, damage };
+  strike(state, 'player', attacker, id, monster.stats, event => { if (event.type === 'attackResolved' && event.hit) hit = true; emit(event); }, hitBonus, damageBonus);
+  if (monster.stats.hp === 0) destroyMonster(state, monster, emit); return hit;
+}
+
 export function attackPlayer(state: WorldState, monster: MonsterState, emit: EmitRaw): void {
   state.timing.quiet = 0;
   const armor = state.player.equipment.armor ? state.entities[state.player.equipment.armor] : null;

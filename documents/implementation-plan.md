@@ -300,6 +300,11 @@ Phase 11.3 progress:
 - [x] Add teleportation with source-shaped room and interior-cell selection.
 - [ ] Add create-monster behavior after the monster definition catalog is available.
 
+Phase 11.4 progress:
+
+- [x] Add eight-direction thrown-weapon input, source trajectory stopping, launcher bonuses, hurled damage tables, hit consumption, reservoir-selected falls, cursed-equipped rejection, browser control, replay, and save continuation.
+- [ ] Add randomized stick identities, charges, directional effects, and target interactions.
+
 Gate: enable `full` mode only after definition coverage and the command audit justify it. Deterministic TypeScript replay is not a claim of identical historical C RNG sequences. Any deferred gameplay command prevents claiming full source parity even if full content is available.
 
 ## Phase 12 — Desktop 3D with the same engine

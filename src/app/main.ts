@@ -91,6 +91,13 @@ function render(): void {
         ? { type: 'unequip', slot: item.equippedSlot as 'weapon' | 'armor' }
         : { type: 'equip', itemId: item.token, slot: item.category as 'weapon' | 'armor' })); row.append(equipment);
     }
+    if (item.category === 'weapon') {
+      const direction = document.createElement('select'); direction.setAttribute('aria-label', 'Throw direction');
+      for (const value of ['N','NE','E','SE','S','SW','W','NW'] as const) { const option=document.createElement('option'); option.value=value; option.textContent=value; direction.append(option); }
+      direction.value='E'; direction.disabled=replayPlayer!==null||decisionPending;
+      const throwButton=document.createElement('button'); throwButton.type='button'; throwButton.textContent='Throw'; throwButton.disabled=replayPlayer!==null||decisionPending;
+      throwButton.addEventListener('click',()=>submit({type:'throw',itemId:item.token,direction:direction.value as 'N'|'NE'|'E'|'SE'|'S'|'SW'|'W'|'NW'})); row.append(direction,throwButton);
+    }
     if (item.category === 'food') {
       const eat = document.createElement('button'); eat.type = 'button'; eat.textContent = 'Eat'; eat.disabled = replayPlayer !== null || decisionPending;
       eat.addEventListener('click', () => submit({ type: 'eat', itemId: item.token })); row.append(eat);

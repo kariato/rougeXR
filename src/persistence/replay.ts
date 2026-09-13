@@ -81,6 +81,8 @@ function validAction(value: unknown): value is GameAction {
   if (action.type === 'answerIdentify') return typeof (action as { itemId?: unknown }).itemId === 'string';
   if (action.type === 'move') return typeof action.direction === 'string'
     && ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'].includes(action.direction) && typeof action.pickup === 'boolean';
+  if (action.type === 'throw') return typeof (action as {itemId?:unknown}).itemId === 'string' && typeof action.direction === 'string'
+    && ['N','NE','E','SE','S','SW','W','NW'].includes(action.direction);
   if (action.type === 'drop' || action.type === 'eat' || action.type === 'drink' || action.type === 'read')
     return typeof (action as { itemId?: unknown }).itemId === 'string';
   if (action.type === 'unequip') return typeof (action as { slot?: unknown }).slot === 'string'
