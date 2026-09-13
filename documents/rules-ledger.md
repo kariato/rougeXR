@@ -63,4 +63,6 @@ Phase 10.5 establishes the regular browser as the cross-browser debugging gate. 
 
 Phase 11.1a ports `init.c` `init_colors()` and the potion branch of `things.c` `inv_name()`/`nameit()`. New games assign the 14 potion definitions distinct entries from the 27-color `rainbow[]` table using the source rejection loop. The mapping, known state, player call, and optional randomized worth are authoritative JSON state. Ordinary floor and inventory observations resolve unknown, called, and known labels through that mapping, while save schema version 2 retains it exactly and rejects earlier envelopes explicitly. Potion effects and consumption remain queued as individual Phase 11.1 steps.
 
+Phase 11.1b ports `potions.c` `quaff()` and `do_pot()` for `P_CONFUSE`. Drinking a carried confusion potion consumes one unit, uses `spread(HUHDURATION)` with the source rejection-free draw, schedules or lengthens the AFTER `unconfuse` fuse, and learns the type unless the player is hallucinating. The browser exposes Drink for potion inventory rows, and replay parsing accepts the action. Tests cover identification, stacked consumption, duration extension, invalid categories, replay, and restored fuse continuation.
+
 Add an entry before intentionally changing source behavior. Record the relevant source function, the difference, its reason, and its verification case.

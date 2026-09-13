@@ -9,6 +9,7 @@ export type GameAction =
   | { type: 'equip'; itemId: string; slot: EquipmentSlot }
   | { type: 'unequip'; slot: EquipmentSlot }
   | { type: 'eat'; itemId: string }
+  | { type: 'drink'; itemId: string }
   | { type: 'descend' }
   | { type: 'fixture'; name: string };
 
@@ -27,6 +28,7 @@ export type RawEventInput =
   | { type: 'itemDropped'; itemId: string; category: string; quantity: number }
   | { type: 'equipmentChanged'; slot: string; itemId: string | null }
   | { type: 'itemConsumed'; itemId: string; category: string }
+  | { type: 'identityLearned'; definitionId: string }
   | { type: 'levelChanged'; fromDepth: number; toDepth: number; cause: string }
   | { type: 'featureRevealed'; at: Position; feature: string }
   | { type: 'sourceMessage'; text: string };

@@ -11,6 +11,7 @@ import { eatItem } from './rules/inventory';
 import { runStomach } from './rules/hunger';
 import { recoverConfusion, recoverSight, rollWanderCheck, runDoctor, startWanderChecks } from './rules/effects';
 import { descendAtStairs } from './level-transition';
+import { drinkItem } from './rules/potions';
 
 export interface RuleResult { resolved: boolean; consumedSlot: boolean; reason: string | null; deferredPickup?: string | null }
 export interface RuleContext { state: WorldState; emit(event: PresentationEvent): void; emitRaw(event: RawEventInput): void }
@@ -138,6 +139,7 @@ function defaultAction(action: GameAction, context: RuleContext): RuleResult {
   if (action.type === 'equip') return equipItem(context.state, action.itemId, action.slot, context.emitRaw);
   if (action.type === 'unequip') return unequipItem(context.state, action.slot, context.emitRaw);
   if (action.type === 'eat') return eatItem(context.state, action.itemId, context.emitRaw);
+  if (action.type === 'drink') return drinkItem(context.state, action.itemId, context.emitRaw);
   if (action.type === 'descend') return descendAtStairs(context.state, context.emitRaw);
   if (action.name === 'free') return { resolved: true, consumedSlot: false, reason: null };
   return { resolved: false, consumedSlot: false, reason: `Unsupported fixture action: ${action.name}` };
@@ -155,6 +157,7 @@ function validRequest(value: unknown): value is ActionRequest {
         && ['weapon', 'armor', 'leftRing', 'rightRing'].includes((request.action as { slot?: string }).slot ?? ''))
       || ((request.action as GameAction).type === 'unequip' && ['weapon', 'armor', 'leftRing', 'rightRing'].includes((request.action as { slot?: string }).slot ?? ''))
       || ((request.action as GameAction).type === 'eat' && typeof (request.action as { itemId?: unknown }).itemId === 'string')
+      || ((request.action as GameAction).type === 'drink' && typeof (request.action as { itemId?: unknown }).itemId === 'string')
       || ((request.action as GameAction).type === 'fixture' && typeof (request.action as { name?: unknown }).name === 'string'));
 }
 function projectEvent(state: WorldState, event: RawEvent): PresentationEvent | null {
@@ -165,7 +168,8 @@ function projectEvent(state: WorldState, event: RawEvent): PresentationEvent | n
     return { type: 'message', text: event.hit ? `${subject} hit for ${event.damage}.` : `${subject} missed.` };
   }
   if (event.type === 'hpChanged' || event.type === 'actorDefeated') return null;
-  if (event.type === 'itemCollected' || event.type === 'itemDropped' || event.type === 'equipmentChanged' || event.type === 'itemConsumed') return { type: 'inventoryUpdate' };
+  if (event.type === 'itemCollected' || event.type === 'itemDropped' || event.type === 'equipmentChanged'
+    || event.type === 'itemConsumed' || event.type === 'identityLearned') return { type: 'inventoryUpdate' };
   if (event.type === 'levelChanged') return { type: 'levelViewReset' };
   if (event.actorId === 'player' || isPositionVisible(state, event.from) || isPositionVisible(state, event.to)) {
     return { type: 'visibleMovement', token: event.actorId === 'player' ? 'player' : `monster-${event.actorId}`,

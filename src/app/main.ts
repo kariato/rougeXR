@@ -92,6 +92,10 @@ function render(): void {
       const eat = document.createElement('button'); eat.type = 'button'; eat.textContent = 'Eat'; eat.disabled = replayPlayer !== null;
       eat.addEventListener('click', () => submit({ type: 'eat', itemId: item.token })); row.append(eat);
     }
+    if (item.category === 'potion') {
+      const drink = document.createElement('button'); drink.type = 'button'; drink.textContent = 'Drink'; drink.disabled = replayPlayer !== null;
+      drink.addEventListener('click', () => submit({ type: 'drink', itemId: item.token })); row.append(drink);
+    }
     const drop = document.createElement('button'); drop.type = 'button'; drop.textContent = 'Drop'; drop.disabled = replayPlayer !== null;
     drop.addEventListener('click', () => submit({ type: 'drop', itemId: item.token })); row.append(drop); return row;
   }));
