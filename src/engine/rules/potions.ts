@@ -1,13 +1,13 @@
 import type { RawEventInput } from '../model/action';
 import type { EntityId, WorldState } from '../model/state';
 import { rnd } from '../random';
-import { lengthen, scheduleFuse } from '../scheduler';
+import { killDaemon, lengthen, scheduleFuse } from '../scheduler';
 import { IS_CONFUSED, IS_HALLUCINATING } from './flags';
 import type { InventoryResult } from './inventory';
 
 const CONFUSION_DURATION = 20;
 
-/** First potion effect from potions.c quaff()/do_pot(). */
+/** Supported potion effects from potions.c quaff()/do_pot(). */
 export function drinkItem(state: WorldState, itemId: EntityId, emit: (event: RawEventInput) => void): InventoryResult {
   const item = state.entities[itemId];
   if (item?.kind !== 'item' || item.location.kind !== 'pack' || item.location.owner !== 'player')
@@ -16,28 +16,56 @@ export function drinkItem(state: WorldState, itemId: EntityId, emit: (event: Raw
     emit({ type: 'sourceMessage', text: 'Yuk! Why would you want to drink that?' });
     return { resolved: false, consumedSlot: false, reason: 'undrinkable' };
   }
-  if (item.definitionId !== 'potion.confuse')
+  if (item.definitionId !== 'potion.confuse' && item.definitionId !== 'potion.poison')
     return { resolved: false, consumedSlot: false, reason: `unsupported-potion:${item.definitionId}` };
 
   const entry = state.identification.find(candidate => candidate.definitionId === item.definitionId);
   if (!entry) throw new Error(`Missing identification entry for ${item.definitionId}`);
-  const hallucinating = (state.player.flags & IS_HALLUCINATING) !== 0;
-  if (!hallucinating && !entry.known) {
-    entry.known = true; entry.called = null;
-    emit({ type: 'identityLearned', definitionId: item.definitionId });
-  }
+  if (item.definitionId === 'potion.confuse') applyConfusion(state, entry, emit);
+  else applyPoison(state, entry, emit);
 
-  const duration = CONFUSION_DURATION - Math.trunc(CONFUSION_DURATION / 20)
-    + rnd(state.rng, Math.trunc(CONFUSION_DURATION / 10));
+  consumeOne(state, itemId);
+  emit({ type: 'itemConsumed', itemId, category: 'potion' });
+  return { resolved: true, consumedSlot: true, reason: null };
+}
+
+function applyConfusion(state: WorldState, entry: WorldState['identification'][number], emit: (event: RawEventInput) => void): void {
+  const hallucinating = (state.player.flags & IS_HALLUCINATING) !== 0;
+  if (!hallucinating) learn(entry, emit);
+
+  const duration = spread(state, CONFUSION_DURATION);
   if ((state.player.flags & IS_CONFUSED) === 0) {
     state.player.flags |= IS_CONFUSED;
     scheduleFuse(state.timing.scheduler, 'unconfuse', 0, 'after', duration);
   } else lengthen(state.timing.scheduler, 'unconfuse', duration);
-
-  consumeOne(state, itemId);
-  emit({ type: 'itemConsumed', itemId, category: 'potion' });
   emit({ type: 'sourceMessage', text: hallucinating ? 'What a tripy feeling!' : "Wait, what's going on here. Huh? What? Who?" });
-  return { resolved: true, consumedSlot: true, reason: null };
+}
+
+function applyPoison(state: WorldState, entry: WorldState['identification'][number], emit: (event: RawEventInput) => void): void {
+  learn(entry, emit);
+  if (wearing(state, 'ring.sustain-strength')) {
+    emit({ type: 'sourceMessage', text: 'You feel momentarily sick.' });
+    return;
+  }
+  state.player.stats.strength = Math.max(3, state.player.stats.strength - (rnd(state.rng, 3) + 1));
+  state.player.flags &= ~IS_HALLUCINATING;
+  killDaemon(state.timing.scheduler, 'visuals');
+  emit({ type: 'sourceMessage', text: 'You feel very sick now.' });
+}
+
+function learn(entry: WorldState['identification'][number], emit: (event: RawEventInput) => void): void {
+  if (!entry.known) emit({ type: 'identityLearned', definitionId: entry.definitionId });
+  entry.known = true; entry.called = null;
+}
+
+function wearing(state: WorldState, definitionId: string): boolean {
+  return (['leftRing', 'rightRing'] as const).some(slot => {
+    const id = state.player.equipment[slot]; return id !== null && state.entities[id]?.definitionId === definitionId;
+  });
+}
+
+function spread(state: WorldState, duration: number): number {
+  return duration - Math.trunc(duration / 20) + rnd(state.rng, Math.trunc(duration / 10));
 }
 
 function consumeOne(state: WorldState, itemId: EntityId): void {

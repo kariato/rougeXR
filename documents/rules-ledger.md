@@ -65,4 +65,6 @@ Phase 11.1a ports `init.c` `init_colors()` and the potion branch of `things.c` `
 
 Phase 11.1b ports `potions.c` `quaff()` and `do_pot()` for `P_CONFUSE`. Drinking a carried confusion potion consumes one unit, uses `spread(HUHDURATION)` with the source rejection-free draw, schedules or lengthens the AFTER `unconfuse` fuse, and learns the type unless the player is hallucinating. The browser exposes Drink for potion inventory rows, and replay parsing accepts the action. Tests cover identification, stacked consumption, duration extension, invalid categories, replay, and restored fuse continuation.
 
+Phase 11.1c ports the `P_POISON` branch of `potions.c` plus `misc.c` `chg_str()`/`add_str()` lower-bound behavior. Poison is always identified. Without a worn sustain-strength ring it consumes one `rnd(3)` draw, removes 1–3 strength with a floor of 3, and invokes the behaviorally relevant part of `come_down()` by clearing hallucination and its visuals daemon. Sustain strength skips the loss, draw, and hallucination cleanup. Tests cover both branches, consumption, replay, and restored state.
+
 Add an entry before intentionally changing source behavior. Record the relevant source function, the difference, its reason, and its verification case.
