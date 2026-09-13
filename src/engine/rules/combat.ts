@@ -40,6 +40,10 @@ export function attackMonsterWithWeapon(state: WorldState, id: EntityId, damage:
   if (monster.stats.hp === 0) destroyMonster(state, monster, emit); return hit;
 }
 
+export function damageMonster(state:WorldState,id:EntityId,amount:number,emit:EmitRaw):void{const monster=state.entities[id];if(monster?.kind!=='monster')return;
+  const before=monster.stats.hp;monster.stats.hp=Math.max(0,before-amount);if(monster.stats.hp!==before)emit({type:'hpChanged',actorId:id,from:before,to:monster.stats.hp});
+  if(monster.stats.hp===0)destroyMonster(state,monster,emit);else{monster.flags|=IS_RUNNING;monster.target={kind:'player'};}}
+
 export function attackPlayer(state: WorldState, monster: MonsterState, emit: EmitRaw): void {
   state.timing.quiet = 0;
   const armor = state.player.equipment.armor ? state.entities[state.player.equipment.armor] : null;

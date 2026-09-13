@@ -26,4 +26,12 @@ describe('stick identities, charges, and first target effects',()=>{
   session.submit({expectedRevision:0,action:{type:'zap',itemId:id,direction:'E'}});await recorder.record({type:'zap',itemId:id,direction:'E'},0,session.exportState());const after=session.exportState();
   expect((after.entities[id]as ItemState)).toMatchObject({charges:2});expect(restoreGame(after).exportState()).toEqual(after);expect(await replay(recorder.bundle())).toEqual({ok:true,completed:1});
  });
+ it('drains half the player HP across room monsters and does not charge when too weak',()=>{const state=createKestrelEncounterFixture(404);const id=stick(state,'stick.drain-life',2);const session=new GameSession(state);
+  session.submit({expectedRevision:0,action:{type:'zap',itemId:id,direction:'E'}});const after=session.exportState();expect(after.player.stats.hp).toBe(5);expect(after.entities.e1).toBeUndefined();expect((after.entities[id]as ItemState)).toMatchObject({charges:1});
+  after.player.stats.hp=1;const weakSession=new GameSession(after);weakSession.submit({expectedRevision:1,action:{type:'zap',itemId:id,direction:'E'}});expect((weakSession.exportState().entities[id]as ItemState)).toMatchObject({charges:1});
+ });
+ it('teleports a target adjacent to the player and then to a legal distant cell',()=>{const state=createKestrelEncounterFixture(405);const to=stick(state,'stick.teleport-to');const away=stick(state,'stick.teleport-away');const session=new GameSession(state);
+  session.submit({expectedRevision:0,action:{type:'zap',itemId:to,direction:'E'}});let monster=session.exportState().entities.e1;if(monster?.kind!=='monster')throw new Error('missing monster');expect(monster.at).toEqual({x:6,y:5});
+  session.submit({expectedRevision:1,action:{type:'zap',itemId:away,direction:'E'}});monster=session.exportState().entities.e1;if(monster?.kind!=='monster')throw new Error('missing monster');expect(monster.at).not.toEqual({x:6,y:5});expect(restoreGame(session.exportState()).exportState()).toEqual(session.exportState());
+ });
 });

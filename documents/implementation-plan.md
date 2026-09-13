@@ -305,7 +305,8 @@ Phase 11.4 progress:
 - [x] Add eight-direction thrown-weapon input, source trajectory stopping, launcher bonuses, hurled damage tables, hit consumption, reservoir-selected falls, cursed-equipped rejection, browser control, replay, and save continuation.
 - [x] Add all 14 randomized wand/staff materials, serialized charges, Zap input, and browser/replay support.
 - [x] Add light, invisibility, magic missile, haste monster, slow monster, nothing, and cancellation effects.
-- [ ] Add drain life, teleport away/to, polymorph, and bouncing lightning/fire/cold bolts.
+- [x] Add drain life and teleport-away/to with direct damage, death, room membership, and save continuation.
+- [ ] Add polymorph and bouncing lightning/fire/cold bolts.
 
 Gate: enable `full` mode only after definition coverage and the command audit justify it. Deterministic TypeScript replay is not a claim of identical historical C RNG sequences. Any deferred gameplay command prevents claiming full source parity even if full content is available.
 
