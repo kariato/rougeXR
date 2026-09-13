@@ -284,6 +284,7 @@ Phase 11.1 progress:
 - [x] Add serialized per-type identification state and source-shaped randomized potion colors.
 - [x] Add the confusion potion with consumption, identification, duration extension, recovery, browser input, replay, and save continuation.
 - [x] Add the poison potion with bounded strength loss, sustain-strength interaction, hallucination cleanup, replay, and save continuation.
+- [x] Add the gain-strength potion with base maximum tracking, add-strength ring interaction, replay, and save continuation.
 - [ ] Add potion effects individually, including consumption and identification behavior.
 
 Gate: enable `full` mode only after definition coverage and the command audit justify it. Deterministic TypeScript replay is not a claim of identical historical C RNG sequences. Any deferred gameplay command prevents claiming full source parity even if full content is available.

@@ -103,3 +103,36 @@ describe('poison potion', () => {
     expect(restoreGame(session.exportState()).exportState()).toEqual(session.exportState());
   });
 });
+
+describe('gain-strength potion', () => {
+  it('raises current and maximum base strength and identifies the potion', () => {
+    const state = createTwoRoomFixture(51); const itemId = addPotion(state, 1, 'potion.strength');
+    state.player.stats.strength = 10; state.player.maximumStrength = 10;
+    const session = new GameSession(state); session.submit({ expectedRevision: 0, action: { type: 'drink', itemId } }); const after = session.exportState();
+    expect(after.player).toMatchObject({ maximumStrength: 11, stats: { strength: 11 } });
+    expect(after.identification.find(candidate => candidate.definitionId === 'potion.strength')).toMatchObject({ known: true, called: null });
+    expect(after.entities[itemId]).toBeUndefined();
+  });
+
+  it('tracks maximum strength beneath equipped add-strength rings and clamps at 31', () => {
+    const state = createTwoRoomFixture(52); const itemId = addPotion(state, 2, 'potion.strength');
+    const ringId = allocateId(state); state.entities[ringId] = { kind: 'item', id: ringId, definitionId: 'ring.add-strength', category: 'ring',
+      location: { kind: 'pack', owner: 'player' }, quantity: 1, flags: 0, group: 0, label: null, magnitude: 2 };
+    state.player.packOrder.push(ringId); state.player.equipment.leftRing = ringId;
+    state.player.stats.strength = 12; state.player.maximumStrength = 10;
+    const session = new GameSession(state); session.submit({ expectedRevision: 0, action: { type: 'drink', itemId } });
+    expect(session.exportState().player).toMatchObject({ maximumStrength: 11, stats: { strength: 13 } });
+    const capped = session.exportState(); capped.player.stats.strength = 31; capped.player.maximumStrength = 31;
+    const cappedSession = new GameSession(capped); cappedSession.submit({ expectedRevision: 1, action: { type: 'drink', itemId } });
+    expect(cappedSession.exportState().player).toMatchObject({ maximumStrength: 31, stats: { strength: 31 } });
+  });
+
+  it('replays and restores maximum-strength state', async () => {
+    const initial = createTwoRoomFixture(53); const itemId = addPotion(initial, 1, 'potion.strength');
+    const session = new GameSession(initial); const recorder = new ReplayRecorder(session.exportState());
+    session.submit({ expectedRevision: 0, action: { type: 'drink', itemId } });
+    await recorder.record({ type: 'drink', itemId }, 0, session.exportState());
+    expect(await replay(recorder.bundle())).toEqual({ ok: true, completed: 1 });
+    expect(restoreGame(session.exportState()).exportState()).toEqual(session.exportState());
+  });
+});

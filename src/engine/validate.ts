@@ -98,6 +98,8 @@ export function validateWorld(input: unknown): ValidationIssue[] {
     check(supportsOccupant(level, s.player.at), 'player.at', 'Invalid player position');
     check(s.player.roomId === null || level.rooms.some(r => r.id === s.player.roomId), 'player.roomId', 'Unknown room');
     check(integer(s.player.gold) && integer(s.player.flags), 'player', 'Invalid gold/flags');
+    check(integer(s.player.maximumStrength, 3) && s.player.maximumStrength <= 31,
+      'player.maximumStrength', 'Expected strength from 3 through 31');
     check(isPlayable(level, level.stairs) && tileAt(level, level.stairs).feature?.kind === 'stairs', 'stairs', 'Stairs position mismatch');
     check(level.tiles.filter(t => t.feature?.kind === 'stairs').length === 1, 'stairs', 'Expected one stair tile');
     const stats = (v: CombatStats, path: string): void => {

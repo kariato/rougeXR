@@ -51,7 +51,7 @@ export type EntityState = MonsterState | ItemState;
 export interface PlayerState {
   at: Position; stats: CombatStats; flags: number; packOrder: EntityId[];
   equipment: { weapon: EntityId | null; armor: EntityId | null; leftRing: EntityId | null; rightRing: EntityId | null };
-  roomId: number | null; gold: number;
+  roomId: number | null; gold: number; maximumStrength: number;
 }
 export interface RandomState { algorithm: 'xorshift32-v1'; word: number; draws: number }
 export type CyclePhase = 'begin' | 'input' | 'after' | 'terminal';

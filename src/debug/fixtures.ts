@@ -17,7 +17,7 @@ export function createTwoRoomFixture(seed = 12345): WorldState {
       foodLeft: 1300, noFood: 0, quiet: 0, between: 0, hungerStage: 0,
       scheduler: { slots: Array.from({ length: 20 }, () => null) }, cycle: { phase: 'begin', slotsRemaining: 0 } },
     knowledge: { levelId: 1, remembered: Array.from({ length: GRID_WIDTH * GRID_HEIGHT }, () => null) },
-    player: { at: { x: 5, y: 5 }, stats: stats(), flags: 0, packOrder: [], roomId: 0, gold: 0,
+    player: { at: { x: 5, y: 5 }, stats: stats(), flags: 0, packOrder: [], roomId: 0, gold: 0, maximumStrength: 10,
       equipment: { weapon: null, armor: null, leftRing: null, rightRing: null } },
     level: { id: 1, depth: 1, width: GRID_WIDTH, height: GRID_HEIGHT,
       tiles: Array.from({ length: GRID_WIDTH * GRID_HEIGHT }, (): TileState => ({ terrain: 'void', secret: false, feature: null, roomId: null, passageId: null })),

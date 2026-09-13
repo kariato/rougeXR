@@ -16,13 +16,14 @@ export function drinkItem(state: WorldState, itemId: EntityId, emit: (event: Raw
     emit({ type: 'sourceMessage', text: 'Yuk! Why would you want to drink that?' });
     return { resolved: false, consumedSlot: false, reason: 'undrinkable' };
   }
-  if (item.definitionId !== 'potion.confuse' && item.definitionId !== 'potion.poison')
+  if (!['potion.confuse', 'potion.poison', 'potion.strength'].includes(item.definitionId))
     return { resolved: false, consumedSlot: false, reason: `unsupported-potion:${item.definitionId}` };
 
   const entry = state.identification.find(candidate => candidate.definitionId === item.definitionId);
   if (!entry) throw new Error(`Missing identification entry for ${item.definitionId}`);
   if (item.definitionId === 'potion.confuse') applyConfusion(state, entry, emit);
-  else applyPoison(state, entry, emit);
+  else if (item.definitionId === 'potion.poison') applyPoison(state, entry, emit);
+  else applyGainStrength(state, entry, emit);
 
   consumeOne(state, itemId);
   emit({ type: 'itemConsumed', itemId, category: 'potion' });
@@ -47,11 +48,30 @@ function applyPoison(state: WorldState, entry: WorldState['identification'][numb
     emit({ type: 'sourceMessage', text: 'You feel momentarily sick.' });
     return;
   }
-  state.player.stats.strength = Math.max(3, state.player.stats.strength - (rnd(state.rng, 3) + 1));
+  changeStrength(state, -(rnd(state.rng, 3) + 1));
   state.player.flags &= ~IS_HALLUCINATING;
   killDaemon(state.timing.scheduler, 'visuals');
   emit({ type: 'sourceMessage', text: 'You feel very sick now.' });
 }
+
+function applyGainStrength(state: WorldState, entry: WorldState['identification'][number], emit: (event: RawEventInput) => void): void {
+  learn(entry, emit); changeStrength(state, 1);
+  emit({ type: 'sourceMessage', text: 'You feel stronger, now. What bulging muscles!' });
+}
+
+/** misc.c chg_str()/add_str(), including maximum base strength beneath add-strength rings. */
+function changeStrength(state: WorldState, amount: number): void {
+  state.player.stats.strength = clampStrength(state.player.stats.strength + amount);
+  let baseStrength = state.player.stats.strength;
+  for (const slot of ['leftRing', 'rightRing'] as const) {
+    const id = state.player.equipment[slot]; const ring = id ? state.entities[id] : null;
+    if (ring?.kind === 'item' && ring.category === 'ring' && ring.definitionId === 'ring.add-strength')
+      baseStrength = clampStrength(baseStrength - ring.magnitude);
+  }
+  state.player.maximumStrength = Math.max(state.player.maximumStrength, baseStrength);
+}
+
+function clampStrength(value: number): number { return Math.max(3, Math.min(31, value)); }
 
 function learn(entry: WorldState['identification'][number], emit: (event: RawEventInput) => void): void {
   if (!entry.known) emit({ type: 'identityLearned', definitionId: entry.definitionId });

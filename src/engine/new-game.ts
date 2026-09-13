@@ -27,7 +27,7 @@ export function createNewGame(seed: number): WorldState {
   const state: WorldState = {
     seed, rng, nextEntitySerial: generated.nextEntitySerial, entities,
     level: generated.level,
-    player: { at: generated.playerAt, roomId: generated.playerRoomId, gold: 0, flags: 0,
+    player: { at: generated.playerAt, roomId: generated.playerRoomId, gold: 0, flags: 0, maximumStrength: 16,
       stats: { strength: 16, experience: 0, level: 1, armorClass: 10, hp: 12, maxHp: 12, damage: [{ count: 1, sides: 4 }] },
       packOrder: starting.map(entry => entry.id), equipment: { weapon: mace.id, armor: armor.id, leftRing: null, rightRing: null } },
     timing: { revision: 0, actionSequence: 0, tick: 0, status: 'playing', noCommand: 0, noMove: 0, hasted: false,

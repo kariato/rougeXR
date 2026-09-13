@@ -67,4 +67,6 @@ Phase 11.1b ports `potions.c` `quaff()` and `do_pot()` for `P_CONFUSE`. Drinking
 
 Phase 11.1c ports the `P_POISON` branch of `potions.c` plus `misc.c` `chg_str()`/`add_str()` lower-bound behavior. Poison is always identified. Without a worn sustain-strength ring it consumes one `rnd(3)` draw, removes 1–3 strength with a floor of 3, and invokes the behaviorally relevant part of `come_down()` by clearing hallucination and its visuals daemon. Sustain strength skips the loss, draw, and hallucination cleanup. Tests cover both branches, consumption, replay, and restored state.
 
+Phase 11.1d ports the `P_STRENGTH` branch and completes the saved portion of `misc.c` `chg_str()`: current strength is bounded to 3–31, while `PlayerState.maximumStrength` records the highest base strength after subtracting worn add-strength ring magnitudes. New games start both values at 16; fixtures start at 10. Save schema version 3 makes the new maximum explicit. Tests cover ordinary gain, the upper bound, ring-adjusted maximum tracking, identification, replay, and restore.
+
 Add an entry before intentionally changing source behavior. Record the relevant source function, the difference, its reason, and its verification case.
