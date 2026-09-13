@@ -1,8 +1,8 @@
 import type { RawEventInput } from '../model/action';
 import type { EntityId, WorldState } from '../model/state';
 import { rnd, roll } from '../random';
-import { extinguish, killDaemon, lengthen, scheduleFuse } from '../scheduler';
-import { CAN_DETECT_MONSTERS, CAN_SEE_INVISIBLE, IS_BLIND, IS_CONFUSED, IS_HALLUCINATING, IS_HASTED, IS_INVISIBLE, IS_LEVITATING, IS_RUNNING } from './flags';
+import { extinguish, killDaemon, lengthen, scheduleFuse, startDaemon } from '../scheduler';
+import { CAN_DETECT_MONSTERS, CAN_SEE_INVISIBLE, IS_BLIND, IS_CONFUSED, IS_HALLUCINATING, IS_HASTED, IS_INVISIBLE, IS_LEVITATING, IS_PROTECTED, IS_RUNNING } from './flags';
 import type { InventoryResult } from './inventory';
 import { recoverSight } from './effects';
 import { raiseLevel } from './experience';
@@ -23,7 +23,8 @@ export function drinkItem(state: WorldState, itemId: EntityId, emit: (event: Raw
     return { resolved: false, consumedSlot: false, reason: 'undrinkable' };
   }
   if (!['potion.confuse', 'potion.poison', 'potion.strength', 'potion.see-invisible', 'potion.healing', 'potion.extra-healing',
-    'potion.haste', 'potion.restore-strength', 'potion.blindness', 'potion.levitation', 'potion.monster-detection', 'potion.raise-level'].includes(item.definitionId))
+    'potion.haste', 'potion.restore-strength', 'potion.blindness', 'potion.levitation', 'potion.monster-detection', 'potion.raise-level',
+    'potion.hallucinate', 'potion.treasure-detection'].includes(item.definitionId))
     return { resolved: false, consumedSlot: false, reason: `unsupported-potion:${item.definitionId}` };
 
   const entry = state.identification.find(candidate => candidate.definitionId === item.definitionId);
@@ -40,7 +41,9 @@ export function drinkItem(state: WorldState, itemId: EntityId, emit: (event: Raw
   else if (item.definitionId === 'potion.blindness') applyBlindness(state, entry, emit);
   else if (item.definitionId === 'potion.levitation') applyLevitation(state, entry, emit);
   else if (item.definitionId === 'potion.monster-detection') applyMonsterDetection(state, emit);
-  else applyRaiseLevel(state, entry, emit);
+  else if (item.definitionId === 'potion.raise-level') applyRaiseLevel(state, entry, emit);
+  else if (item.definitionId === 'potion.hallucinate') applyHallucination(state, entry, emit);
+  else applyMagicDetection(state, entry, emit);
 
   consumeOne(state, itemId);
   emit({ type: 'itemConsumed', itemId, category: 'potion' });
@@ -166,6 +169,33 @@ function applyMonsterDetection(state: WorldState, emit: (event: RawEventInput) =
 
 function applyRaiseLevel(state: WorldState, entry: WorldState['identification'][number], emit: (event: RawEventInput) => void): void {
   learn(entry, emit); emit({ type: 'sourceMessage', text: 'You suddenly feel much more skillful.' }); raiseLevel(state, emit);
+}
+
+function applyHallucination(state: WorldState, entry: WorldState['identification'][number], emit: (event: RawEventInput) => void): void {
+  learn(entry, emit); const duration = spread(state, SIGHT_DURATION);
+  if ((state.player.flags & IS_HALLUCINATING) === 0) {
+    state.player.flags |= IS_HALLUCINATING; startDaemon(state.timing.scheduler, 'visuals', 0, 'before');
+    scheduleFuse(state.timing.scheduler, 'comeDown', 0, 'after', duration);
+  } else lengthen(state.timing.scheduler, 'comeDown', duration);
+  emit({ type: 'sourceMessage', text: 'Oh, wow! Everything seems so cosmic!' });
+}
+
+function applyMagicDetection(state: WorldState, entry: WorldState['identification'][number], emit: (event: RawEventInput) => void): void {
+  const positions = Object.values(state.entities).flatMap(entity => entity.kind === 'item' && entity.location.kind === 'floor'
+    && isMagic(entity) ? [{ ...entity.location.at }] : []);
+  if (positions.length) { learn(entry, emit); emit({ type: 'magicDetected', positions });
+    emit({ type: 'sourceMessage', text: 'You sense the presence of magic on this level.' }); }
+  else emit({ type: 'sourceMessage', text: (state.player.flags & IS_HALLUCINATING) !== 0
+    ? 'You have a strange feeling for a moment, then it passes.' : 'You have a normal feeling for a moment, then it passes.' });
+}
+
+function isMagic(item: Extract<WorldState['entities'][string], { kind: 'item' }>): boolean {
+  if (['potion', 'scroll', 'stick', 'ring', 'amulet'].includes(item.category)) return true;
+  if (item.category === 'weapon') return item.hitBonus !== 0 || item.damageBonus !== 0;
+  if (item.category !== 'armor') return false;
+  const base = ({ 'armor.leather': 8, 'armor.ring-mail': 7, 'armor.studded-leather': 7, 'armor.scale-mail': 6,
+    'armor.chain': 5, 'armor.splint-mail': 4, 'armor.banded-mail': 4, 'armor.plate-mail': 3 } as Record<string, number>)[item.definitionId];
+  return (item.flags & IS_PROTECTED) !== 0 || (base !== undefined && item.armorClass !== base);
 }
 
 function endHallucination(state: WorldState): void {

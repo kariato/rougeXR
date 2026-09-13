@@ -12,6 +12,6 @@ function categoryOf(event: PresentationEvent | RawEvent): Exclude<EventFilter, '
     case 'visibleMovement': case 'actorMoved': return 'movement';
     case 'attackResolved': case 'hpChanged': case 'actorDefeated': return 'combat';
     case 'inventoryUpdate': case 'itemCollected': case 'itemDropped': case 'equipmentChanged': case 'itemConsumed': case 'identityLearned': return 'inventory';
-    case 'levelViewReset': case 'levelChanged': case 'featureRevealed': return 'world';
+    case 'levelViewReset': case 'levelChanged': case 'featureRevealed': case 'magicDetected': return 'world';
   }
 }

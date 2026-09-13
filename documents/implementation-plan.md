@@ -361,4 +361,4 @@ Optional scheduling: 10 -> 12 for early spatial prototyping.
 | Spatial browser version | Phase 12 | Explore the same game in desktop 3D |
 | XR version | Phase 13 | Use a headset with verified input and presentation |
 
-Current Phase 11 progress includes potion slices through **11.1m**: raise level and monster detection now join the previously completed effects. The next grouped batch should implement the remaining hallucination and magic-detection potions.
+Current Phase 11 progress includes the complete potion table through **11.1o**, including timed hallucination and transient browser magic-detection overlays. Continue with the next compatible Phase 11 content group after the consolidated regression gate.

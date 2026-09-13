@@ -9,7 +9,7 @@ import { runMonsters } from './rules/combat';
 import { collectAtPlayer, collectItem, dropItem, equipItem, unequipItem } from './rules/inventory';
 import { eatItem } from './rules/inventory';
 import { runStomach } from './rules/hunger';
-import { endMonsterDetection, land, loseSeeInvisible, recoverConfusion, recoverHaste, recoverSight, rollWanderCheck, runDoctor, startWanderChecks } from './rules/effects';
+import { comeDown, endMonsterDetection, land, loseSeeInvisible, recoverConfusion, recoverHaste, recoverSight, rollWanderCheck, runDoctor, runVisuals, startWanderChecks } from './rules/effects';
 import { descendAtStairs } from './level-transition';
 import { drinkItem } from './rules/potions';
 
@@ -40,7 +40,8 @@ export class GameSession {
       sight: (state, _entry, emitRaw) => recoverSight(state, emitRaw),
       nohaste: (state, _entry, emitRaw) => recoverHaste(state, emitRaw),
       land: (state, _entry, emitRaw) => land(state, emitRaw),
-      unsee: state => loseSeeInvisible(state), turnSee: state => endMonsterDetection(state), ...(options.effects ?? {}) };
+      unsee: state => loseSeeInvisible(state), turnSee: state => endMonsterDetection(state), visuals: state => runVisuals(state),
+      comeDown: (state, _entry, emitRaw) => comeDown(state, emitRaw), ...(options.effects ?? {}) };
     this.actionHandler = options.actionHandler ?? defaultAction;
     this.operationLimit = options.operationLimit ?? 10000;
     this.prepareInitialBoundary();
@@ -186,6 +187,7 @@ function projectEvent(state: WorldState, event: RawEvent): PresentationEvent | n
   if (event.type === 'itemCollected' || event.type === 'itemDropped' || event.type === 'equipmentChanged'
     || event.type === 'itemConsumed' || event.type === 'identityLearned') return { type: 'inventoryUpdate' };
   if (event.type === 'levelChanged') return { type: 'levelViewReset' };
+  if (event.type === 'magicDetected') return { type: 'magicDetected', positions: event.positions.map(at => ({ ...at })) };
   if (event.actorId === 'player' || isPositionVisible(state, event.from) || isPositionVisible(state, event.to)) {
     return { type: 'visibleMovement', token: event.actorId === 'player' ? 'player' : `monster-${event.actorId}`,
       from: { ...event.from }, to: { ...event.to } };

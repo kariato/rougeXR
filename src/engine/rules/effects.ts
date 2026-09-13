@@ -3,6 +3,7 @@ import type { WorldState } from '../model/state';
 import { rnd, roll } from '../random';
 import { CAN_DETECT_MONSTERS, CAN_SEE_INVISIBLE, IS_BLIND, IS_CONFUSED, IS_HALLUCINATING, IS_HASTED, IS_LEVITATING } from './flags';
 import { extinguish, killDaemon, scheduleFuse, startDaemon } from '../scheduler';
+import { isPositionVisible } from '../perception/knowledge';
 
 export function runDoctor(state: WorldState, emit: (event: RawEventInput) => void): void {
   const stats = state.player.stats; const before = stats.hp; state.timing.quiet++;
@@ -43,6 +44,18 @@ export function land(state: WorldState, emit: (event: RawEventInput) => void): v
 
 export function loseSeeInvisible(state: WorldState): void { state.player.flags &= ~CAN_SEE_INVISIBLE; }
 export function endMonsterDetection(state: WorldState): void { state.player.flags &= ~CAN_DETECT_MONSTERS; }
+export function comeDown(state: WorldState, emit: (event: RawEventInput) => void): void {
+  if ((state.player.flags & IS_HALLUCINATING) === 0) return;
+  killDaemon(state.timing.scheduler, 'visuals'); state.player.flags &= ~IS_HALLUCINATING;
+  emit({ type: 'sourceMessage', text: 'Everything looks SO boring now.' });
+}
+
+export function runVisuals(state: WorldState): void {
+  for (const entity of Object.values(state.entities)) {
+    const at = entity.kind === 'monster' ? entity.at : entity.location.kind === 'floor' ? entity.location.at : null;
+    if (at && isPositionVisible(state, at)) rnd(state.rng, entity.kind === 'monster' ? 26 : 9);
+  }
+}
 
 export function startWanderChecks(state: WorldState): void { startDaemon(state.timing.scheduler, 'rollwand', 0, 'before'); }
 export function rollWanderCheck(state: WorldState): void {

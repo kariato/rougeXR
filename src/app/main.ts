@@ -70,7 +70,8 @@ function render(): void {
   const state = session.exportState();
   const observation = observe(state);
   const debugSnapshot = debugFixtureSnapshot(state);
-  view.render(observation, reveal.checked ? debugSnapshot : null);
+  const magic = latestEvents.flatMap(event => event.type === 'magicDetected' ? event.positions : []);
+  view.render(observation, reveal.checked ? debugSnapshot : null, magic);
   const lines = selectedIndex === null
     ? ['Click a cell to inspect it.']
     : [...describeObservedCell(observation, selectedIndex), ...(reveal.checked ? describeDebugCell(debugSnapshot, selectedIndex) : [])];

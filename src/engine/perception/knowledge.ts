@@ -1,7 +1,7 @@
 import { cellIndex, isPlayable, positionAt, tileAt } from '../grid';
 import type { CellAppearance, PlayerObservation, Visibility } from '../model/observation';
 import type { ItemState, Position, TileState, WorldState } from '../model/state';
-import { CAN_DETECT_MONSTERS, CAN_SEE_INVISIBLE, IS_BLIND, IS_INVISIBLE } from '../rules/flags';
+import { CAN_DETECT_MONSTERS, CAN_SEE_INVISIBLE, IS_BLIND, IS_HALLUCINATING, IS_INVISIBLE } from '../rules/flags';
 import { canStepTerrain } from '../rules/movement';
 import { observedItemLabel } from '../identification';
 
@@ -54,6 +54,7 @@ export function observe(state: WorldState): PlayerObservation {
     return { visibility, appearance: visible ? appearanceFor(tile) : remembered ? { ...remembered } : null };
   });
   const detecting = (state.player.flags & CAN_DETECT_MONSTERS) !== 0;
+  const hallucinating = (state.player.flags & IS_HALLUCINATING) !== 0;
   const entities = Object.values(state.entities).flatMap(entity => {
     const at = entity.kind === 'monster' ? entity.at : entity.location.kind === 'floor' ? entity.location.at : null;
     if (!at) return [];
@@ -61,11 +62,12 @@ export function observe(state: WorldState): PlayerObservation {
       const ordinarilyVisible = isPositionVisible(state, at)
         && ((entity.flags & IS_INVISIBLE) === 0 || (state.player.flags & CAN_SEE_INVISIBLE) !== 0);
       if (!ordinarilyVisible && !detecting) return [];
-      return [{ token: `monster-${entity.id}`, at: { ...at }, appearance: entity.disguise ?? 'M',
-        label: ordinarilyVisible ? (entity.disguise ?? entity.definitionId) : 'detected monster' }];
+      return [{ token: `monster-${entity.id}`, at: { ...at }, appearance: hallucinating ? cosmicGlyph(state, entity.id, true) : entity.disguise ?? 'M',
+        label: hallucinating ? 'cosmic creature' : ordinarilyVisible ? (entity.disguise ?? entity.definitionId) : 'detected monster' }];
     }
     if (cells[cellIndex(state.level, at)]?.visibility !== 'visible') return [];
-    return [{ token: `item-${entity.id}`, at: { ...at }, appearance: itemGlyph(entity), label: observedItemLabel(state, entity) }];
+    return [{ token: `item-${entity.id}`, at: { ...at }, appearance: hallucinating ? cosmicGlyph(state, entity.id, false) : itemGlyph(entity),
+      label: hallucinating ? 'cosmic object' : observedItemLabel(state, entity) }];
   });
   const inventory = state.player.packOrder.map(id => {
     const item = state.entities[id]; if (item?.kind !== 'item') throw new Error('Invalid player pack');
@@ -76,6 +78,11 @@ export function observe(state: WorldState): PlayerObservation {
     playerAt: { ...state.player.at }, cells, entities,
     status: { hp: state.player.stats.hp, maxHp: state.player.stats.maxHp, gold: state.player.gold, depth: state.level.depth,
       hungerStage: state.timing.hungerStage }, inventory, pendingDecision: state.pendingDecision?.kind ?? null };
+}
+
+function cosmicGlyph(state: WorldState, id: string, monster: boolean): string {
+  let hash = state.timing.tick + 1; for (const character of id) hash = Math.imul(hash ^ character.charCodeAt(0), 16777619);
+  const glyphs = monster ? 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' : '!?=:)]/%*'; return glyphs[Math.abs(hash) % glyphs.length]!;
 }
 
 function itemGlyph(item: ItemState): string {

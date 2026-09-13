@@ -19,7 +19,8 @@ export type PresentationEvent =
   | { type: 'message'; text: string }
   | { type: 'visibleMovement'; token: string; from: Position; to: Position }
   | { type: 'inventoryUpdate' }
-  | { type: 'levelViewReset' };
+  | { type: 'levelViewReset' }
+  | { type: 'magicDetected'; positions: Position[] };
 export type RawEventInput =
   | { type: 'actorMoved'; actorId: 'player' | string; from: Position; to: Position }
   | { type: 'attackResolved'; attackerId: string; defenderId: string; groupIndex: number; roll: number; hit: boolean; damage: number }
@@ -32,6 +33,7 @@ export type RawEventInput =
   | { type: 'identityLearned'; definitionId: string }
   | { type: 'levelChanged'; fromDepth: number; toDepth: number; cause: string }
   | { type: 'featureRevealed'; at: Position; feature: string }
+  | { type: 'magicDetected'; positions: Position[] }
   | { type: 'sourceMessage'; text: string };
 export type RawEvent = RawEventInput & { ordinal: number; actionSequence: number };
 export interface ActionResolution {

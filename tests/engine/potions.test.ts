@@ -389,3 +389,35 @@ describe('raise-level and monster-detection potions', () => {
     expect(session.exportState().pendingDecision?.definitionId).toBe('potion.monster-detection');
   });
 });
+
+describe('hallucination and magic-detection potions', () => {
+  it('starts one visuals daemon, lengthens its fuse, and restores identically', () => {
+    const state = createTwoRoomFixture(131); const itemId = addPotion(state, 2, 'potion.hallucinate'); const session = new GameSession(state);
+    session.submit({ expectedRevision: 0, action: { type: 'drink', itemId } }); const first = session.exportState();
+    expect(first.player.flags & IS_HALLUCINATING).not.toBe(0);
+    expect(first.timing.scheduler.slots.filter(slot => slot?.effect === 'visuals')).toHaveLength(1);
+    const firstFuse = first.timing.scheduler.slots.find(slot => slot?.effect === 'comeDown')!.remaining;
+    session.submit({ expectedRevision: 1, action: { type: 'drink', itemId } }); const after = session.exportState();
+    expect(after.timing.scheduler.slots.filter(slot => slot?.effect === 'visuals')).toHaveLength(1);
+    expect(after.timing.scheduler.slots.find(slot => slot?.effect === 'comeDown')!.remaining).toBeGreaterThan(firstFuse + 800);
+    expect(restoreGame(after).exportState()).toEqual(after);
+  });
+
+  it('identifies magic detection and reports every magical floor position', async () => {
+    const initial = createTwoRoomFixture(132); const itemId = addPotion(initial, 1, 'potion.treasure-detection');
+    const magicId = allocateId(initial); initial.entities[magicId] = { kind: 'item', id: magicId, definitionId: 'weapon.mace', category: 'weapon',
+      location: { kind: 'floor', levelId: 1, at: { x: 7, y: 5 } }, quantity: 1, flags: 0, group: 0, label: null, hitBonus: 1, damageBonus: 0 };
+    initial.level.floorObjectOrder.push(magicId); const session = new GameSession(initial); const recorder = new ReplayRecorder(session.exportState());
+    const result = session.submit({ expectedRevision: 0, action: { type: 'drink', itemId } }); await recorder.record({ type: 'drink', itemId }, 0, session.exportState());
+    expect(result.events).toContainEqual({ type: 'magicDetected', positions: [{ x: 7, y: 5 }] });
+    expect(session.exportState().identification.find(entry => entry.definitionId === 'potion.treasure-detection')?.known).toBe(true);
+    expect(await replay(recorder.bundle())).toEqual({ ok: true, completed: 1 });
+  });
+
+  it('keeps an empty magic-detection potion unknown and requests a call', () => {
+    const state = createTwoRoomFixture(133); const itemId = addPotion(state, 1, 'potion.treasure-detection'); const session = new GameSession(state);
+    const result = session.submit({ expectedRevision: 0, action: { type: 'drink', itemId } });
+    expect(result.events).toContainEqual({ type: 'message', text: 'You have a normal feeling for a moment, then it passes.' });
+    expect(session.exportState().pendingDecision?.definitionId).toBe('potion.treasure-detection');
+  });
+});
