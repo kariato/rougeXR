@@ -6,6 +6,7 @@ import type { CombatStats, EntityId, MonsterState, Position, WorldState } from '
 import { rnd } from '../random';
 import { canMoveDiagonally, canStepTerrain } from './movement';
 import { IS_FLYING, IS_HELD, IS_MEAN, IS_RUNNING, IS_SLOWED } from './flags';
+import { checkLevel } from './experience';
 
 export type EmitRaw = (event: RawEventInput) => void;
 
@@ -73,6 +74,7 @@ function destroyMonster(state: WorldState, monster: MonsterState, emit: EmitRaw)
   state.level.monsterOrder.splice(state.level.monsterOrder.indexOf(monster.id), 1);
   delete state.entities[monster.id];
   state.player.stats.experience += monster.stats.experience;
+  checkLevel(state, emit);
   emit({ type: 'actorDefeated', actorId: monster.id, byActorId: 'player' });
   emit({ type: 'sourceMessage', text: 'You defeated the kestrel.' });
 }

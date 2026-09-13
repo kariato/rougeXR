@@ -10,7 +10,8 @@ import { roll } from '../../src/engine/random';
 import { triggerTrap } from '../../src/engine/rules/traps';
 import { cellIndex } from '../../src/engine/grid';
 import { observe } from '../../src/engine/perception/knowledge';
-import { CAN_SEE_INVISIBLE, IS_INVISIBLE } from '../../src/engine/rules/flags';
+import { CAN_DETECT_MONSTERS, CAN_SEE_INVISIBLE, IS_INVISIBLE } from '../../src/engine/rules/flags';
+import { EXPERIENCE_LEVELS } from '../../src/engine/rules/experience';
 
 function addPotion(state: WorldState, quantity = 1, definitionId = 'potion.confuse'): string {
   const id = allocateId(state);
@@ -350,5 +351,41 @@ describe('serialized call-item decisions and non-identifying potions', () => {
     state.identification.find(entry => entry.definitionId === 'potion.restore-strength')!.called = 'tonic';
     const session = new GameSession(state); const result = session.submit({ expectedRevision: 0, action: { type: 'drink', itemId } });
     expect(result.ticksAdvanced).toBe(1); expect(session.exportState().pendingDecision).toBeNull();
+  });
+});
+
+describe('raise-level and monster-detection potions', () => {
+  it('raises experience, level, and HP with one source d10 roll', async () => {
+    const initial = createTwoRoomFixture(121); const itemId = addPotion(initial, 1, 'potion.raise-level');
+    initial.player.stats.hp = 7; initial.player.stats.maxHp = 12; const expectedRng = structuredClone(initial.rng);
+    const gain = roll(expectedRng, 1, 10); const session = new GameSession(initial); const recorder = new ReplayRecorder(session.exportState());
+    session.submit({ expectedRevision: 0, action: { type: 'drink', itemId } }); await recorder.record({ type: 'drink', itemId }, 0, session.exportState());
+    const after = session.exportState(); expect(after.player.stats).toMatchObject({ experience: EXPERIENCE_LEVELS[0] + 1,
+      level: 2, hp: 7 + gain, maxHp: 12 + gain });
+    expect(after.identification.find(entry => entry.definitionId === 'potion.raise-level')).toMatchObject({ known: true, called: null });
+    expect(await replay(recorder.bundle())).toEqual({ ok: true, completed: 1 });
+  });
+
+  it('reveals monsters, remains unknown, and preserves detection through save and expiry', () => {
+    const state = createTwoRoomFixture(122); const itemId = addPotion(state, 1, 'potion.monster-detection');
+    const monster = state.entities.e1; if (monster?.kind !== 'monster') throw new Error('missing monster');
+    monster.flags |= IS_INVISIBLE;
+    const session = new GameSession(state); session.submit({ expectedRevision: 0, action: { type: 'drink', itemId } }); const pending = session.exportState();
+    expect(pending.player.flags & CAN_DETECT_MONSTERS).not.toBe(0); expect(pending.pendingDecision?.definitionId).toBe('potion.monster-detection');
+    expect(pending.timing.scheduler.slots.find(slot => slot?.effect === 'turnSee')?.remaining).toBe(20);
+    expect(observe(pending).entities).toContainEqual(expect.objectContaining({ token: 'monster-e1', label: 'detected monster' }));
+    const restored = restoreGame(pending); session.submit({ expectedRevision: 1, action: { type: 'answerCall', label: null } });
+    restored.submit({ expectedRevision: 1, action: { type: 'answerCall', label: null } });
+    for (let step = 0; step < 20; step++) { const revision = session.exportState().timing.revision;
+      session.submit({ expectedRevision: revision, action: { type: 'rest' } }); restored.submit({ expectedRevision: revision, action: { type: 'rest' } }); }
+    expect(restored.exportState()).toEqual(session.exportState()); expect(session.exportState().player.flags & CAN_DETECT_MONSTERS).toBe(0);
+  });
+
+  it('reports the source feeling when there are no monsters', () => {
+    const state = createTwoRoomFixture(123); const itemId = addPotion(state, 1, 'potion.monster-detection');
+    for (const id of state.level.monsterOrder) delete state.entities[id]; state.level.monsterOrder = [];
+    const session = new GameSession(state); const result = session.submit({ expectedRevision: 0, action: { type: 'drink', itemId } });
+    expect(result.events).toContainEqual({ type: 'message', text: 'You have a normal feeling for a moment, then it passes.' });
+    expect(session.exportState().pendingDecision?.definitionId).toBe('potion.monster-detection');
   });
 });

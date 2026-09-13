@@ -2,13 +2,16 @@ import type { RawEventInput } from '../model/action';
 import type { EntityId, WorldState } from '../model/state';
 import { rnd, roll } from '../random';
 import { extinguish, killDaemon, lengthen, scheduleFuse } from '../scheduler';
-import { CAN_SEE_INVISIBLE, IS_BLIND, IS_CONFUSED, IS_HALLUCINATING, IS_HASTED, IS_LEVITATING, IS_RUNNING } from './flags';
+import { CAN_DETECT_MONSTERS, CAN_SEE_INVISIBLE, IS_BLIND, IS_CONFUSED, IS_HALLUCINATING, IS_HASTED, IS_INVISIBLE, IS_LEVITATING, IS_RUNNING } from './flags';
 import type { InventoryResult } from './inventory';
 import { recoverSight } from './effects';
+import { raiseLevel } from './experience';
+import { isPositionVisible } from '../perception/knowledge';
 
 const CONFUSION_DURATION = 20;
 const SIGHT_DURATION = 850;
 const LEVITATION_DURATION = 30;
+const MONSTER_DETECTION_DURATION = 20;
 
 /** Supported potion effects from potions.c quaff()/do_pot(). */
 export function drinkItem(state: WorldState, itemId: EntityId, emit: (event: RawEventInput) => void): InventoryResult {
@@ -20,7 +23,7 @@ export function drinkItem(state: WorldState, itemId: EntityId, emit: (event: Raw
     return { resolved: false, consumedSlot: false, reason: 'undrinkable' };
   }
   if (!['potion.confuse', 'potion.poison', 'potion.strength', 'potion.see-invisible', 'potion.healing', 'potion.extra-healing',
-    'potion.haste', 'potion.restore-strength', 'potion.blindness', 'potion.levitation'].includes(item.definitionId))
+    'potion.haste', 'potion.restore-strength', 'potion.blindness', 'potion.levitation', 'potion.monster-detection', 'potion.raise-level'].includes(item.definitionId))
     return { resolved: false, consumedSlot: false, reason: `unsupported-potion:${item.definitionId}` };
 
   const entry = state.identification.find(candidate => candidate.definitionId === item.definitionId);
@@ -35,7 +38,9 @@ export function drinkItem(state: WorldState, itemId: EntityId, emit: (event: Raw
   else if (item.definitionId === 'potion.haste') { applyHaste(state, entry, emit); consumesSlot = false; }
   else if (item.definitionId === 'potion.restore-strength') applyRestoreStrength(state, emit);
   else if (item.definitionId === 'potion.blindness') applyBlindness(state, entry, emit);
-  else applyLevitation(state, entry, emit);
+  else if (item.definitionId === 'potion.levitation') applyLevitation(state, entry, emit);
+  else if (item.definitionId === 'potion.monster-detection') applyMonsterDetection(state, emit);
+  else applyRaiseLevel(state, entry, emit);
 
   consumeOne(state, itemId);
   emit({ type: 'itemConsumed', itemId, category: 'potion' });
@@ -147,6 +152,20 @@ function applyLevitation(state: WorldState, entry: WorldState['identification'][
   } else lengthen(state.timing.scheduler, 'land', duration);
   emit({ type: 'sourceMessage', text: (state.player.flags & IS_HALLUCINATING) !== 0
     ? "Oh, wow! You're floating in the air!" : 'You start to float in the air.' });
+}
+
+function applyMonsterDetection(state: WorldState, emit: (event: RawEventInput) => void): void {
+  const revealed = state.level.monsterOrder.some(id => { const monster = state.entities[id];
+    return monster?.kind === 'monster' && (!isPositionVisible(state, monster.at)
+      || ((monster.flags & IS_INVISIBLE) !== 0 && (state.player.flags & CAN_SEE_INVISIBLE) === 0)); });
+  state.player.flags |= CAN_DETECT_MONSTERS;
+  scheduleFuse(state.timing.scheduler, 'turnSee', 1, 'after', MONSTER_DETECTION_DURATION);
+  if (!revealed) emit({ type: 'sourceMessage', text: (state.player.flags & IS_HALLUCINATING) !== 0
+    ? 'You have a strange feeling for a moment, then it passes.' : 'You have a normal feeling for a moment, then it passes.' });
+}
+
+function applyRaiseLevel(state: WorldState, entry: WorldState['identification'][number], emit: (event: RawEventInput) => void): void {
+  learn(entry, emit); emit({ type: 'sourceMessage', text: 'You suddenly feel much more skillful.' }); raiseLevel(state, emit);
 }
 
 function endHallucination(state: WorldState): void {

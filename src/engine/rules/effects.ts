@@ -1,7 +1,7 @@
 import type { RawEventInput } from '../model/action';
 import type { WorldState } from '../model/state';
 import { rnd, roll } from '../random';
-import { CAN_SEE_INVISIBLE, IS_BLIND, IS_CONFUSED, IS_HALLUCINATING, IS_HASTED, IS_LEVITATING } from './flags';
+import { CAN_DETECT_MONSTERS, CAN_SEE_INVISIBLE, IS_BLIND, IS_CONFUSED, IS_HALLUCINATING, IS_HASTED, IS_LEVITATING } from './flags';
 import { extinguish, killDaemon, scheduleFuse, startDaemon } from '../scheduler';
 
 export function runDoctor(state: WorldState, emit: (event: RawEventInput) => void): void {
@@ -42,6 +42,7 @@ export function land(state: WorldState, emit: (event: RawEventInput) => void): v
 }
 
 export function loseSeeInvisible(state: WorldState): void { state.player.flags &= ~CAN_SEE_INVISIBLE; }
+export function endMonsterDetection(state: WorldState): void { state.player.flags &= ~CAN_DETECT_MONSTERS; }
 
 export function startWanderChecks(state: WorldState): void { startDaemon(state.timing.scheduler, 'rollwand', 0, 'before'); }
 export function rollWanderCheck(state: WorldState): void {

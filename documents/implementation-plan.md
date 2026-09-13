@@ -361,4 +361,4 @@ Optional scheduling: 10 -> 12 for early spatial prototyping.
 | Spatial browser version | Phase 12 | Explore the same game in desktop 3D |
 | XR version | Phase 13 | Use a headset with verified input and presentation |
 
-The next implementation task is **7.1 only**: transcribe the required combat and strength tables plus one monster definition from the pinned source.
+Current Phase 11 progress includes potion slices through **11.1m**: raise level and monster detection now join the previously completed effects. The next grouped batch should implement the remaining hallucination and magic-detection potions.
