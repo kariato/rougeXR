@@ -269,7 +269,7 @@ Each row is a queue: make one effect, ability, or tightly related group its own 
 | 11.8 | Add remaining generation content, wandering monsters, treasure behavior, Amulet, ascent, and victory in substeps. | Full-content manifests close; progression and end states tested. |
 | 11.9 | Audit commands and options, documenting deferred terminal-only features and intentional browser differences. | Every source command has an implemented, replaced, or explicitly deferred disposition. |
 
-- [ ] 11.1
+- [x] 11.1
 - [ ] 11.2
 - [ ] 11.3
 - [ ] 11.4
@@ -289,7 +289,14 @@ Phase 11.1 progress:
 - [x] Add the blindness potion with source-duration recovery, repeat extension, hallucination messaging, replay, and save continuation.
 - [x] Add extra-healing, haste-self, and levitation as a compatible batch with individual source and continuation coverage.
 - [x] Add serialized call-item decisions with see-invisible and restore-strength, including browser response and mid-decision continuation.
-- [ ] Add potion effects individually, including consumption and identification behavior.
+- [x] Add potion effects individually, including consumption and identification behavior.
+
+Phase 11.3 progress:
+
+- [x] Add all 18 source scroll identities and `init_names()` title generation.
+- [x] Add the Read action and browser control with consumption, call decisions, replay, and save version 5.
+- [x] Add monster confusion, magic mapping, hold monster, sleep, enchant armor, scare monster, food detection, enchant weapon, remove curse, aggravate monsters, and protect armor.
+- [ ] Add identify-scroll decisions, teleportation, and create-monster behavior.
 
 Gate: enable `full` mode only after definition coverage and the command audit justify it. Deterministic TypeScript replay is not a claim of identical historical C RNG sequences. Any deferred gameplay command prevents claiming full source parity even if full content is available.
 
@@ -361,4 +368,4 @@ Optional scheduling: 10 -> 12 for early spatial prototyping.
 | Spatial browser version | Phase 12 | Explore the same game in desktop 3D |
 | XR version | Phase 13 | Use a headset with verified input and presentation |
 
-Current Phase 11 progress includes the complete potion table through **11.1o**, including timed hallucination and transient browser magic-detection overlays. Continue with the next compatible Phase 11 content group after the consolidated regression gate.
+Current Phase 11 progress includes the complete potion table and the first eleven non-target scroll effects. Continue Phase 11.3 with serialized identify-item selection, teleportation, and create-monster behavior.

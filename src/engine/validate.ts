@@ -2,7 +2,7 @@ import { buildIndexes } from './entities';
 import { GRID_HEIGHT, GRID_WIDTH, inBounds, isPlayable, supportsOccupant, tileAt } from './grid';
 import type { CombatStats, WorldState } from './model/state';
 import { KNOWN_EFFECT_IDS } from './scheduler';
-import { POTION_DEFINITIONS } from './identification';
+import { POTION_DEFINITIONS, SCROLL_DEFINITIONS } from './identification';
 
 export interface ValidationIssue { path: string; message: string }
 /** Initial structural validator, not the future versioned save parser. */
@@ -72,6 +72,7 @@ export function validateWorld(input: unknown): ValidationIssue[] {
       }
     }
     check(POTION_DEFINITIONS.every(([id]) => identificationDefinitions.has(id)), 'identification', 'Missing potion definition entry');
+    check(SCROLL_DEFINITIONS.every(([id]) => identificationDefinitions.has(id)), 'identification', 'Missing scroll definition entry');
     if (s.pendingDecision !== null) check(identificationDefinitions.has(s.pendingDecision.definitionId)
       && s.identification.some(entry => entry.definitionId === s.pendingDecision?.definitionId && !entry.known),
     'pendingDecision', 'Decision does not reference an unknown identification entry');

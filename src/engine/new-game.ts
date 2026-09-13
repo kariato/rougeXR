@@ -5,7 +5,7 @@ import { createScheduler, scheduleFuse, startDaemon } from './scheduler';
 import { updateKnowledge } from './perception/knowledge';
 import { validateWorld } from './validate';
 import { wakeRoomMonsters } from './rules/combat';
-import { initializePotionIdentification } from './identification';
+import { initializeIdentification } from './identification';
 
 const KNOWN = 0o2; const MISSILE = 0o4; const MANY = 0o10;
 
@@ -18,7 +18,7 @@ export function createNewGame(seed: number): WorldState {
   rnd(rng, 8); // init_weapon(ARROW) group-size draw, overwritten by init_player
   const arrows = { ...item(nextId(), 'weapon.arrow', 'weapon'), flags: KNOWN | MISSILE | MANY, group: 1,
     quantity: rnd(rng, 15) + 25, hitBonus: 0, damageBonus: 0 } as ItemState;
-  const identification = initializePotionIdentification(rng);
+  const identification = initializeIdentification(rng);
   const generated = generateLevelContentFromRandom(rng, 1, serial); const scheduler = createScheduler();
   startDaemon(scheduler, 'runners', 0, 'after'); startDaemon(scheduler, 'doctor', 0, 'after');
   scheduleFuse(scheduler, 'swander', 0, 'after', spread(rng, 70)); startDaemon(scheduler, 'stomach', 0, 'after');

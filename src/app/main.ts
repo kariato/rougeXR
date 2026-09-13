@@ -70,8 +70,9 @@ function render(): void {
   const state = session.exportState();
   const observation = observe(state);
   const debugSnapshot = debugFixtureSnapshot(state);
-  const magic = latestEvents.flatMap(event => event.type === 'magicDetected' ? event.positions : []);
-  view.render(observation, reveal.checked ? debugSnapshot : null, magic);
+  const detections = latestEvents.flatMap(event => event.type === 'magicDetected' ? event.positions.map(at => ({ at, glyph: '*' }))
+    : event.type === 'itemsDetected' ? event.positions.map(at => ({ at, glyph: event.glyph })) : []);
+  view.render(observation, reveal.checked ? debugSnapshot : null, detections);
   const lines = selectedIndex === null
     ? ['Click a cell to inspect it.']
     : [...describeObservedCell(observation, selectedIndex), ...(reveal.checked ? describeDebugCell(debugSnapshot, selectedIndex) : [])];
@@ -97,6 +98,10 @@ function render(): void {
     if (item.category === 'potion') {
       const drink = document.createElement('button'); drink.type = 'button'; drink.textContent = 'Drink'; drink.disabled = replayPlayer !== null || decisionPending;
       drink.addEventListener('click', () => submit({ type: 'drink', itemId: item.token })); row.append(drink);
+    }
+    if (item.category === 'scroll') {
+      const read = document.createElement('button'); read.type = 'button'; read.textContent = 'Read'; read.disabled = replayPlayer !== null || decisionPending;
+      read.addEventListener('click', () => submit({ type: 'read', itemId: item.token })); row.append(read);
     }
     const drop = document.createElement('button'); drop.type = 'button'; drop.textContent = 'Drop'; drop.disabled = replayPlayer !== null || decisionPending;
     drop.addEventListener('click', () => submit({ type: 'drop', itemId: item.token })); row.append(drop); return row;

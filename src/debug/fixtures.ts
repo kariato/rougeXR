@@ -6,7 +6,7 @@ import { updateKnowledge } from '../engine/perception/knowledge';
 import { KESTREL } from '../definitions/combat';
 import { IS_RUNNING } from '../engine/rules/flags';
 import { startDaemon } from '../engine/scheduler';
-import { initializePotionIdentification } from '../engine/identification';
+import { initializeIdentification } from '../engine/identification';
 
 /** Synthetic debug data, not Rogue generation or a source-balanced encounter. */
 export function createTwoRoomFixture(seed = 12345): WorldState {
@@ -25,7 +25,7 @@ export function createTwoRoomFixture(seed = 12345): WorldState {
       passages: [], stairs: { x: 25, y: 5 }, monsterOrder: [], floorObjectOrder: [] }
   };
   // Keep fixture gameplay vectors stable; production new games consume the authoritative RNG here.
-  state.identification = initializePotionIdentification(createRandom((seed ^ 0x504f544e) >>> 0));
+  state.identification = initializeIdentification(createRandom((seed ^ 0x504f544e) >>> 0));
   for (const [id, left] of [[0, 2], [1, 20]] as const) {
     state.level.rooms[id] = { id, origin: { x: left, y: 2 }, width: 10, height: 8, kind: 'room', dark: false,
       exits: [{ x: id === 0 ? 11 : 20, y: 5 }], goldTarget: null };

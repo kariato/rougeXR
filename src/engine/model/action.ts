@@ -10,6 +10,7 @@ export type GameAction =
   | { type: 'unequip'; slot: EquipmentSlot }
   | { type: 'eat'; itemId: string }
   | { type: 'drink'; itemId: string }
+  | { type: 'read'; itemId: string }
   | { type: 'answerCall'; label: string | null }
   | { type: 'descend' }
   | { type: 'fixture'; name: string };
@@ -20,7 +21,8 @@ export type PresentationEvent =
   | { type: 'visibleMovement'; token: string; from: Position; to: Position }
   | { type: 'inventoryUpdate' }
   | { type: 'levelViewReset' }
-  | { type: 'magicDetected'; positions: Position[] };
+  | { type: 'magicDetected'; positions: Position[] }
+  | { type: 'itemsDetected'; glyph: string; positions: Position[] };
 export type RawEventInput =
   | { type: 'actorMoved'; actorId: 'player' | string; from: Position; to: Position }
   | { type: 'attackResolved'; attackerId: string; defenderId: string; groupIndex: number; roll: number; hit: boolean; damage: number }
@@ -34,6 +36,7 @@ export type RawEventInput =
   | { type: 'levelChanged'; fromDepth: number; toDepth: number; cause: string }
   | { type: 'featureRevealed'; at: Position; feature: string }
   | { type: 'magicDetected'; positions: Position[] }
+  | { type: 'itemsDetected'; glyph: string; positions: Position[] }
   | { type: 'sourceMessage'; text: string };
 export type RawEvent = RawEventInput & { ordinal: number; actionSequence: number };
 export interface ActionResolution {

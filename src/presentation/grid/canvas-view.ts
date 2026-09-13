@@ -9,7 +9,7 @@ export class CanvasGridView {
 
   constructor(private readonly canvas: HTMLCanvasElement) {}
 
-  render(observation: PlayerObservation, debug: DebugSnapshot | null, magic: Position[] = []): void {
+  render(observation: PlayerObservation, debug: DebugSnapshot | null, detections: Array<{ at: Position; glyph: string }> = []): void {
     const bounds = this.canvas.getBoundingClientRect();
     const cssWidth = Math.max(1, Math.floor(bounds.width));
     const cssHeight = Math.max(1, Math.floor(bounds.height));
@@ -38,7 +38,7 @@ export class CanvasGridView {
       context.fillText(cell.appearance?.glyph ?? ' ', x + cellSize / 2, y + cellSize / 2);
     }
     for (const entity of observation.entities) this.drawGlyph(context, entity.at, entity.appearance, '#fbbf24', observation);
-    for (const at of magic) this.drawGlyph(context, at, '*', '#c084fc', observation);
+    for (const detection of detections) this.drawGlyph(context, detection.at, detection.glyph, '#c084fc', observation);
     this.drawGlyph(context, observation.playerAt, '@', '#67e8f9', observation);
     if (debug) this.drawDebug(context, debug, observation);
     if (this.selected) {

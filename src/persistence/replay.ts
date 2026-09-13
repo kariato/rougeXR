@@ -80,7 +80,8 @@ function validAction(value: unknown): value is GameAction {
   if (action.type === 'answerCall') return action.label === null || (typeof action.label === 'string' && action.label.length <= 80);
   if (action.type === 'move') return typeof action.direction === 'string'
     && ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'].includes(action.direction) && typeof action.pickup === 'boolean';
-  if (action.type === 'drop' || action.type === 'eat' || action.type === 'drink') return typeof (action as { itemId?: unknown }).itemId === 'string';
+  if (action.type === 'drop' || action.type === 'eat' || action.type === 'drink' || action.type === 'read')
+    return typeof (action as { itemId?: unknown }).itemId === 'string';
   if (action.type === 'unequip') return typeof (action as { slot?: unknown }).slot === 'string'
     && ['weapon', 'armor', 'leftRing', 'rightRing'].includes((action as { slot: string }).slot);
   return action.type === 'equip' && typeof (action as { itemId?: unknown }).itemId === 'string'
