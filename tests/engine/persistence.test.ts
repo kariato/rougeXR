@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createTwoRoomFixture } from '../../src/debug/fixtures';
 import { GameSession } from '../../src/engine/session';
 import { canonicalState, hashState } from '../../src/persistence/canonical';
-import { parseSave, restoreGame, serializeSave } from '../../src/persistence/save';
+import { SAVE_VERSION, parseSave, restoreGame, serializeSave } from '../../src/persistence/save';
 
 describe('save state', () => {
   it('round trips the complete current state and rejects incompatible envelopes', () => {
@@ -15,7 +15,7 @@ describe('save state', () => {
   it('rejects duplicate ownership without replacing an existing session (S02)', () => {
     const live = new GameSession(createTwoRoomFixture()); const before = live.exportState();
     const invalid = createTwoRoomFixture(); invalid.player.packOrder.push('e2');
-    const parsed = parseSave(JSON.stringify({ format: 'rougexr-save', version: 1,
+    const parsed = parseSave(JSON.stringify({ format: 'rougexr-save', version: SAVE_VERSION,
       upstream: 'f4653c2a2ee6981a73abe9dfda055134285e1e79', state: invalid }));
     expect(parsed.ok).toBe(false); expect(live.exportState()).toEqual(before);
   });

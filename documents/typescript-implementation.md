@@ -759,7 +759,7 @@ Use a closed `PresentationEvent` union of message, visible movement, visible att
 ```typescript
 interface SaveEnvelope {
   format: 'rougexr-save';
-  version: 1;
+  version: 2;
   upstream: 'f4653c2a2ee6981a73abe9dfda055134285e1e79';
   state: GameState;
 }

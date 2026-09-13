@@ -2,6 +2,7 @@ import { buildIndexes } from './entities';
 import { GRID_HEIGHT, GRID_WIDTH, inBounds, isPlayable, supportsOccupant, tileAt } from './grid';
 import type { CombatStats, WorldState } from './model/state';
 import { KNOWN_EFFECT_IDS } from './scheduler';
+import { POTION_DEFINITIONS } from './identification';
 
 export interface ValidationIssue { path: string; message: string }
 /** Initial structural validator, not the future versioned save parser. */
@@ -52,6 +53,21 @@ export function validateWorld(input: unknown): ValidationIssue[] {
       check(typeof memory.glyph === 'string' && typeof memory.terrainLabel === 'string'
         && (memory.featureLabel === null || typeof memory.featureLabel === 'string'), 'knowledge', 'Invalid remembered appearance');
     }
+    check(Array.isArray(s.identification), 'identification', 'Expected identification entries');
+    const identificationDefinitions = new Set<string>(); const potionAppearances = new Set<string>();
+    for (const entry of s.identification) {
+      check(typeof entry.definitionId === 'string' && entry.definitionId.length > 0
+        && typeof entry.appearanceId === 'string' && entry.appearanceId.length > 0
+        && typeof entry.known === 'boolean' && (entry.called === null || typeof entry.called === 'string')
+        && (entry.worth === null || Number.isSafeInteger(entry.worth)), 'identification', 'Invalid identification entry');
+      check(!identificationDefinitions.has(entry.definitionId), 'identification', 'Duplicate definition entry');
+      identificationDefinitions.add(entry.definitionId);
+      if (entry.definitionId.startsWith('potion.')) {
+        check(!potionAppearances.has(entry.appearanceId), 'identification', 'Duplicate potion appearance');
+        potionAppearances.add(entry.appearanceId);
+      }
+    }
+    check(POTION_DEFINITIONS.every(([id]) => identificationDefinitions.has(id)), 'identification', 'Missing potion definition entry');
     check(level.width === GRID_WIDTH && level.height === GRID_HEIGHT, 'level', 'Expected 80 by 24 grid');
     check(integer(level.id, 1) && integer(level.depth, 1), 'level', 'Invalid level identity');
     check(level.tiles.length === GRID_WIDTH * GRID_HEIGHT, 'level.tiles', 'Incorrect tile count');

@@ -5,6 +5,7 @@ import { createScheduler, scheduleFuse, startDaemon } from './scheduler';
 import { updateKnowledge } from './perception/knowledge';
 import { validateWorld } from './validate';
 import { wakeRoomMonsters } from './rules/combat';
+import { initializePotionIdentification } from './identification';
 
 const KNOWN = 0o2; const MISSILE = 0o4; const MANY = 0o10;
 
@@ -17,6 +18,7 @@ export function createNewGame(seed: number): WorldState {
   rnd(rng, 8); // init_weapon(ARROW) group-size draw, overwritten by init_player
   const arrows = { ...item(nextId(), 'weapon.arrow', 'weapon'), flags: KNOWN | MISSILE | MANY, group: 1,
     quantity: rnd(rng, 15) + 25, hitBonus: 0, damageBonus: 0 } as ItemState;
+  const identification = initializePotionIdentification(rng);
   const generated = generateLevelContentFromRandom(rng, 1, serial); const scheduler = createScheduler();
   startDaemon(scheduler, 'runners', 0, 'after'); startDaemon(scheduler, 'doctor', 0, 'after');
   scheduleFuse(scheduler, 'swander', 0, 'after', spread(rng, 70)); startDaemon(scheduler, 'stomach', 0, 'after');
@@ -30,7 +32,7 @@ export function createNewGame(seed: number): WorldState {
       packOrder: starting.map(entry => entry.id), equipment: { weapon: mace.id, armor: armor.id, leftRing: null, rightRing: null } },
     timing: { revision: 0, actionSequence: 0, tick: 0, status: 'playing', noCommand: 0, noMove: 0, hasted: false,
       foodLeft: 1300, noFood: 1, quiet: 0, between: 0, hungerStage: 0, scheduler, cycle: { phase: 'begin', slotsRemaining: 0 } },
-    knowledge: { levelId: generated.level.id, remembered: Array.from({ length: generated.level.tiles.length }, () => null) },
+    knowledge: { levelId: generated.level.id, remembered: Array.from({ length: generated.level.tiles.length }, () => null) }, identification,
   };
   wakeRoomMonsters(state); updateKnowledge(state); const issues = validateWorld(state); if (issues.length) throw new Error(`Generated world invalid: ${issues[0]!.path}: ${issues[0]!.message}`);
   return state;

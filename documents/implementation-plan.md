@@ -279,6 +279,11 @@ Each row is a queue: make one effect, ability, or tightly related group its own 
 - [ ] 11.8
 - [ ] 11.9
 
+Phase 11.1 progress:
+
+- [x] Add serialized per-type identification state and source-shaped randomized potion colors.
+- [ ] Add potion effects individually, including consumption and identification behavior.
+
 Gate: enable `full` mode only after definition coverage and the command audit justify it. Deterministic TypeScript replay is not a claim of identical historical C RNG sequences. Any deferred gameplay command prevents claiming full source parity even if full content is available.
 
 ## Phase 12 — Desktop 3D with the same engine

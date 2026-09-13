@@ -3,6 +3,7 @@ import type { CellAppearance, PlayerObservation, Visibility } from '../model/obs
 import type { ItemState, Position, TileState, WorldState } from '../model/state';
 import { CAN_DETECT_MONSTERS, IS_BLIND, IS_INVISIBLE } from '../rules/flags';
 import { canStepTerrain } from '../rules/movement';
+import { observedItemLabel } from '../identification';
 
 const GLYPHS: Record<TileState['terrain'], string> = {
   void: ' ', floor: '.', wallH: '─', wallV: '│', door: '+', passage: '#',
@@ -63,12 +64,12 @@ export function observe(state: WorldState): PlayerObservation {
         label: ordinarilyVisible ? (entity.disguise ?? entity.definitionId) : 'detected monster' }];
     }
     if (cells[cellIndex(state.level, at)]?.visibility !== 'visible') return [];
-    return [{ token: `item-${entity.id}`, at: { ...at }, appearance: itemGlyph(entity), label: entity.definitionId }];
+    return [{ token: `item-${entity.id}`, at: { ...at }, appearance: itemGlyph(entity), label: observedItemLabel(state, entity) }];
   });
   const inventory = state.player.packOrder.map(id => {
     const item = state.entities[id]; if (item?.kind !== 'item') throw new Error('Invalid player pack');
     const equippedSlot = Object.entries(state.player.equipment).find(([, equipped]) => equipped === id)?.[0] ?? null;
-    return { token: item.id, label: item.label ?? item.definitionId, quantity: item.quantity, category: item.category, equippedSlot };
+    return { token: item.id, label: observedItemLabel(state, item), quantity: item.quantity, category: item.category, equippedSlot };
   });
   return { revision: state.timing.revision, width: state.level.width, height: state.level.height,
     playerAt: { ...state.player.at }, cells, entities,

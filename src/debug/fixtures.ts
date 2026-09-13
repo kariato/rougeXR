@@ -6,12 +6,13 @@ import { updateKnowledge } from '../engine/perception/knowledge';
 import { KESTREL } from '../definitions/combat';
 import { IS_RUNNING } from '../engine/rules/flags';
 import { startDaemon } from '../engine/scheduler';
+import { initializePotionIdentification } from '../engine/identification';
 
 /** Synthetic debug data, not Rogue generation or a source-balanced encounter. */
 export function createTwoRoomFixture(seed = 12345): WorldState {
   const stats = (): CombatStats => ({ strength: 10, experience: 0, level: 1, armorClass: 10, hp: 10, maxHp: 10, damage: [{ count: 1, sides: 4 }] });
   const state: WorldState = {
-    seed, rng: createRandom(seed), nextEntitySerial: 1, entities: {},
+    seed, rng: createRandom(seed), nextEntitySerial: 1, entities: {}, identification: [],
     timing: { revision: 0, actionSequence: 0, tick: 0, status: 'playing', noCommand: 0, noMove: 0, hasted: false,
       foodLeft: 1300, noFood: 0, quiet: 0, between: 0, hungerStage: 0,
       scheduler: { slots: Array.from({ length: 20 }, () => null) }, cycle: { phase: 'begin', slotsRemaining: 0 } },
@@ -23,6 +24,8 @@ export function createTwoRoomFixture(seed = 12345): WorldState {
       rooms: Array.from({ length: 9 }, (_, id) => ({ id, origin: { x: 0, y: 1 }, width: 1, height: 1, kind: 'gone', dark: false, exits: [], goldTarget: null })),
       passages: [], stairs: { x: 25, y: 5 }, monsterOrder: [], floorObjectOrder: [] }
   };
+  // Keep fixture gameplay vectors stable; production new games consume the authoritative RNG here.
+  state.identification = initializePotionIdentification(createRandom((seed ^ 0x504f544e) >>> 0));
   for (const [id, left] of [[0, 2], [1, 20]] as const) {
     state.level.rooms[id] = { id, origin: { x: left, y: 2 }, width: 10, height: 8, kind: 'room', dark: false,
       exits: [{ x: id === 0 ? 11 : 20, y: 5 }], goldTarget: null };

@@ -3,7 +3,7 @@ import { GameSession, type SessionOptions } from '../engine/session';
 import { validateWorld, type ValidationIssue } from '../engine/validate';
 
 export const SAVE_FORMAT = 'rougexr-save' as const;
-export const SAVE_VERSION = 1 as const;
+export const SAVE_VERSION = 2 as const;
 export const UPSTREAM_REVISION = 'f4653c2a2ee6981a73abe9dfda055134285e1e79' as const;
 export const MAX_SAVE_BYTES = 5 * 1024 * 1024;
 
