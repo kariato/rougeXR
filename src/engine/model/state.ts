@@ -54,7 +54,7 @@ export interface PlayerState {
   roomId: number | null; gold: number; maximumStrength: number;
 }
 export interface RandomState { algorithm: 'xorshift32-v1'; word: number; draws: number }
-export type CyclePhase = 'begin' | 'input' | 'after' | 'terminal';
+export type CyclePhase = 'begin' | 'input' | 'decision' | 'after' | 'terminal';
 export interface CycleState { phase: CyclePhase; slotsRemaining: number }
 export interface ScheduledEntry {
   effect: string; arg: number; phase: 'before' | 'after'; remaining: number;
@@ -66,6 +66,7 @@ export interface IdentificationEntry {
   definitionId: string; appearanceId: string; known: boolean;
   called: string | null; worth: number | null;
 }
+export type PendingDecision = { kind: 'callItem'; definitionId: string };
 export interface TimingState {
   revision: number; actionSequence: number; tick: number;
   status: 'playing' | 'dead' | 'won';
@@ -77,4 +78,5 @@ export interface WorldState {
   seed: number; rng: RandomState; nextEntitySerial: number;
   level: LevelState; player: PlayerState; entities: Record<EntityId, EntityState>;
   timing: TimingState; knowledge: KnowledgeState; identification: IdentificationEntry[];
+  pendingDecision: PendingDecision | null;
 }

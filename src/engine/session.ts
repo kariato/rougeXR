@@ -9,7 +9,7 @@ import { runMonsters } from './rules/combat';
 import { collectAtPlayer, collectItem, dropItem, equipItem, unequipItem } from './rules/inventory';
 import { eatItem } from './rules/inventory';
 import { runStomach } from './rules/hunger';
-import { land, recoverConfusion, recoverHaste, recoverSight, rollWanderCheck, runDoctor, startWanderChecks } from './rules/effects';
+import { land, loseSeeInvisible, recoverConfusion, recoverHaste, recoverSight, rollWanderCheck, runDoctor, startWanderChecks } from './rules/effects';
 import { descendAtStairs } from './level-transition';
 import { drinkItem } from './rules/potions';
 
@@ -39,7 +39,8 @@ export class GameSession {
       unconfuse: (state, _entry, emitRaw) => recoverConfusion(state, emitRaw),
       sight: (state, _entry, emitRaw) => recoverSight(state, emitRaw),
       nohaste: (state, _entry, emitRaw) => recoverHaste(state, emitRaw),
-      land: (state, _entry, emitRaw) => land(state, emitRaw), ...(options.effects ?? {}) };
+      land: (state, _entry, emitRaw) => land(state, emitRaw),
+      unsee: state => loseSeeInvisible(state), ...(options.effects ?? {}) };
     this.actionHandler = options.actionHandler ?? defaultAction;
     this.operationLimit = options.operationLimit ?? 10000;
     this.prepareInitialBoundary();
@@ -99,6 +100,11 @@ export class GameSession {
     while (true) {
       step();
       if (state.timing.status !== 'playing') { state.timing.cycle = { phase: 'terminal', slotsRemaining: 0 }; return; }
+      if (state.pendingDecision !== null) {
+        state.timing.cycle.phase = 'decision'; updateKnowledge(state);
+        trace.push({ kind: 'inputReady', detail: 'decision:callItem', tick: state.timing.tick }); return;
+      }
+      if (state.timing.cycle.phase === 'decision') state.timing.cycle.phase = state.timing.cycle.slotsRemaining > 0 ? 'input' : 'after';
       if (state.timing.cycle.phase === 'begin') {
         state.timing.cycle.slotsRemaining = state.timing.hasted ? 2 : 1;
         trace.push({ kind: 'phase', detail: 'before', tick: state.timing.tick });
@@ -129,6 +135,14 @@ export class GameSession {
 }
 
 function defaultAction(action: GameAction, context: RuleContext): RuleResult {
+  if (context.state.pendingDecision !== null) {
+    if (action.type !== 'answerCall') return { resolved: false, consumedSlot: false, reason: 'decision-pending' };
+    const entry = context.state.identification.find(candidate => candidate.definitionId === context.state.pendingDecision?.definitionId);
+    if (!entry) throw new Error('Pending identification entry missing');
+    const label = action.label ?? ''; if (label.length > 0) entry.called = label;
+    context.state.pendingDecision = null; return { resolved: true, consumedSlot: false, reason: null };
+  }
+  if (action.type === 'answerCall') return { resolved: false, consumedSlot: false, reason: 'no-pending-decision' };
   if (action.type === 'rest') return { resolved: true, consumedSlot: true, reason: null };
   if (action.type === 'move') {
     const result = resolveMove(context.state, action.direction, action.pickup);
@@ -149,18 +163,17 @@ function defaultAction(action: GameAction, context: RuleContext): RuleResult {
 function validRequest(value: unknown): value is ActionRequest {
   if (!value || typeof value !== 'object') return false;
   const request = value as Partial<ActionRequest>;
-  return Number.isSafeInteger(request.expectedRevision) && request.action !== null && typeof request.action === 'object'
-    && ((request.action as GameAction).type === 'rest' || (request.action as GameAction).type === 'search' || (request.action as GameAction).type === 'pickup' || (request.action as GameAction).type === 'descend'
-      || ((request.action as GameAction).type === 'move'
-        && Object.hasOwn({ N: 1, NE: 1, E: 1, SE: 1, S: 1, SW: 1, W: 1, NW: 1 }, (request.action as { direction?: string }).direction ?? '')
-        && typeof (request.action as { pickup?: unknown }).pickup === 'boolean')
-      || ((request.action as GameAction).type === 'drop' && typeof (request.action as { itemId?: unknown }).itemId === 'string')
-      || ((request.action as GameAction).type === 'equip' && typeof (request.action as { itemId?: unknown }).itemId === 'string'
-        && ['weapon', 'armor', 'leftRing', 'rightRing'].includes((request.action as { slot?: string }).slot ?? ''))
-      || ((request.action as GameAction).type === 'unequip' && ['weapon', 'armor', 'leftRing', 'rightRing'].includes((request.action as { slot?: string }).slot ?? ''))
-      || ((request.action as GameAction).type === 'eat' && typeof (request.action as { itemId?: unknown }).itemId === 'string')
-      || ((request.action as GameAction).type === 'drink' && typeof (request.action as { itemId?: unknown }).itemId === 'string')
-      || ((request.action as GameAction).type === 'fixture' && typeof (request.action as { name?: unknown }).name === 'string'));
+  if (!Number.isSafeInteger(request.expectedRevision) || request.action === null || typeof request.action !== 'object') return false;
+  const action = request.action as GameAction;
+  if (action.type === 'rest' || action.type === 'search' || action.type === 'pickup' || action.type === 'descend') return true;
+  if (action.type === 'move') return Object.hasOwn({ N: 1, NE: 1, E: 1, SE: 1, S: 1, SW: 1, W: 1, NW: 1 }, action.direction)
+    && typeof action.pickup === 'boolean';
+  if (action.type === 'drop' || action.type === 'eat' || action.type === 'drink') return typeof action.itemId === 'string';
+  if (action.type === 'equip') return typeof action.itemId === 'string'
+    && ['weapon', 'armor', 'leftRing', 'rightRing'].includes(action.slot);
+  if (action.type === 'unequip') return ['weapon', 'armor', 'leftRing', 'rightRing'].includes(action.slot);
+  if (action.type === 'answerCall') return action.label === null || (typeof action.label === 'string' && action.label.length <= 80);
+  return action.type === 'fixture' && typeof action.name === 'string';
 }
 function projectEvent(state: WorldState, event: RawEvent): PresentationEvent | null {
   if (event.type === 'sourceMessage') return { type: 'message', text: event.text };
@@ -183,6 +196,7 @@ function assertTiming(state: WorldState): void {
   const t = state.timing;
   if (![t.revision, t.actionSequence, t.tick, t.noCommand, t.noMove].every(v => Number.isSafeInteger(v) && v >= 0)) throw new Error('Invalid timing counter');
   if (t.scheduler.slots.length !== 20) throw new Error('Invalid scheduler capacity');
-  if (t.cycle.phase !== 'input' && t.cycle.phase !== 'terminal') throw new Error('State is not at an export boundary');
+  if (t.cycle.phase !== 'input' && t.cycle.phase !== 'decision' && t.cycle.phase !== 'terminal') throw new Error('State is not at an export boundary');
   if (t.cycle.phase === 'input' && (t.cycle.slotsRemaining < 1 || t.cycle.slotsRemaining > 2)) throw new Error('Invalid action slots');
+  if (t.cycle.phase === 'decision' && state.pendingDecision === null) throw new Error('Decision phase has no pending decision');
 }

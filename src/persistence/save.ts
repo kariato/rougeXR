@@ -3,7 +3,7 @@ import { GameSession, type SessionOptions } from '../engine/session';
 import { validateWorld, type ValidationIssue } from '../engine/validate';
 
 export const SAVE_FORMAT = 'rougexr-save' as const;
-export const SAVE_VERSION = 3 as const;
+export const SAVE_VERSION = 4 as const;
 export const UPSTREAM_REVISION = 'f4653c2a2ee6981a73abe9dfda055134285e1e79' as const;
 export const MAX_SAVE_BYTES = 5 * 1024 * 1024;
 
@@ -32,7 +32,7 @@ export function parseSave(text: string): ParseSaveResult {
   const errors = validateWorld(envelope.state);
   if (!errors.length) {
     const cycle = envelope.state!.timing.cycle.phase;
-    if (cycle !== 'input' && cycle !== 'terminal') errors.push({ path: 'state.timing.cycle', message: 'Save is not at an input boundary' });
+    if (cycle !== 'input' && cycle !== 'decision' && cycle !== 'terminal') errors.push({ path: 'state.timing.cycle', message: 'Save is not at an input boundary' });
     if (cycle === 'input' && envelope.state!.timing.noCommand !== 0) errors.push({ path: 'state.timing.noCommand', message: 'Forced turns must finish before saving' });
   }
   return errors.length ? { ok: false, errors } : { ok: true, value: detached(envelope as SaveEnvelope) };
@@ -41,7 +41,7 @@ export function parseSave(text: string): ParseSaveResult {
 export function restoreGame(state: WorldState, options: SessionOptions = {}): GameSession {
   const errors = validateWorld(state);
   if (errors.length) throw new Error(`Invalid restore state: ${errors[0]!.path}: ${errors[0]!.message}`);
-  if (state.timing.cycle.phase !== 'input' && state.timing.cycle.phase !== 'terminal') throw new Error('Restore state is not at an input boundary');
+  if (state.timing.cycle.phase !== 'input' && state.timing.cycle.phase !== 'decision' && state.timing.cycle.phase !== 'terminal') throw new Error('Restore state is not at an input boundary');
   if (state.timing.cycle.phase === 'input' && state.timing.noCommand !== 0) throw new Error('Restore state has pending forced turns');
   return new GameSession(detached(state), options);
 }

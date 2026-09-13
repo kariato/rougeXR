@@ -80,31 +80,40 @@ function render(): void {
   phaseTrace.textContent = session.trace().map(entry => `[${entry.tick}] ${entry.kind}: ${entry.detail}`).join('\n') || 'Input ready.';
   const filter = eventFilter.value as EventFilter;
   messages.textContent = filterEvents(latestEvents, filter).map(event => event.type === 'message' ? event.text : event.type === 'visibleMovement' ? 'You move.' : event.type).join('\n') || 'No matching events.';
+  const decisionPending = observation.pendingDecision !== null;
   inventory.replaceChildren(...observation.inventory.map(item => {
     const row = document.createElement('div'); row.append(`${item.label} ×${item.quantity} `);
     if (item.category === 'weapon' || item.category === 'armor') {
       const equipment = document.createElement('button'); equipment.type = 'button'; equipment.textContent = item.equippedSlot ? 'Remove' : 'Equip';
-      equipment.disabled = replayPlayer !== null; equipment.addEventListener('click', () => submit(item.equippedSlot
+      equipment.disabled = replayPlayer !== null || decisionPending; equipment.addEventListener('click', () => submit(item.equippedSlot
         ? { type: 'unequip', slot: item.equippedSlot as 'weapon' | 'armor' }
         : { type: 'equip', itemId: item.token, slot: item.category as 'weapon' | 'armor' })); row.append(equipment);
     }
     if (item.category === 'food') {
-      const eat = document.createElement('button'); eat.type = 'button'; eat.textContent = 'Eat'; eat.disabled = replayPlayer !== null;
+      const eat = document.createElement('button'); eat.type = 'button'; eat.textContent = 'Eat'; eat.disabled = replayPlayer !== null || decisionPending;
       eat.addEventListener('click', () => submit({ type: 'eat', itemId: item.token })); row.append(eat);
     }
     if (item.category === 'potion') {
-      const drink = document.createElement('button'); drink.type = 'button'; drink.textContent = 'Drink'; drink.disabled = replayPlayer !== null;
+      const drink = document.createElement('button'); drink.type = 'button'; drink.textContent = 'Drink'; drink.disabled = replayPlayer !== null || decisionPending;
       drink.addEventListener('click', () => submit({ type: 'drink', itemId: item.token })); row.append(drink);
     }
-    const drop = document.createElement('button'); drop.type = 'button'; drop.textContent = 'Drop'; drop.disabled = replayPlayer !== null;
+    const drop = document.createElement('button'); drop.type = 'button'; drop.textContent = 'Drop'; drop.disabled = replayPlayer !== null || decisionPending;
     drop.addEventListener('click', () => submit({ type: 'drop', itemId: item.token })); row.append(drop); return row;
   }));
   if (!observation.inventory.length) inventory.textContent = 'Pack is empty.';
+  if (decisionPending) {
+    const decision = document.createElement('div'); decision.append('What do you want to call it? ');
+    const label = document.createElement('input'); label.type = 'text'; label.maxLength = 80; label.setAttribute('aria-label', 'Item call name');
+    const answer = document.createElement('button'); answer.type = 'button'; answer.textContent = 'Call'; answer.disabled = replayPlayer !== null;
+    answer.addEventListener('click', () => submit({ type: 'answerCall', label: label.value }));
+    const skip = document.createElement('button'); skip.type = 'button'; skip.textContent = 'Skip'; skip.disabled = replayPlayer !== null;
+    skip.addEventListener('click', () => submit({ type: 'answerCall', label: null })); decision.append(label, answer, skip); inventory.prepend(decision);
+  }
   rawEvents.textContent = reveal.checked ? JSON.stringify(filterEvents(session.debugEvents(), filter), null, 2) : '';
   actionTiming.textContent = latestActionTiming;
   document.body.classList.toggle('debug-reveal', reveal.checked);
   const replayMode = replayPlayer !== null;
-  for (const control of [rest, search, pickup, descend]) control.disabled = replayMode;
+  for (const control of [rest, search, pickup, descend]) control.disabled = replayMode || decisionPending;
   replayRestart.disabled = !replayMode;
   replayStep.disabled = !replayMode || replayPlaying || !replayPlayer?.canStep();
   replayPlay.disabled = !replayMode || replayPlaying || !replayPlayer?.canStep();

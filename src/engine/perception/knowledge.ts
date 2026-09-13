@@ -1,7 +1,7 @@
 import { cellIndex, isPlayable, positionAt, tileAt } from '../grid';
 import type { CellAppearance, PlayerObservation, Visibility } from '../model/observation';
 import type { ItemState, Position, TileState, WorldState } from '../model/state';
-import { CAN_DETECT_MONSTERS, IS_BLIND, IS_INVISIBLE } from '../rules/flags';
+import { CAN_DETECT_MONSTERS, CAN_SEE_INVISIBLE, IS_BLIND, IS_INVISIBLE } from '../rules/flags';
 import { canStepTerrain } from '../rules/movement';
 import { observedItemLabel } from '../identification';
 
@@ -58,7 +58,8 @@ export function observe(state: WorldState): PlayerObservation {
     const at = entity.kind === 'monster' ? entity.at : entity.location.kind === 'floor' ? entity.location.at : null;
     if (!at) return [];
     if (entity.kind === 'monster') {
-      const ordinarilyVisible = isPositionVisible(state, at) && (entity.flags & IS_INVISIBLE) === 0;
+      const ordinarilyVisible = isPositionVisible(state, at)
+        && ((entity.flags & IS_INVISIBLE) === 0 || (state.player.flags & CAN_SEE_INVISIBLE) !== 0);
       if (!ordinarilyVisible && !detecting) return [];
       return [{ token: `monster-${entity.id}`, at: { ...at }, appearance: entity.disguise ?? 'M',
         label: ordinarilyVisible ? (entity.disguise ?? entity.definitionId) : 'detected monster' }];
@@ -74,7 +75,7 @@ export function observe(state: WorldState): PlayerObservation {
   return { revision: state.timing.revision, width: state.level.width, height: state.level.height,
     playerAt: { ...state.player.at }, cells, entities,
     status: { hp: state.player.stats.hp, maxHp: state.player.stats.maxHp, gold: state.player.gold, depth: state.level.depth,
-      hungerStage: state.timing.hungerStage }, inventory };
+      hungerStage: state.timing.hungerStage }, inventory, pendingDecision: state.pendingDecision?.kind ?? null };
 }
 
 function itemGlyph(item: ItemState): string {

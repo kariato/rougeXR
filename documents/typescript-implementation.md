@@ -191,6 +191,7 @@ interface GameState {
   level: LevelState;
   entities: Record<EntityId, EntityState>;
   identification: IdentificationEntry[];
+  pendingDecision: { kind: 'callItem'; definitionId: string } | null;
   counters: Counters;
   scheduler: SchedulerState;
   cycle: CycleState;
@@ -615,7 +616,7 @@ Rule handlers receive `{state, indexes, random, emit}` and return `{consumedSlot
 ## 7. Command-cycle state machine
 
 ```typescript
-type CyclePhase = 'begin' | 'input' | 'after' | 'terminal';
+type CyclePhase = 'begin' | 'input' | 'decision' | 'after' | 'terminal';
 interface CycleState {
   phase: CyclePhase;
   slotsRemaining: number;
@@ -760,7 +761,7 @@ Use a closed `PresentationEvent` union of message, visible movement, visible att
 ```typescript
 interface SaveEnvelope {
   format: 'rougexr-save';
-  version: 3;
+  version: 4;
   upstream: 'f4653c2a2ee6981a73abe9dfda055134285e1e79';
   state: GameState;
 }

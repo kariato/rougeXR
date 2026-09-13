@@ -2,7 +2,7 @@ import type { RawEventInput } from '../model/action';
 import type { EntityId, WorldState } from '../model/state';
 import { rnd, roll } from '../random';
 import { extinguish, killDaemon, lengthen, scheduleFuse } from '../scheduler';
-import { IS_BLIND, IS_CONFUSED, IS_HALLUCINATING, IS_HASTED, IS_LEVITATING, IS_RUNNING } from './flags';
+import { CAN_SEE_INVISIBLE, IS_BLIND, IS_CONFUSED, IS_HALLUCINATING, IS_HASTED, IS_LEVITATING, IS_RUNNING } from './flags';
 import type { InventoryResult } from './inventory';
 import { recoverSight } from './effects';
 
@@ -19,8 +19,8 @@ export function drinkItem(state: WorldState, itemId: EntityId, emit: (event: Raw
     emit({ type: 'sourceMessage', text: 'Yuk! Why would you want to drink that?' });
     return { resolved: false, consumedSlot: false, reason: 'undrinkable' };
   }
-  if (!['potion.confuse', 'potion.poison', 'potion.strength', 'potion.healing', 'potion.extra-healing',
-    'potion.haste', 'potion.blindness', 'potion.levitation'].includes(item.definitionId))
+  if (!['potion.confuse', 'potion.poison', 'potion.strength', 'potion.see-invisible', 'potion.healing', 'potion.extra-healing',
+    'potion.haste', 'potion.restore-strength', 'potion.blindness', 'potion.levitation'].includes(item.definitionId))
     return { resolved: false, consumedSlot: false, reason: `unsupported-potion:${item.definitionId}` };
 
   const entry = state.identification.find(candidate => candidate.definitionId === item.definitionId);
@@ -29,14 +29,17 @@ export function drinkItem(state: WorldState, itemId: EntityId, emit: (event: Raw
   if (item.definitionId === 'potion.confuse') applyConfusion(state, entry, emit);
   else if (item.definitionId === 'potion.poison') applyPoison(state, entry, emit);
   else if (item.definitionId === 'potion.strength') applyGainStrength(state, entry, emit);
+  else if (item.definitionId === 'potion.see-invisible') applySeeInvisible(state, emit);
   else if (item.definitionId === 'potion.healing') applyHealing(state, entry, emit);
   else if (item.definitionId === 'potion.extra-healing') applyExtraHealing(state, entry, emit);
   else if (item.definitionId === 'potion.haste') { applyHaste(state, entry, emit); consumesSlot = false; }
+  else if (item.definitionId === 'potion.restore-strength') applyRestoreStrength(state, emit);
   else if (item.definitionId === 'potion.blindness') applyBlindness(state, entry, emit);
   else applyLevitation(state, entry, emit);
 
   consumeOne(state, itemId);
   emit({ type: 'itemConsumed', itemId, category: 'potion' });
+  if (!entry.known && entry.called === null) state.pendingDecision = { kind: 'callItem', definitionId: entry.definitionId };
   return { resolved: true, consumedSlot: consumesSlot, reason: null };
 }
 
@@ -67,6 +70,16 @@ function applyPoison(state: WorldState, entry: WorldState['identification'][numb
 function applyGainStrength(state: WorldState, entry: WorldState['identification'][number], emit: (event: RawEventInput) => void): void {
   learn(entry, emit); changeStrength(state, 1);
   emit({ type: 'sourceMessage', text: 'You feel stronger, now. What bulging muscles!' });
+}
+
+function applySeeInvisible(state: WorldState, emit: (event: RawEventInput) => void): void {
+  const duration = spread(state, SIGHT_DURATION);
+  if ((state.player.flags & CAN_SEE_INVISIBLE) === 0) {
+    state.player.flags |= CAN_SEE_INVISIBLE;
+    scheduleFuse(state.timing.scheduler, 'unsee', 0, 'after', duration);
+  } else lengthen(state.timing.scheduler, 'unsee', duration);
+  emit({ type: 'sourceMessage', text: 'This potion tastes like slime-mold juice.' });
+  recoverSight(state, emit);
 }
 
 function applyHealing(state: WorldState, entry: WorldState['identification'][number], emit: (event: RawEventInput) => void): void {
@@ -100,6 +113,20 @@ function applyHaste(state: WorldState, entry: WorldState['identification'][numbe
   state.timing.hasted = true; state.player.flags |= IS_HASTED;
   scheduleFuse(state.timing.scheduler, 'nohaste', 0, 'after', rnd(state.rng, 4) + 4);
   emit({ type: 'sourceMessage', text: 'You feel yourself moving much faster.' });
+}
+
+function applyRestoreStrength(state: WorldState, emit: (event: RawEventInput) => void): void {
+  let baseStrength = state.player.stats.strength;
+  const modifiers: number[] = [];
+  for (const slot of ['leftRing', 'rightRing'] as const) {
+    const id = state.player.equipment[slot]; const ring = id ? state.entities[id] : null;
+    if (ring?.kind === 'item' && ring.category === 'ring' && ring.definitionId === 'ring.add-strength') {
+      baseStrength = clampStrength(baseStrength - ring.magnitude); modifiers.push(ring.magnitude);
+    }
+  }
+  baseStrength = Math.max(baseStrength, state.player.maximumStrength);
+  state.player.stats.strength = modifiers.reduce((value, modifier) => clampStrength(value + modifier), baseStrength);
+  emit({ type: 'sourceMessage', text: 'Hey, this tastes great. It make you feel warm all over.' });
 }
 
 function applyBlindness(state: WorldState, entry: WorldState['identification'][number], emit: (event: RawEventInput) => void): void {

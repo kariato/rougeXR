@@ -12,7 +12,7 @@ import { initializePotionIdentification } from '../engine/identification';
 export function createTwoRoomFixture(seed = 12345): WorldState {
   const stats = (): CombatStats => ({ strength: 10, experience: 0, level: 1, armorClass: 10, hp: 10, maxHp: 10, damage: [{ count: 1, sides: 4 }] });
   const state: WorldState = {
-    seed, rng: createRandom(seed), nextEntitySerial: 1, entities: {}, identification: [],
+    seed, rng: createRandom(seed), nextEntitySerial: 1, entities: {}, identification: [], pendingDecision: null,
     timing: { revision: 0, actionSequence: 0, tick: 0, status: 'playing', noCommand: 0, noMove: 0, hasted: false,
       foodLeft: 1300, noFood: 0, quiet: 0, between: 0, hungerStage: 0,
       scheduler: { slots: Array.from({ length: 20 }, () => null) }, cycle: { phase: 'begin', slotsRemaining: 0 } },

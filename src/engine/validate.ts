@@ -37,10 +37,14 @@ export function validateWorld(input: unknown): ValidationIssue[] {
       .every(value => integer(value)), 'timing', 'Invalid timing counter');
     check(Number.isSafeInteger(timing.foodLeft) && timing.hungerStage <= 3, 'timing', 'Invalid hunger state');
     check(typeof timing.hasted === 'boolean' && ['playing', 'dead', 'won'].includes(timing.status), 'timing', 'Invalid timing state');
-    check(['begin', 'input', 'after', 'terminal'].includes(timing.cycle.phase)
+    check(['begin', 'input', 'decision', 'after', 'terminal'].includes(timing.cycle.phase)
       && integer(timing.cycle.slotsRemaining) && timing.cycle.slotsRemaining <= 2, 'timing.cycle', 'Invalid cycle');
     check(timing.status === 'playing' ? timing.cycle.phase !== 'terminal'
       : timing.cycle.phase === 'terminal' && timing.cycle.slotsRemaining === 0, 'timing.cycle', 'Cycle does not match game status');
+    check(s.pendingDecision === null || (s.pendingDecision.kind === 'callItem'
+      && typeof s.pendingDecision.definitionId === 'string'), 'pendingDecision', 'Invalid pending decision');
+    check((timing.cycle.phase === 'decision') === (s.pendingDecision !== null),
+      'pendingDecision', 'Pending decision does not match cycle phase');
     check(timing.scheduler.slots.length === 20, 'timing.scheduler', 'Expected 20 scheduler slots');
     for (const entry of timing.scheduler.slots) if (entry !== null) {
       check(typeof entry.effect === 'string' && KNOWN_EFFECT_IDS.has(entry.effect) && Number.isSafeInteger(entry.arg)
@@ -58,7 +62,7 @@ export function validateWorld(input: unknown): ValidationIssue[] {
     for (const entry of s.identification) {
       check(typeof entry.definitionId === 'string' && entry.definitionId.length > 0
         && typeof entry.appearanceId === 'string' && entry.appearanceId.length > 0
-        && typeof entry.known === 'boolean' && (entry.called === null || typeof entry.called === 'string')
+        && typeof entry.known === 'boolean' && (entry.called === null || (typeof entry.called === 'string' && entry.called.length <= 80))
         && (entry.worth === null || Number.isSafeInteger(entry.worth)), 'identification', 'Invalid identification entry');
       check(!identificationDefinitions.has(entry.definitionId), 'identification', 'Duplicate definition entry');
       identificationDefinitions.add(entry.definitionId);
@@ -68,6 +72,9 @@ export function validateWorld(input: unknown): ValidationIssue[] {
       }
     }
     check(POTION_DEFINITIONS.every(([id]) => identificationDefinitions.has(id)), 'identification', 'Missing potion definition entry');
+    if (s.pendingDecision !== null) check(identificationDefinitions.has(s.pendingDecision.definitionId)
+      && s.identification.some(entry => entry.definitionId === s.pendingDecision?.definitionId && !entry.known),
+    'pendingDecision', 'Decision does not reference an unknown identification entry');
     check(level.width === GRID_WIDTH && level.height === GRID_HEIGHT, 'level', 'Expected 80 by 24 grid');
     check(integer(level.id, 1) && integer(level.depth, 1), 'level', 'Invalid level identity');
     check(level.tiles.length === GRID_WIDTH * GRID_HEIGHT, 'level.tiles', 'Incorrect tile count');

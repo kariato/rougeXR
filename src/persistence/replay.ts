@@ -77,6 +77,7 @@ function validAction(value: unknown): value is GameAction {
   const action = value as Partial<GameAction> & { direction?: unknown; pickup?: unknown; name?: unknown };
   if (action.type === 'rest' || action.type === 'search' || action.type === 'pickup' || action.type === 'descend') return true;
   if (action.type === 'fixture') return typeof action.name === 'string';
+  if (action.type === 'answerCall') return action.label === null || (typeof action.label === 'string' && action.label.length <= 80);
   if (action.type === 'move') return typeof action.direction === 'string'
     && ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'].includes(action.direction) && typeof action.pickup === 'boolean';
   if (action.type === 'drop' || action.type === 'eat' || action.type === 'drink') return typeof (action as { itemId?: unknown }).itemId === 'string';

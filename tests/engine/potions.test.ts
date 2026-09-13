@@ -5,10 +5,12 @@ import type { ItemState, WorldState } from '../../src/engine/model/state';
 import { IS_BLIND, IS_CONFUSED, IS_HALLUCINATING, IS_HASTED, IS_LEVITATING } from '../../src/engine/rules/flags';
 import { GameSession } from '../../src/engine/session';
 import { ReplayRecorder, replay } from '../../src/persistence/replay';
-import { restoreGame } from '../../src/persistence/save';
+import { parseSave, restoreGame, serializeSave } from '../../src/persistence/save';
 import { roll } from '../../src/engine/random';
 import { triggerTrap } from '../../src/engine/rules/traps';
 import { cellIndex } from '../../src/engine/grid';
+import { observe } from '../../src/engine/perception/knowledge';
+import { CAN_SEE_INVISIBLE, IS_INVISIBLE } from '../../src/engine/rules/flags';
 
 function addPotion(state: WorldState, quantity = 1, definitionId = 'potion.confuse'): string {
   const id = allocateId(state);
@@ -293,5 +295,60 @@ describe('levitation potion', () => {
     }
     expect(restored.exportState()).toEqual(session.exportState());
     expect(session.exportState().player.flags & IS_LEVITATING).toBe(0);
+  });
+});
+
+describe('serialized call-item decisions and non-identifying potions', () => {
+  it('pauses before AFTER, saves, names see-invisible, and resumes its fuse', async () => {
+    const initial = createTwoRoomFixture(111); const itemId = addPotion(initial, 1, 'potion.see-invisible');
+    initial.player.flags |= IS_BLIND; initial.timing.scheduler.slots[0] = { effect: 'sight', arg: 0, phase: 'after', remaining: 9 };
+    const monster = initial.entities.e1; if (monster?.kind !== 'monster') throw new Error('missing monster');
+    monster.at = { x: 6, y: 5 }; monster.roomId = 0; monster.flags |= IS_INVISIBLE;
+    const session = new GameSession(initial); const recorder = new ReplayRecorder(session.exportState());
+    const drink = session.submit({ expectedRevision: 0, action: { type: 'drink', itemId } });
+    await recorder.record({ type: 'drink', itemId }, 0, session.exportState()); const pending = session.exportState();
+    expect(drink).toMatchObject({ consumedSlot: true, ticksAdvanced: 0 });
+    expect(pending.timing).toMatchObject({ tick: 0, cycle: { phase: 'decision', slotsRemaining: 0 } });
+    expect(pending.pendingDecision).toEqual({ kind: 'callItem', definitionId: 'potion.see-invisible' });
+    expect(pending.player.flags & CAN_SEE_INVISIBLE).not.toBe(0); expect(pending.player.flags & IS_BLIND).toBe(0);
+    expect(observe(pending).entities).toContainEqual(expect.objectContaining({ token: 'monster-e1' }));
+    const saved = parseSave(serializeSave(pending)); expect(saved.ok).toBe(true);
+    if (!saved.ok) throw new Error('expected decision save'); const restored = restoreGame(saved.value.state);
+    const answer = session.submit({ expectedRevision: 1, action: { type: 'answerCall', label: 'vision' } });
+    restored.submit({ expectedRevision: 1, action: { type: 'answerCall', label: 'vision' } });
+    await recorder.record({ type: 'answerCall', label: 'vision' }, 1, session.exportState());
+    expect(answer.ticksAdvanced).toBe(1); expect(restored.exportState()).toEqual(session.exportState());
+    expect(session.exportState().identification.find(entry => entry.definitionId === 'potion.see-invisible'))
+      .toMatchObject({ known: false, called: 'vision' });
+    expect(await replay(recorder.bundle())).toEqual({ ok: true, completed: 2 });
+  });
+
+  it('blocks game commands until a call is answered or cancelled', () => {
+    const state = createTwoRoomFixture(112); const itemId = addPotion(state, 1, 'potion.restore-strength'); const session = new GameSession(state);
+    session.submit({ expectedRevision: 0, action: { type: 'drink', itemId } });
+    const rejected = session.submit({ expectedRevision: 1, action: { type: 'rest' } });
+    expect(rejected).toMatchObject({ status: 'rejected', consumedSlot: false, reason: 'decision-pending', ticksAdvanced: 0 });
+    expect(session.exportState().pendingDecision).not.toBeNull();
+    session.submit({ expectedRevision: 2, action: { type: 'answerCall', label: null } });
+    expect(session.exportState().pendingDecision).toBeNull();
+  });
+
+  it('restores base strength beneath add-strength rings without identifying the potion', () => {
+    const state = createTwoRoomFixture(113); const itemId = addPotion(state, 1, 'potion.restore-strength');
+    const ringId = allocateId(state); state.entities[ringId] = { kind: 'item', id: ringId, definitionId: 'ring.add-strength', category: 'ring',
+      location: { kind: 'pack', owner: 'player' }, quantity: 1, flags: 0, group: 0, label: null, magnitude: 2 };
+    state.player.packOrder.push(ringId); state.player.equipment.leftRing = ringId;
+    state.player.stats.strength = 5; state.player.maximumStrength = 10;
+    const session = new GameSession(state); session.submit({ expectedRevision: 0, action: { type: 'drink', itemId } });
+    const pending = session.exportState(); expect(pending.player.stats.strength).toBe(12);
+    expect(pending.identification.find(entry => entry.definitionId === 'potion.restore-strength')?.known).toBe(false);
+    expect(pending.pendingDecision?.definitionId).toBe('potion.restore-strength');
+  });
+
+  it('does not prompt again when an unknown potion already has a call name', () => {
+    const state = createTwoRoomFixture(114); const itemId = addPotion(state, 1, 'potion.restore-strength');
+    state.identification.find(entry => entry.definitionId === 'potion.restore-strength')!.called = 'tonic';
+    const session = new GameSession(state); const result = session.submit({ expectedRevision: 0, action: { type: 'drink', itemId } });
+    expect(result.ticksAdvanced).toBe(1); expect(session.exportState().pendingDecision).toBeNull();
   });
 });

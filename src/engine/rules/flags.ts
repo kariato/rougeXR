@@ -1,5 +1,6 @@
 /** Creature flags from rogue.h at the pinned upstream revision. */
 export const IS_CURSED = 0o1;
+export const CAN_SEE_INVISIBLE = 0o2;
 export const IS_LEVITATING = 0o10;
 export const IS_PROTECTED = 0o40;
 export const IS_HASTED = 0o100;

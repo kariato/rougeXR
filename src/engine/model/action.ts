@@ -10,6 +10,7 @@ export type GameAction =
   | { type: 'unequip'; slot: EquipmentSlot }
   | { type: 'eat'; itemId: string }
   | { type: 'drink'; itemId: string }
+  | { type: 'answerCall'; label: string | null }
   | { type: 'descend' }
   | { type: 'fixture'; name: string };
 

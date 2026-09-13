@@ -25,7 +25,7 @@ export function createNewGame(seed: number): WorldState {
   const starting = [food, armor, mace, bow, arrows]; const entities: Record<string, EntityState> = { ...generated.entities };
   for (const entry of starting) entities[entry.id] = entry;
   const state: WorldState = {
-    seed, rng, nextEntitySerial: generated.nextEntitySerial, entities,
+    seed, rng, nextEntitySerial: generated.nextEntitySerial, entities, pendingDecision: null,
     level: generated.level,
     player: { at: generated.playerAt, roomId: generated.playerRoomId, gold: 0, flags: 0, maximumStrength: 16,
       stats: { strength: 16, experience: 0, level: 1, armorClass: 10, hp: 12, maxHp: 12, damage: [{ count: 1, sides: 4 }] },

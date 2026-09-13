@@ -29,6 +29,7 @@ export interface PlayerObservation {
   entities: ObservedEntity[];
   status: { hp: number; maxHp: number; gold: number; depth: number; hungerStage: number };
   inventory: Array<{ token: string; label: string; quantity: number; category: string; equippedSlot: string | null }>;
+  pendingDecision: 'callItem' | null;
 }
 
 export interface DebugCell {
