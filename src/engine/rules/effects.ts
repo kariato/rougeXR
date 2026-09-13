@@ -1,8 +1,8 @@
 import type { RawEventInput } from '../model/action';
 import type { WorldState } from '../model/state';
 import { rnd, roll } from '../random';
-import { IS_BLIND, IS_CONFUSED } from './flags';
-import { killDaemon, scheduleFuse, startDaemon } from '../scheduler';
+import { IS_BLIND, IS_CONFUSED, IS_HALLUCINATING } from './flags';
+import { extinguish, killDaemon, scheduleFuse, startDaemon } from '../scheduler';
 
 export function runDoctor(state: WorldState, emit: (event: RawEventInput) => void): void {
   const stats = state.player.stats; const before = stats.hp; state.timing.quiet++;
@@ -24,7 +24,10 @@ export function recoverConfusion(state: WorldState, emit: (event: RawEventInput)
 }
 
 export function recoverSight(state: WorldState, emit: (event: RawEventInput) => void): void {
-  state.player.flags &= ~IS_BLIND; emit({ type: 'sourceMessage', text: 'The veil of darkness lifts.' });
+  if ((state.player.flags & IS_BLIND) === 0) return;
+  extinguish(state.timing.scheduler, 'sight'); state.player.flags &= ~IS_BLIND;
+  emit({ type: 'sourceMessage', text: (state.player.flags & IS_HALLUCINATING) !== 0
+    ? 'Far out! Everything is all cosmic again.' : 'The veil of darkness lifts.' });
 }
 
 export function startWanderChecks(state: WorldState): void { startDaemon(state.timing.scheduler, 'rollwand', 0, 'before'); }

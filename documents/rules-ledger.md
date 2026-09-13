@@ -69,4 +69,6 @@ Phase 11.1c ports the `P_POISON` branch of `potions.c` plus `misc.c` `chg_str()`
 
 Phase 11.1d ports the `P_STRENGTH` branch and completes the saved portion of `misc.c` `chg_str()`: current strength is bounded to 3–31, while `PlayerState.maximumStrength` records the highest base strength after subtracting worn add-strength ring magnitudes. New games start both values at 16; fixtures start at 10. Save schema version 3 makes the new maximum explicit. Tests cover ordinary gain, the upper bound, ring-adjusted maximum tracking, identification, replay, and restore.
 
+Phase 11.1e ports the `P_HEALING` branch and the relevant `daemons.c` `sight()` behavior. Healing rolls `player level` d4; an overflow raises maximum HP exactly once and clamps current HP to that new maximum. It always identifies the potion. When blind, it clears blindness, extinguishes the AFTER sight fuse, and uses the hallucination-sensitive recovery message; when sighted, `sight()` remains silent. Tests cover draw count, bounded and overflow healing, blindness recovery, replay, and restored state.
+
 Add an entry before intentionally changing source behavior. Record the relevant source function, the difference, its reason, and its verification case.

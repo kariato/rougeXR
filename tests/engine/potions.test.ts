@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createTwoRoomFixture } from '../../src/debug/fixtures';
 import { allocateId } from '../../src/engine/entities';
 import type { ItemState, WorldState } from '../../src/engine/model/state';
-import { IS_CONFUSED, IS_HALLUCINATING } from '../../src/engine/rules/flags';
+import { IS_BLIND, IS_CONFUSED, IS_HALLUCINATING } from '../../src/engine/rules/flags';
 import { GameSession } from '../../src/engine/session';
 import { ReplayRecorder, replay } from '../../src/persistence/replay';
 import { restoreGame } from '../../src/persistence/save';
@@ -129,6 +129,38 @@ describe('gain-strength potion', () => {
 
   it('replays and restores maximum-strength state', async () => {
     const initial = createTwoRoomFixture(53); const itemId = addPotion(initial, 1, 'potion.strength');
+    const session = new GameSession(initial); const recorder = new ReplayRecorder(session.exportState());
+    session.submit({ expectedRevision: 0, action: { type: 'drink', itemId } });
+    await recorder.record({ type: 'drink', itemId }, 0, session.exportState());
+    expect(await replay(recorder.bundle())).toEqual({ ok: true, completed: 1 });
+    expect(restoreGame(session.exportState()).exportState()).toEqual(session.exportState());
+  });
+});
+
+describe('healing potion', () => {
+  it('raises maximum HP exactly once on overflow and restores sight', () => {
+    const state = createTwoRoomFixture(61); const itemId = addPotion(state, 1, 'potion.healing');
+    state.player.stats.hp = 10; state.player.stats.maxHp = 10; state.player.flags |= IS_BLIND;
+    state.timing.scheduler.slots[0] = { effect: 'sight', arg: 0, phase: 'after', remaining: 8 };
+    const draws = state.rng.draws; const session = new GameSession(state);
+    session.submit({ expectedRevision: 0, action: { type: 'drink', itemId } }); const after = session.exportState();
+    expect(after.player.stats).toMatchObject({ hp: 11, maxHp: 11 }); expect(after.rng.draws).toBe(draws + 1);
+    expect(after.player.flags & IS_BLIND).toBe(0); expect(after.timing.scheduler.slots.some(slot => slot?.effect === 'sight')).toBe(false);
+    expect(after.identification.find(candidate => candidate.definitionId === 'potion.healing')).toMatchObject({ known: true, called: null });
+  });
+
+  it('rolls one d4 per level without raising maximum HP below the cap', () => {
+    const state = createTwoRoomFixture(62); const itemId = addPotion(state, 1, 'potion.healing');
+    state.player.stats.level = 3; state.player.stats.hp = 1; state.player.stats.maxHp = 20; const draws = state.rng.draws;
+    const session = new GameSession(state); session.submit({ expectedRevision: 0, action: { type: 'drink', itemId } }); const after = session.exportState();
+    expect(after.rng.draws).toBe(draws + 3); expect(after.player.stats.maxHp).toBe(20);
+    expect(after.player.stats.hp).toBeGreaterThanOrEqual(4); expect(after.player.stats.hp).toBeLessThanOrEqual(13);
+  });
+
+  it('replays and restores healing and sight changes exactly', async () => {
+    const initial = createTwoRoomFixture(63); const itemId = addPotion(initial, 1, 'potion.healing');
+    initial.player.stats.hp = 4; initial.player.flags |= IS_BLIND;
+    initial.timing.scheduler.slots[0] = { effect: 'sight', arg: 0, phase: 'after', remaining: 4 };
     const session = new GameSession(initial); const recorder = new ReplayRecorder(session.exportState());
     session.submit({ expectedRevision: 0, action: { type: 'drink', itemId } });
     await recorder.record({ type: 'drink', itemId }, 0, session.exportState());

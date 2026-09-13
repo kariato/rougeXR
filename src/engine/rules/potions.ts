@@ -1,9 +1,10 @@
 import type { RawEventInput } from '../model/action';
 import type { EntityId, WorldState } from '../model/state';
-import { rnd } from '../random';
+import { rnd, roll } from '../random';
 import { killDaemon, lengthen, scheduleFuse } from '../scheduler';
 import { IS_CONFUSED, IS_HALLUCINATING } from './flags';
 import type { InventoryResult } from './inventory';
+import { recoverSight } from './effects';
 
 const CONFUSION_DURATION = 20;
 
@@ -16,14 +17,15 @@ export function drinkItem(state: WorldState, itemId: EntityId, emit: (event: Raw
     emit({ type: 'sourceMessage', text: 'Yuk! Why would you want to drink that?' });
     return { resolved: false, consumedSlot: false, reason: 'undrinkable' };
   }
-  if (!['potion.confuse', 'potion.poison', 'potion.strength'].includes(item.definitionId))
+  if (!['potion.confuse', 'potion.poison', 'potion.strength', 'potion.healing'].includes(item.definitionId))
     return { resolved: false, consumedSlot: false, reason: `unsupported-potion:${item.definitionId}` };
 
   const entry = state.identification.find(candidate => candidate.definitionId === item.definitionId);
   if (!entry) throw new Error(`Missing identification entry for ${item.definitionId}`);
   if (item.definitionId === 'potion.confuse') applyConfusion(state, entry, emit);
   else if (item.definitionId === 'potion.poison') applyPoison(state, entry, emit);
-  else applyGainStrength(state, entry, emit);
+  else if (item.definitionId === 'potion.strength') applyGainStrength(state, entry, emit);
+  else applyHealing(state, entry, emit);
 
   consumeOne(state, itemId);
   emit({ type: 'itemConsumed', itemId, category: 'potion' });
@@ -57,6 +59,15 @@ function applyPoison(state: WorldState, entry: WorldState['identification'][numb
 function applyGainStrength(state: WorldState, entry: WorldState['identification'][number], emit: (event: RawEventInput) => void): void {
   learn(entry, emit); changeStrength(state, 1);
   emit({ type: 'sourceMessage', text: 'You feel stronger, now. What bulging muscles!' });
+}
+
+function applyHealing(state: WorldState, entry: WorldState['identification'][number], emit: (event: RawEventInput) => void): void {
+  learn(entry, emit); const stats = state.player.stats; const before = stats.hp;
+  stats.hp += roll(state.rng, stats.level, 4);
+  if (stats.hp > stats.maxHp) { stats.maxHp++; stats.hp = stats.maxHp; }
+  if (stats.hp !== before) emit({ type: 'hpChanged', actorId: 'player', from: before, to: stats.hp });
+  recoverSight(state, emit);
+  emit({ type: 'sourceMessage', text: 'You begin to feel better.' });
 }
 
 /** misc.c chg_str()/add_str(), including maximum base strength beneath add-strength rings. */
