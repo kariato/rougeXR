@@ -9,7 +9,7 @@ import { runMonsters } from './rules/combat';
 import { collectAtPlayer, collectItem, dropItem, equipItem, unequipItem } from './rules/inventory';
 import { eatItem } from './rules/inventory';
 import { runStomach } from './rules/hunger';
-import { recoverConfusion, recoverSight, rollWanderCheck, runDoctor, startWanderChecks } from './rules/effects';
+import { land, recoverConfusion, recoverHaste, recoverSight, rollWanderCheck, runDoctor, startWanderChecks } from './rules/effects';
 import { descendAtStairs } from './level-transition';
 import { drinkItem } from './rules/potions';
 
@@ -37,7 +37,9 @@ export class GameSession {
       stomach: (state, _entry, emitRaw) => runStomach(state, emitRaw),
       swander: state => startWanderChecks(state), rollwand: state => rollWanderCheck(state),
       unconfuse: (state, _entry, emitRaw) => recoverConfusion(state, emitRaw),
-      sight: (state, _entry, emitRaw) => recoverSight(state, emitRaw), ...(options.effects ?? {}) };
+      sight: (state, _entry, emitRaw) => recoverSight(state, emitRaw),
+      nohaste: (state, _entry, emitRaw) => recoverHaste(state, emitRaw),
+      land: (state, _entry, emitRaw) => land(state, emitRaw), ...(options.effects ?? {}) };
     this.actionHandler = options.actionHandler ?? defaultAction;
     this.operationLimit = options.operationLimit ?? 10000;
     this.prepareInitialBoundary();

@@ -73,4 +73,6 @@ Phase 11.1e ports the `P_HEALING` branch and the relevant `daemons.c` `sight()` 
 
 Phase 11.1f ports `P_BLIND` through `potions.c` `do_pot()`. A dose always identifies its type and uses `spread(SEEDURATION)` (`850`) before scheduling the AFTER `sight` fuse or lengthening an existing one. The committed turn performs the source fuse decrement. Messaging selects the source hallucinating or ordinary text without drawing randomness. Tests cover duration bounds and draw count, stacked extension, both status flags, replay, and restored fuse continuation.
 
+Phase 11.1g–i groups three effects that use completed infrastructure. `P_XHEAL` rolls level d8s, applies its conditional one-or-two-point maximum-HP increase, restores sight, and ends hallucination. `P_HASTE` preserves `quaff()`'s free-command behavior: a first dose schedules `nohaste` for `rnd(4)+4`, while a second adds `rnd(8)` forced rests, clears haste/running, and extinguishes the fuse. `P_LEVIT` schedules or lengthens `land` using `spread(HEALTIME)` (`30`) and composes with the existing trap bypass. All three identify on use and have individual replay or restore coverage.
+
 Add an entry before intentionally changing source behavior. Record the relevant source function, the difference, its reason, and its verification case.

@@ -2,10 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { createTwoRoomFixture } from '../../src/debug/fixtures';
 import { allocateId } from '../../src/engine/entities';
 import type { ItemState, WorldState } from '../../src/engine/model/state';
-import { IS_BLIND, IS_CONFUSED, IS_HALLUCINATING } from '../../src/engine/rules/flags';
+import { IS_BLIND, IS_CONFUSED, IS_HALLUCINATING, IS_HASTED, IS_LEVITATING } from '../../src/engine/rules/flags';
 import { GameSession } from '../../src/engine/session';
 import { ReplayRecorder, replay } from '../../src/persistence/replay';
 import { restoreGame } from '../../src/persistence/save';
+import { roll } from '../../src/engine/random';
+import { triggerTrap } from '../../src/engine/rules/traps';
+import { cellIndex } from '../../src/engine/grid';
 
 function addPotion(state: WorldState, quantity = 1, definitionId = 'potion.confuse'): string {
   const id = allocateId(state);
@@ -202,5 +205,93 @@ describe('blindness potion', () => {
       restored.submit({ expectedRevision: revision, action: { type: 'rest' } });
     }
     expect(restored.exportState()).toEqual(session.exportState());
+  });
+});
+
+describe('extra-healing potion', () => {
+  it('uses level d8s, raises maximum HP once or twice, and clears visual effects', () => {
+    const state = createTwoRoomFixture(81); const itemId = addPotion(state, 1, 'potion.extra-healing');
+    state.player.stats.hp = 10; state.player.stats.maxHp = 10; state.player.stats.level = 1;
+    state.player.flags |= IS_BLIND | IS_HALLUCINATING;
+    state.timing.scheduler.slots[0] = { effect: 'sight', arg: 0, phase: 'after', remaining: 8 };
+    const expectedRng = structuredClone(state.rng); const amount = roll(expectedRng, 1, 8);
+    const session = new GameSession(state); session.submit({ expectedRevision: 0, action: { type: 'drink', itemId } }); const after = session.exportState();
+    const expectedMaximum = 11 + (amount > 2 ? 1 : 0);
+    expect(after.player.stats).toMatchObject({ hp: expectedMaximum, maxHp: expectedMaximum });
+    expect(after.player.flags & (IS_BLIND | IS_HALLUCINATING)).toBe(0);
+    expect(after.identification.find(candidate => candidate.definitionId === 'potion.extra-healing')?.known).toBe(true);
+  });
+
+  it('replays and restores extra healing exactly', async () => {
+    const initial = createTwoRoomFixture(82); const itemId = addPotion(initial, 1, 'potion.extra-healing'); initial.player.stats.hp = 3;
+    const session = new GameSession(initial); const recorder = new ReplayRecorder(session.exportState());
+    session.submit({ expectedRevision: 0, action: { type: 'drink', itemId } });
+    await recorder.record({ type: 'drink', itemId }, 0, session.exportState());
+    expect(await replay(recorder.bundle())).toEqual({ ok: true, completed: 1 });
+    expect(restoreGame(session.exportState()).exportState()).toEqual(session.exportState());
+  });
+});
+
+describe('haste potion', () => {
+  it('is a free command and starts 4–7 turns of haste', () => {
+    const state = createTwoRoomFixture(91); const itemId = addPotion(state, 1, 'potion.haste'); const draws = state.rng.draws;
+    const session = new GameSession(state); const result = session.submit({ expectedRevision: 0, action: { type: 'drink', itemId } }); const after = session.exportState();
+    const fuse = after.timing.scheduler.slots.find(slot => slot?.effect === 'nohaste');
+    expect(result).toMatchObject({ status: 'resolved', consumedSlot: false, ticksAdvanced: 0 });
+    expect(after.timing).toMatchObject({ hasted: true, tick: 0, cycle: { phase: 'input', slotsRemaining: 1 } });
+    expect(after.player.flags & IS_HASTED).not.toBe(0); expect(after.rng.draws).toBe(draws + 1);
+    expect(fuse?.remaining).toBeGreaterThanOrEqual(4); expect(fuse?.remaining).toBeLessThanOrEqual(7);
+  });
+
+  it('cancels haste and its fuse on a second dose, then resolves forced rests', () => {
+    const state = createTwoRoomFixture(92); const itemId = addPotion(state, 2, 'potion.haste'); const session = new GameSession(state);
+    session.submit({ expectedRevision: 0, action: { type: 'drink', itemId } });
+    const result = session.submit({ expectedRevision: 1, action: { type: 'drink', itemId } }); const after = session.exportState();
+    expect(result.consumedSlot).toBe(false); expect(after.timing.hasted).toBe(false); expect(after.timing.noCommand).toBe(0);
+    expect(after.timing.scheduler.slots.some(slot => slot?.effect === 'nohaste')).toBe(false);
+  });
+
+  it('replays and preserves the haste fuse through restore', async () => {
+    const initial = createTwoRoomFixture(93); const itemId = addPotion(initial, 1, 'potion.haste');
+    const session = new GameSession(initial); const recorder = new ReplayRecorder(session.exportState());
+    session.submit({ expectedRevision: 0, action: { type: 'drink', itemId } });
+    await recorder.record({ type: 'drink', itemId }, 0, session.exportState());
+    expect(await replay(recorder.bundle())).toEqual({ ok: true, completed: 1 });
+    const restored = restoreGame(session.exportState());
+    for (let step = 0; step < 15 && session.exportState().timing.hasted; step++) {
+      const revision = session.exportState().timing.revision;
+      session.submit({ expectedRevision: revision, action: { type: 'rest' } });
+      restored.submit({ expectedRevision: revision, action: { type: 'rest' } });
+    }
+    expect(restored.exportState()).toEqual(session.exportState());
+    expect(session.exportState().timing.hasted).toBe(false); expect(session.exportState().player.flags & IS_HASTED).toBe(0);
+  });
+});
+
+describe('levitation potion', () => {
+  it('schedules landing and prevents floor traps while active', () => {
+    const state = createTwoRoomFixture(101); const itemId = addPotion(state, 1, 'potion.levitation');
+    const session = new GameSession(state); session.submit({ expectedRevision: 0, action: { type: 'drink', itemId } }); const after = session.exportState();
+    const fuse = after.timing.scheduler.slots.find(slot => slot?.effect === 'land');
+    expect(after.player.flags & IS_LEVITATING).not.toBe(0); expect(fuse?.remaining).toBeGreaterThanOrEqual(28); expect(fuse?.remaining).toBeLessThanOrEqual(30);
+    const tile = after.level.tiles[cellIndex(after.level, after.player.at)]!;
+    tile.feature = { kind: 'trap', trap: 'bear', revealed: false }; triggerTrap(after, after.player.at, () => {});
+    expect(tile.feature.revealed).toBe(false); expect(after.timing.noMove).toBe(0);
+  });
+
+  it('lengthens levitation and preserves its landing fuse through restore', () => {
+    const state = createTwoRoomFixture(102); const itemId = addPotion(state, 2, 'potion.levitation'); const session = new GameSession(state);
+    session.submit({ expectedRevision: 0, action: { type: 'drink', itemId } });
+    session.submit({ expectedRevision: 1, action: { type: 'drink', itemId } }); const after = session.exportState();
+    const fuse = after.timing.scheduler.slots.find(slot => slot?.effect === 'land');
+    expect(fuse?.remaining).toBeGreaterThanOrEqual(56); expect(fuse?.remaining).toBeLessThanOrEqual(60);
+    const restored = restoreGame(after);
+    for (let step = 0; step < 61 && session.exportState().player.flags & IS_LEVITATING; step++) {
+      const revision = session.exportState().timing.revision;
+      session.submit({ expectedRevision: revision, action: { type: 'rest' } });
+      restored.submit({ expectedRevision: revision, action: { type: 'rest' } });
+    }
+    expect(restored.exportState()).toEqual(session.exportState());
+    expect(session.exportState().player.flags & IS_LEVITATING).toBe(0);
   });
 });

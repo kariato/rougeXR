@@ -287,6 +287,7 @@ Phase 11.1 progress:
 - [x] Add the gain-strength potion with base maximum tracking, add-strength ring interaction, replay, and save continuation.
 - [x] Add the healing potion with level-scaled dice, maximum-HP overflow, sight recovery, replay, and save continuation.
 - [x] Add the blindness potion with source-duration recovery, repeat extension, hallucination messaging, replay, and save continuation.
+- [x] Add extra-healing, haste-self, and levitation as a compatible batch with individual source and continuation coverage.
 - [ ] Add potion effects individually, including consumption and identification behavior.
 
 Gate: enable `full` mode only after definition coverage and the command audit justify it. Deterministic TypeScript replay is not a claim of identical historical C RNG sequences. Any deferred gameplay command prevents claiming full source parity even if full content is available.

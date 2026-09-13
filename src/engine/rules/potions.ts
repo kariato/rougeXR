@@ -1,13 +1,14 @@
 import type { RawEventInput } from '../model/action';
 import type { EntityId, WorldState } from '../model/state';
 import { rnd, roll } from '../random';
-import { killDaemon, lengthen, scheduleFuse } from '../scheduler';
-import { IS_BLIND, IS_CONFUSED, IS_HALLUCINATING } from './flags';
+import { extinguish, killDaemon, lengthen, scheduleFuse } from '../scheduler';
+import { IS_BLIND, IS_CONFUSED, IS_HALLUCINATING, IS_HASTED, IS_LEVITATING, IS_RUNNING } from './flags';
 import type { InventoryResult } from './inventory';
 import { recoverSight } from './effects';
 
 const CONFUSION_DURATION = 20;
 const SIGHT_DURATION = 850;
+const LEVITATION_DURATION = 30;
 
 /** Supported potion effects from potions.c quaff()/do_pot(). */
 export function drinkItem(state: WorldState, itemId: EntityId, emit: (event: RawEventInput) => void): InventoryResult {
@@ -18,20 +19,25 @@ export function drinkItem(state: WorldState, itemId: EntityId, emit: (event: Raw
     emit({ type: 'sourceMessage', text: 'Yuk! Why would you want to drink that?' });
     return { resolved: false, consumedSlot: false, reason: 'undrinkable' };
   }
-  if (!['potion.confuse', 'potion.poison', 'potion.strength', 'potion.healing', 'potion.blindness'].includes(item.definitionId))
+  if (!['potion.confuse', 'potion.poison', 'potion.strength', 'potion.healing', 'potion.extra-healing',
+    'potion.haste', 'potion.blindness', 'potion.levitation'].includes(item.definitionId))
     return { resolved: false, consumedSlot: false, reason: `unsupported-potion:${item.definitionId}` };
 
   const entry = state.identification.find(candidate => candidate.definitionId === item.definitionId);
   if (!entry) throw new Error(`Missing identification entry for ${item.definitionId}`);
+  let consumesSlot = true;
   if (item.definitionId === 'potion.confuse') applyConfusion(state, entry, emit);
   else if (item.definitionId === 'potion.poison') applyPoison(state, entry, emit);
   else if (item.definitionId === 'potion.strength') applyGainStrength(state, entry, emit);
   else if (item.definitionId === 'potion.healing') applyHealing(state, entry, emit);
-  else applyBlindness(state, entry, emit);
+  else if (item.definitionId === 'potion.extra-healing') applyExtraHealing(state, entry, emit);
+  else if (item.definitionId === 'potion.haste') { applyHaste(state, entry, emit); consumesSlot = false; }
+  else if (item.definitionId === 'potion.blindness') applyBlindness(state, entry, emit);
+  else applyLevitation(state, entry, emit);
 
   consumeOne(state, itemId);
   emit({ type: 'itemConsumed', itemId, category: 'potion' });
-  return { resolved: true, consumedSlot: true, reason: null };
+  return { resolved: true, consumedSlot: consumesSlot, reason: null };
 }
 
 function applyConfusion(state: WorldState, entry: WorldState['identification'][number], emit: (event: RawEventInput) => void): void {
@@ -72,6 +78,30 @@ function applyHealing(state: WorldState, entry: WorldState['identification'][num
   emit({ type: 'sourceMessage', text: 'You begin to feel better.' });
 }
 
+function applyExtraHealing(state: WorldState, entry: WorldState['identification'][number], emit: (event: RawEventInput) => void): void {
+  learn(entry, emit); const stats = state.player.stats; const before = stats.hp;
+  stats.hp += roll(state.rng, stats.level, 8);
+  if (stats.hp > stats.maxHp) {
+    if (stats.hp > stats.maxHp + stats.level + 1) stats.maxHp++;
+    stats.maxHp++; stats.hp = stats.maxHp;
+  }
+  if (stats.hp !== before) emit({ type: 'hpChanged', actorId: 'player', from: before, to: stats.hp });
+  recoverSight(state, emit); endHallucination(state);
+  emit({ type: 'sourceMessage', text: 'You begin to feel much better.' });
+}
+
+function applyHaste(state: WorldState, entry: WorldState['identification'][number], emit: (event: RawEventInput) => void): void {
+  learn(entry, emit);
+  if (state.timing.hasted) {
+    state.timing.noCommand += rnd(state.rng, 8); state.timing.hasted = false;
+    state.player.flags &= ~(IS_RUNNING | IS_HASTED); extinguish(state.timing.scheduler, 'nohaste');
+    emit({ type: 'sourceMessage', text: 'You faint from exhaustion.' }); return;
+  }
+  state.timing.hasted = true; state.player.flags |= IS_HASTED;
+  scheduleFuse(state.timing.scheduler, 'nohaste', 0, 'after', rnd(state.rng, 4) + 4);
+  emit({ type: 'sourceMessage', text: 'You feel yourself moving much faster.' });
+}
+
 function applyBlindness(state: WorldState, entry: WorldState['identification'][number], emit: (event: RawEventInput) => void): void {
   learn(entry, emit); const duration = spread(state, SIGHT_DURATION);
   if ((state.player.flags & IS_BLIND) === 0) {
@@ -80,6 +110,21 @@ function applyBlindness(state: WorldState, entry: WorldState['identification'][n
   } else lengthen(state.timing.scheduler, 'sight', duration);
   emit({ type: 'sourceMessage', text: (state.player.flags & IS_HALLUCINATING) !== 0
     ? 'Oh, bummer! Everything is dark! Help!' : 'A cloak of darkness falls around you.' });
+}
+
+function applyLevitation(state: WorldState, entry: WorldState['identification'][number], emit: (event: RawEventInput) => void): void {
+  learn(entry, emit); const duration = spread(state, LEVITATION_DURATION);
+  if ((state.player.flags & IS_LEVITATING) === 0) {
+    state.player.flags |= IS_LEVITATING;
+    scheduleFuse(state.timing.scheduler, 'land', 0, 'after', duration);
+  } else lengthen(state.timing.scheduler, 'land', duration);
+  emit({ type: 'sourceMessage', text: (state.player.flags & IS_HALLUCINATING) !== 0
+    ? "Oh, wow! You're floating in the air!" : 'You start to float in the air.' });
+}
+
+function endHallucination(state: WorldState): void {
+  if ((state.player.flags & IS_HALLUCINATING) === 0) return;
+  state.player.flags &= ~IS_HALLUCINATING; killDaemon(state.timing.scheduler, 'visuals');
 }
 
 /** misc.c chg_str()/add_str(), including maximum base strength beneath add-strength rings. */

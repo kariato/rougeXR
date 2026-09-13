@@ -1,7 +1,7 @@
 import type { RawEventInput } from '../model/action';
 import type { WorldState } from '../model/state';
 import { rnd, roll } from '../random';
-import { IS_BLIND, IS_CONFUSED, IS_HALLUCINATING } from './flags';
+import { IS_BLIND, IS_CONFUSED, IS_HALLUCINATING, IS_HASTED, IS_LEVITATING } from './flags';
 import { extinguish, killDaemon, scheduleFuse, startDaemon } from '../scheduler';
 
 export function runDoctor(state: WorldState, emit: (event: RawEventInput) => void): void {
@@ -28,6 +28,17 @@ export function recoverSight(state: WorldState, emit: (event: RawEventInput) => 
   extinguish(state.timing.scheduler, 'sight'); state.player.flags &= ~IS_BLIND;
   emit({ type: 'sourceMessage', text: (state.player.flags & IS_HALLUCINATING) !== 0
     ? 'Far out! Everything is all cosmic again.' : 'The veil of darkness lifts.' });
+}
+
+export function recoverHaste(state: WorldState, emit: (event: RawEventInput) => void): void {
+  state.timing.hasted = false; state.player.flags &= ~IS_HASTED;
+  emit({ type: 'sourceMessage', text: 'You feel yourself slowing down.' });
+}
+
+export function land(state: WorldState, emit: (event: RawEventInput) => void): void {
+  state.player.flags &= ~IS_LEVITATING;
+  emit({ type: 'sourceMessage', text: (state.player.flags & IS_HALLUCINATING) !== 0
+    ? "Bummer! You've hit the ground." : 'You float gently to the ground.' });
 }
 
 export function startWanderChecks(state: WorldState): void { startDaemon(state.timing.scheduler, 'rollwand', 0, 'before'); }
