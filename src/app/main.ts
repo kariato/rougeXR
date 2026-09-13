@@ -98,6 +98,12 @@ function render(): void {
       const throwButton=document.createElement('button'); throwButton.type='button'; throwButton.textContent='Throw'; throwButton.disabled=replayPlayer!==null||decisionPending;
       throwButton.addEventListener('click',()=>submit({type:'throw',itemId:item.token,direction:direction.value as 'N'|'NE'|'E'|'SE'|'S'|'SW'|'W'|'NW'})); row.append(direction,throwButton);
     }
+    if (item.category === 'stick') {
+      const direction=document.createElement('select');direction.setAttribute('aria-label','Zap direction');
+      for(const value of ['N','NE','E','SE','S','SW','W','NW'] as const){const option=document.createElement('option');option.value=value;option.textContent=value;direction.append(option);}direction.value='E';direction.disabled=replayPlayer!==null||decisionPending;
+      const zap=document.createElement('button');zap.type='button';zap.textContent='Zap';zap.disabled=replayPlayer!==null||decisionPending;
+      zap.addEventListener('click',()=>submit({type:'zap',itemId:item.token,direction:direction.value as 'N'|'NE'|'E'|'SE'|'S'|'SW'|'W'|'NW'}));row.append(direction,zap);
+    }
     if (item.category === 'food') {
       const eat = document.createElement('button'); eat.type = 'button'; eat.textContent = 'Eat'; eat.disabled = replayPlayer !== null || decisionPending;
       eat.addEventListener('click', () => submit({ type: 'eat', itemId: item.token })); row.append(eat);

@@ -12,6 +12,7 @@ export type GameAction =
   | { type: 'drink'; itemId: string }
   | { type: 'read'; itemId: string }
   | { type: 'throw'; itemId: string; direction: Direction }
+  | { type: 'zap'; itemId: string; direction: Direction }
   | { type: 'answerCall'; label: string | null }
   | { type: 'answerIdentify'; itemId: string }
   | { type: 'descend' }
@@ -34,6 +35,7 @@ export type RawEventInput =
   | { type: 'itemDropped'; itemId: string; category: string; quantity: number }
   | { type: 'equipmentChanged'; slot: string; itemId: string | null }
   | { type: 'itemConsumed'; itemId: string; category: string }
+  | { type: 'itemChargesChanged'; itemId: string; charges: number }
   | { type: 'identityLearned'; definitionId: string }
   | { type: 'levelChanged'; fromDepth: number; toDepth: number; cause: string }
   | { type: 'featureRevealed'; at: Position; feature: string }

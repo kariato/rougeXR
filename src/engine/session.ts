@@ -14,6 +14,7 @@ import { descendAtStairs } from './level-transition';
 import { drinkItem } from './rules/potions';
 import { answerIdentify, readItem } from './rules/scrolls';
 import { throwItem } from './rules/projectiles';
+import { zapItem } from './rules/sticks';
 
 export interface RuleResult { resolved: boolean; consumedSlot: boolean; reason: string | null; deferredPickup?: string | null }
 export interface RuleContext { state: WorldState; emit(event: PresentationEvent): void; emitRaw(event: RawEventInput): void }
@@ -167,6 +168,7 @@ function defaultAction(action: GameAction, context: RuleContext): RuleResult {
   if (action.type === 'drink') return drinkItem(context.state, action.itemId, context.emitRaw);
   if (action.type === 'read') return readItem(context.state, action.itemId, context.emitRaw);
   if (action.type === 'throw') return throwItem(context.state, action.itemId, action.direction, context.emitRaw);
+  if (action.type === 'zap') return zapItem(context.state, action.itemId, action.direction, context.emitRaw);
   if (action.type === 'descend') return descendAtStairs(context.state, context.emitRaw);
   if (action.name === 'free') return { resolved: true, consumedSlot: false, reason: null };
   return { resolved: false, consumedSlot: false, reason: `Unsupported fixture action: ${action.name}` };
@@ -179,7 +181,7 @@ function validRequest(value: unknown): value is ActionRequest {
   if (action.type === 'rest' || action.type === 'search' || action.type === 'pickup' || action.type === 'descend') return true;
   if (action.type === 'move') return Object.hasOwn({ N: 1, NE: 1, E: 1, SE: 1, S: 1, SW: 1, W: 1, NW: 1 }, action.direction)
     && typeof action.pickup === 'boolean';
-  if (action.type === 'throw') return typeof action.itemId === 'string' && Object.hasOwn({ N:1,NE:1,E:1,SE:1,S:1,SW:1,W:1,NW:1 }, action.direction);
+  if (action.type === 'throw' || action.type === 'zap') return typeof action.itemId === 'string' && Object.hasOwn({ N:1,NE:1,E:1,SE:1,S:1,SW:1,W:1,NW:1 }, action.direction);
   if (action.type === 'drop' || action.type === 'eat' || action.type === 'drink' || action.type === 'read') return typeof action.itemId === 'string';
   if (action.type === 'equip') return typeof action.itemId === 'string'
     && ['weapon', 'armor', 'leftRing', 'rightRing'].includes(action.slot);
@@ -197,7 +199,7 @@ function projectEvent(state: WorldState, event: RawEvent): PresentationEvent | n
   }
   if (event.type === 'hpChanged' || event.type === 'actorDefeated') return null;
   if (event.type === 'itemCollected' || event.type === 'itemDropped' || event.type === 'equipmentChanged'
-    || event.type === 'itemConsumed' || event.type === 'identityLearned') return { type: 'inventoryUpdate' };
+    || event.type === 'itemConsumed' || event.type === 'itemChargesChanged' || event.type === 'identityLearned') return { type: 'inventoryUpdate' };
   if (event.type === 'levelChanged') return { type: 'levelViewReset' };
   if (event.type === 'magicDetected') return { type: 'magicDetected', positions: event.positions.map(at => ({ ...at })) };
   if (event.type === 'itemsDetected') return { type: 'itemsDetected', glyph: event.glyph, positions: event.positions.map(at => ({ ...at })) };

@@ -15,3 +15,4 @@ export const CAN_DETECT_MONSTERS = 0o40000;
 export const IS_FLYING = 0o40000;
 export const IS_SLOWED = 0o100000;
 export const IS_INVISIBLE = 0o2000;
+export const IS_CANCELLED = 0o10;

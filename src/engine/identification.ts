@@ -37,6 +37,14 @@ export const SCROLL_DEFINITIONS = [
   ['scroll.remove-curse', 'remove curse'], ['scroll.aggravate-monsters', 'aggravate monsters'],
   ['scroll.protect-armor', 'protect armor'],
 ] as const;
+export const STICK_DEFINITIONS = [
+  ['stick.light','light'],['stick.invisibility','invisibility'],['stick.lightning','lightning'],['stick.fire','fire'],['stick.cold','cold'],
+  ['stick.polymorph','polymorph'],['stick.magic-missile','magic missile'],['stick.haste-monster','haste monster'],
+  ['stick.slow-monster','slow monster'],['stick.drain-life','drain life'],['stick.nothing','nothing'],['stick.teleport-away','teleport away'],
+  ['stick.teleport-to','teleport to'],['stick.cancellation','cancellation'],
+] as const;
+const WOODS=['avocado wood','balsa','bamboo','banyan','birch','cedar','cherry','cinnibar','cypress','dogwood','driftwood','ebony','elm','eucalyptus','fall','hemlock','holly','ironwood','kukui wood','mahogany','manzanita','maple','oaken','persimmon wood','pecan','pine','poplar','redwood','rosewood','spruce','teak','walnut','zebrawood'] as const;
+const METALS=['aluminum','beryllium','bone','brass','bronze','copper','electrum','gold','iron','lead','magnesium','mercury','nickel','pewter','platinum','steel','silver','silicon','tin','titanium','tungsten','zinc'] as const;
 
 const SCROLL_SYLLABLES = [
   'a','ab','ag','aks','ala','an','app','arg','arze','ash','bek','bie','bit','bjor','blu','bot','bu','byt','comp','con','cos','cre','dalf','dan','den','do','e','eep','el','eng','er','ere','erk','esh','evs','fa','fid','fri','fu','gan','gar','glen','gop','gre','ha','hyd','i','ing','ip','ish','it','ite','iv','jo','kho','kli','klis','la','lech','mar','me','mi','mic','mik','mon','mung','mur','nej','nelg','nep','ner','nes','nes','nih','nin','o','od','ood','org','orn','ox','oxy','pay','ple','plu','po','pot','prok','re','rea','rhov','ri','ro','rog','rok','rol','sa','san','sat','sef','seh','shu','ski','sna','sne','snik','sno','so','sol','sri','sta','sun','ta','tab','tem','ther','ti','tox','trol','tue','turs','u','ulk','um','un','uni','ur','val','viv','vly','vom','wah','wed','werg','wex','whon','wun','xo','y','yot','yu','zant','zeb','zim','zok','zon','zum',
@@ -70,19 +78,33 @@ export function initializeScrollIdentification(rng: RandomState): Identification
 }
 
 export function initializeIdentification(rng: RandomState): IdentificationEntry[] {
-  return [...initializePotionIdentification(rng), ...initializeScrollIdentification(rng)];
+  return [...initializePotionIdentification(rng), ...initializeScrollIdentification(rng), ...initializeStickIdentification(rng)];
+}
+
+export function initializeStickIdentification(rng: RandomState): IdentificationEntry[] {
+  const wood=new Set<number>(); const metal=new Set<number>(); return STICK_DEFINITIONS.map(([definitionId])=>{
+    while(true){ const wand=rnd(rng,2)===0; const pool=wand?METALS:WOODS; const used=wand?metal:wood; const index=rnd(rng,pool.length);
+      if(used.has(index))continue; used.add(index); return {definitionId,appearanceId:`${pool[index]} ${wand?'wand':'staff'}`,known:false,called:null,worth:null}; }
+  });
 }
 
 export function observedItemLabel(state: WorldState, item: ItemState): string {
-  if (item.category !== 'potion' && item.category !== 'scroll') return item.label ?? item.definitionId;
+  if (item.category !== 'potion' && item.category !== 'scroll' && item.category !== 'stick') return item.label ?? item.definitionId;
   const entry = state.identification.find(candidate => candidate.definitionId === item.definitionId);
   if (!entry) throw new Error(`Missing identification entry for ${item.definitionId}`);
-  const sourceName = (item.category === 'potion' ? POTION_DEFINITIONS : SCROLL_DEFINITIONS).find(([id]) => id === item.definitionId)?.[1];
+  const definitions = item.category === 'potion' ? POTION_DEFINITIONS : item.category === 'scroll' ? SCROLL_DEFINITIONS : STICK_DEFINITIONS;
+  const sourceName = definitions.find(([id]) => id === item.definitionId)?.[1];
   if (!sourceName) throw new Error(`Unknown ${item.category} definition ${item.definitionId}`);
   if (item.category === 'potion') {
     if (entry.known) return `potion of ${sourceName} (${entry.appearanceId})`;
     if (entry.called !== null) return `potion called ${entry.called} (${entry.appearanceId})`;
     return `${entry.appearanceId} potion`;
+  }
+  if (item.category === 'stick') {
+    const charges=item.flags&0o2?` [${item.charges} charges]`:'';
+    if(entry.known)return `${entry.appearanceId} of ${sourceName}${charges}`;
+    if(entry.called!==null)return `${entry.appearanceId} called ${entry.called}${charges}`;
+    return entry.appearanceId;
   }
   if (entry.known) return `scroll of ${sourceName} (titled '${entry.appearanceId}')`;
   if (entry.called !== null) return `scroll called ${entry.called} (titled '${entry.appearanceId}')`;
