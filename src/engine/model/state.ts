@@ -77,7 +77,7 @@ export interface TimingState {
 }
 export interface WorldState {
   seed: number; rng: RandomState; nextEntitySerial: number;
-  sourceState: { flytrapHits: number };
+  sourceState: { flytrapHits: number; nextGroup: number };
   level: LevelState; player: PlayerState; entities: Record<EntityId, EntityState>;
   timing: TimingState; knowledge: KnowledgeState; identification: IdentificationEntry[];
   pendingDecision: PendingDecision | null;

@@ -1,4 +1,5 @@
 import { MONSTER_DEFINITIONS, STRENGTH_DAMAGE_BONUS, STRENGTH_HIT_BONUS } from '../../definitions/combat';
+import { WEAPON_DAMAGE } from '../../definitions/objects';
 import { allocateId, buildIndexes, transferItem } from '../entities';
 import { cellIndex, isPlayable, tileAt } from '../grid';
 import type { RawEventInput } from '../model/action';
@@ -37,7 +38,9 @@ export function attackMonster(state: WorldState, id: EntityId, emit: EmitRaw): v
   const weapon = state.player.equipment.weapon ? state.entities[state.player.equipment.weapon] : null;
   const hitBonus = weapon?.kind === 'item' && weapon.category === 'weapon' ? weapon.hitBonus : 0;
   const damageBonus = weapon?.kind === 'item' && weapon.category === 'weapon' ? weapon.damageBonus : 0;
-  const hit = strike(state, 'player', state.player.stats, id, monster.stats, emit, hitBonus+ringCombatBonus(state,'hit'), damageBonus+ringCombatBonus(state,'damage'));
+  const weaponDice = weapon?.kind === 'item' && weapon.category === 'weapon' ? WEAPON_DAMAGE.get(weapon.definitionId) : null;
+  const attacker = weaponDice ? { ...state.player.stats, damage: [{ count: weaponDice[0], sides: weaponDice[1] }] } : state.player.stats;
+  const hit = strike(state, 'player', attacker, id, monster.stats, emit, hitBonus+ringCombatBonus(state,'hit'), damageBonus+ringCombatBonus(state,'damage'));
   if (hit && monster.stats.hp > 0 && (state.player.flags & CAN_CONFUSE_MONSTER) !== 0) { monster.flags |= IS_CONFUSED; state.player.flags &= ~CAN_CONFUSE_MONSTER;
     emit({ type: 'sourceMessage', text: 'Your hands stop glowing red.' }); }
   if (monster.stats.hp === 0) destroyMonster(state, monster, emit);

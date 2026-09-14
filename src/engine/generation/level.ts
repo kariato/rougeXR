@@ -5,9 +5,10 @@ import { ACTIVE_TRAPS } from '../rules/traps';
 import { buildPassages } from './passages';
 import { buildRooms } from './rooms';
 import { instantiateMonster, randomMonster } from './monsters';
+import { generateObject } from './objects';
 
 export interface GeneratedLevelContent {
-  profile: 'supported-slice'; rng: RandomState; nextEntitySerial: number;
+  profile: 'supported-slice'; rng: RandomState; nextEntitySerial: number; noFood: number; nextGroup: number;
   level: LevelState; entities: Record<EntityId, EntityState>; playerAt: Position; playerRoomId: number | null;
 }
 
@@ -15,11 +16,12 @@ export function generateLevelContent(seed: number, depth: number): GeneratedLeve
   return generateLevelContentFromRandom(createRandom(seed), depth);
 }
 
-export function generateLevelContentFromRandom(rng: RandomState, depth: number, firstEntitySerial = 1): GeneratedLevelContent {
+export function generateLevelContentFromRandom(rng: RandomState, depth: number, firstEntitySerial = 1, priorNoFood = 0, firstGroup = 2): GeneratedLevelContent {
   const layout = buildPassages(rng, depth, buildRooms(rng, depth));
   const entities: Record<EntityId, EntityState> = {}; const monsterOrder: EntityId[] = []; const floorObjectOrder: EntityId[] = [];
   let serial = firstEntitySerial; const allocate = (): EntityId => `e${serial++}`;
   const occupiedObjects = new Set<number>(); const occupiedMonsters = new Set<number>();
+  const objectContext = { noFood: priorNoFood + 1, nextGroup: firstGroup };
   const floorRooms = layout.rooms.filter(room => room.kind !== 'gone');
   for (const room of floorRooms) {
     let gold = false;
@@ -31,16 +33,16 @@ export function generateLevelContentFromRandom(rng: RandomState, depth: number, 
     if (rnd(rng, 100) < (gold ? 80 : 25)) {
       const definition=randomMonster(rng,depth,false);
       const at = findFloor(rng, layout.rooms, layout.tiles, occupiedObjects, occupiedMonsters, room); const id = allocate();
-      entities[id] = instantiateMonster(rng, depth, id, definition, at, room.id);
+      const monster = instantiateMonster(rng, depth, id, definition, at, room.id); entities[id] = monster;
       monsterOrder.unshift(id); occupiedMonsters.add(index(at));
+      if (rnd(rng, 100) < definition.carryChance) { const itemId = allocate();
+        entities[itemId] = generateObject(rng, objectContext, itemId, { kind: 'pack', owner: id }); monster.packOrder.unshift(itemId); }
     }
   }
   rnd(rng, 20); // treasure-room check; treasure rooms require the full content tables
   for (let attempt = 0; attempt < 9; attempt++) if (rnd(rng, 100) < 36) {
-    const choice = rnd(rng, 2); const at = findFloor(rng, layout.rooms, layout.tiles, occupiedObjects, occupiedMonsters); const id = allocate();
-    entities[id] = choice === 0
-      ? { kind: 'item', id, definitionId: 'food.ration', category: 'food', location: { kind: 'floor', levelId: depth, at }, quantity: 1, flags: 0, group: 0, label: null }
-      : { kind: 'item', id, definitionId: 'weapon.mace', category: 'weapon', location: { kind: 'floor', levelId: depth, at }, quantity: 1, flags: 0, group: 0, label: null, hitBonus: 0, damageBonus: 0 };
+    const at = findFloor(rng, layout.rooms, layout.tiles, occupiedObjects, occupiedMonsters); const id = allocate();
+    entities[id] = generateObject(rng, objectContext, id, { kind: 'floor', levelId: depth, at });
     floorObjectOrder.unshift(id); occupiedObjects.add(index(at));
   }
   if (rnd(rng, 10) < depth) {
@@ -56,7 +58,7 @@ export function generateLevelContentFromRandom(rng: RandomState, depth: number, 
   const playerRoomId = layout.tiles[index(playerAt)]!.roomId;
   const level: LevelState = { id: depth, depth, width: GRID_WIDTH, height: GRID_HEIGHT, tiles: layout.tiles, rooms: layout.rooms,
     passages: layout.passages, stairs, monsterOrder, floorObjectOrder };
-  return { profile: 'supported-slice', rng, nextEntitySerial: serial, level, entities, playerAt, playerRoomId };
+  return { profile: 'supported-slice', rng, nextEntitySerial: serial, noFood: objectContext.noFood, nextGroup: objectContext.nextGroup, level, entities, playerAt, playerRoomId };
 }
 
 function findFloor(rng: RandomState, rooms: RoomState[], tiles: LevelState['tiles'], objects: Set<number>, monsters: Set<number>,

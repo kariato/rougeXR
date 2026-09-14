@@ -333,6 +333,13 @@ Phase 11.7 progress:
 - [x] Enable all eight source trap kinds, including generated trap doors and replayable same-level teleport traps.
 - [x] Verify levitation bypass, hidden-trap revelation, status recovery fuses, hallucinated observations, and monster/item detection overlays.
 
+Phase 11.8 progress:
+
+- [x] Transcribe category and definition weights for potions, scrolls, food, weapons, armor, rings, and sticks.
+- [x] Replace the food/mace population substitute with `new_thing()` quality, curse, stack, charge, food-forcing, and group rules.
+- [x] Generate source carry-chance monster packs from the same object pipeline.
+- [ ] Add treasure rooms, wandering monsters, Amulet placement, ascent, and victory.
+
 Gate: enable `full` mode only after definition coverage and the command audit justify it. Deterministic TypeScript replay is not a claim of identical historical C RNG sequences. Any deferred gameplay command prevents claiming full source parity even if full content is available.
 
 ## Phase 12 — Desktop 3D with the same engine

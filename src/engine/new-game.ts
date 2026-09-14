@@ -25,13 +25,13 @@ export function createNewGame(seed: number): WorldState {
   const starting = [food, armor, mace, bow, arrows]; const entities: Record<string, EntityState> = { ...generated.entities };
   for (const entry of starting) entities[entry.id] = entry;
   const state: WorldState = {
-    seed, rng, nextEntitySerial: generated.nextEntitySerial, sourceState: { flytrapHits: 0 }, entities, pendingDecision: null,
+    seed, rng, nextEntitySerial: generated.nextEntitySerial, sourceState: { flytrapHits: 0, nextGroup: generated.nextGroup }, entities, pendingDecision: null,
     level: generated.level,
     player: { at: generated.playerAt, roomId: generated.playerRoomId, gold: 0, flags: 0, maximumStrength: 16,
       stats: { strength: 16, experience: 0, level: 1, armorClass: 10, hp: 12, maxHp: 12, damage: [{ count: 1, sides: 4 }] },
       packOrder: starting.map(entry => entry.id), equipment: { weapon: mace.id, armor: armor.id, leftRing: null, rightRing: null } },
     timing: { revision: 0, actionSequence: 0, tick: 0, status: 'playing', noCommand: 0, noMove: 0, hasted: false,
-      foodLeft: 1300, noFood: 1, quiet: 0, between: 0, hungerStage: 0, scheduler, cycle: { phase: 'begin', slotsRemaining: 0 } },
+      foodLeft: 1300, noFood: generated.noFood, quiet: 0, between: 0, hungerStage: 0, scheduler, cycle: { phase: 'begin', slotsRemaining: 0 } },
     knowledge: { levelId: generated.level.id, remembered: Array.from({ length: generated.level.tiles.length }, () => null) }, identification,
   };
   wakeRoomMonsters(state); updateKnowledge(state); const issues = validateWorld(state); if (issues.length) throw new Error(`Generated world invalid: ${issues[0]!.path}: ${issues[0]!.message}`);

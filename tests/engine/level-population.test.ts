@@ -22,7 +22,7 @@ describe('supported generated level population', () => {
   it('emits only enabled entity and trap definitions without occupancy collisions', () => {
     const generated = generateLevelContent(808, 8); const occupied = new Set<string>();
     for (const entity of Object.values(generated.entities)) {
-      expect(entity.definitionId.startsWith('monster.') || ['gold.pieces', 'food.ration', 'weapon.mace'].includes(entity.definitionId)).toBe(true);
+      expect(['monster','gold','food','weapon','armor','ring','stick','potion','scroll'].some(prefix => entity.definitionId.startsWith(`${prefix}.`))).toBe(true);
       const at = entity.kind === 'monster' ? entity.at : entity.location.kind === 'floor' ? entity.location.at : null;
       expect(at).not.toBeNull(); const key = `${at!.x},${at!.y}`; expect(occupied.has(key)).toBe(false); occupied.add(key);
     }
