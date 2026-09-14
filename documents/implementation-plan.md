@@ -370,8 +370,8 @@ Use the [Quick 3D MMORPG review](quick-3d-mmorpg-review.md) as a selective prese
 - [x] 12.1
 - [x] 12.2
 - [x] 12.3
-- [ ] 12.4
-- [ ] 12.5
+- [x] 12.4
+- [x] 12.5
 
 Gate: identical action sequences yield identical engine results in 2D and 3D. This phase may start after Phase 10 if the user prioritizes spatial prototyping; full-rule work still remains tracked separately.
 
@@ -388,6 +388,16 @@ Phase 12.3 progress:
 - [x] Keep camera drag, zoom, and mode changes entirely in presentation state without advancing a turn.
 - [x] Select distance-sorted observed geometry with nearer walls acting as occluders.
 - [x] Remove listeners and clear captured pointer state on blur, visibility loss, and view disposal.
+
+Phase 12.4–12.5 progress:
+
+- [x] Add procedural player, monster, and item representations; first-person hides the local player while orbit/tabletop show it.
+- [x] Give every animated actor an independent skeleton and mixer, with resolved visible movement events driving presentation-only motion.
+- [x] Bound ordinary first-person scene activation around the player while tabletop mode retains the complete known layout.
+- [x] Add resolved-URL-plus-options asset cache keys, shared leases, explicit failed state, and scene-generation guards for late loads.
+- [x] Dispose nested mesh geometry and every entry in material arrays; repeated view mounting removes and rebinds its listeners.
+
+Phase 12 completed 2026-09-14. Validation at completion: 37 Vitest files with 201 tests passed, the strict TypeScript production build passed, and all 8 Chromium/Firefox browser checks passed. View and camera changes preserved the same live engine revision.
 
 ## Phase 13 — XR adapter and device verification
 

@@ -4,6 +4,8 @@ import type { PlayerObservation } from '../../engine/model/observation';
 import type { GameView } from '../game-view';
 import { buildPrimitiveCells } from './scene-plan';
 import { nearestVisibleHit, smoothToward, type CameraMode } from './camera-model';
+import { createActorVisual, createItemVisual, type ActorVisual } from './entity-visual';
+import { SceneGeneration } from './asset-cache';
 
 const TILE = 1;
 
@@ -28,6 +30,10 @@ export class ThreeGameView implements GameView {
   private pointerId: number | null = null;
   private frame: number | null = null;
   private lastFrame = 0;
+  private actorVisuals: ActorVisual[] = [];
+  private animationUntil = 0;
+  private lastAnimatedRevision = -1;
+  private readonly generation = new SceneGeneration();
 
   constructor() {
     this.canvas.id = 'dungeon-3d';
@@ -62,6 +68,7 @@ export class ThreeGameView implements GameView {
   }
 
   update(observation: PlayerObservation, _events: PresentationEvent[]): void {
+    this.generation.next();
     this.observation = observation;
     this.clearWorld();
     const floorGeometry = new THREE.PlaneGeometry(TILE, TILE);
@@ -73,7 +80,7 @@ export class ThreeGameView implements GameView {
     const wallRemembered = new THREE.MeshStandardMaterial({ color: 0x303b47, roughness: 1 });
     const doorMaterial = new THREE.MeshStandardMaterial({ color: 0x7d4d2f, roughness: 0.85 });
 
-    for (const cell of buildPrimitiveCells(observation)) {
+    for (const cell of buildPrimitiveCells(observation, this.mode === 'tabletop' ? Number.POSITIVE_INFINITY : 14)) {
       if (cell.kind === 'wall') {
         const mesh = new THREE.Mesh(wallGeometry, cell.visibility === 'visible' ? wallVisible : wallRemembered);
         mesh.position.set(cell.x, 0.9, cell.z); mesh.userData = { cell: { x: cell.x, y: cell.z }, eligible: false, occludes: true }; this.world.add(mesh);
@@ -87,6 +94,24 @@ export class ThreeGameView implements GameView {
       }
     }
 
+    const movementTokens = new Set(observation.revision === this.lastAnimatedRevision ? []
+      : _events.filter(event => event.type === 'visibleMovement').map(event => event.token));
+    this.lastAnimatedRevision = observation.revision;
+    const playerVisual = createActorVisual(0x43c7e8); playerVisual.root.position.set(observation.playerAt.x, 0, observation.playerAt.y);
+    playerVisual.root.visible = this.mode !== 'firstPerson'; this.world.add(playerVisual.root); this.actorVisuals.push(playerVisual);
+    if (movementTokens.has('player')) playerVisual.playMove();
+    for (const entity of observation.entities) {
+      if (entity.token.startsWith('monster-')) {
+        const actor = createActorVisual(0xc65353); actor.root.position.set(entity.at.x, 0, entity.at.y);
+        actor.root.userData = { cell: { ...entity.at }, eligible: true, occludes: false }; this.world.add(actor.root); this.actorVisuals.push(actor);
+        if (movementTokens.has(entity.token)) actor.playMove();
+      } else {
+        const item = createItemVisual(); item.position.set(entity.at.x, 0.23, entity.at.y);
+        item.userData = { cell: { ...entity.at }, eligible: true, occludes: false }; this.world.add(item);
+      }
+    }
+    if (movementTokens.size) { this.animationUntil = performance.now() + 280; this.ensureAnimation(); }
+
     this.placeCamera();
   }
 
@@ -99,6 +124,7 @@ export class ThreeGameView implements GameView {
   }
 
   dispose(): void {
+    this.generation.next();
     this.canvas.hidden = true;
     this.clearWorld();
     this.canvas.removeEventListener('pointerdown', this.onPointerDown);
@@ -116,6 +142,7 @@ export class ThreeGameView implements GameView {
 
   setMode(mode: CameraMode): void {
     this.mode = mode;
+    if (this.actorVisuals[0]) this.actorVisuals[0].root.visible = mode !== 'firstPerson';
     this.targetPitch = mode === 'tabletop' ? -0.9 : mode === 'orbit' ? -0.2 : 0;
     this.targetDistance = mode === 'tabletop' ? 22 : 8;
     this.ensureAnimation();
@@ -127,8 +154,9 @@ export class ThreeGameView implements GameView {
     this.yaw = smoothToward(this.yaw, this.targetYaw, 14, elapsed);
     this.pitch = smoothToward(this.pitch, this.targetPitch, 14, elapsed);
     this.distance = smoothToward(this.distance, this.targetDistance, 12, elapsed);
+    for (const visual of this.actorVisuals) visual.mixer.update(elapsed);
     this.placeCamera();
-    const moving = Math.abs(this.yaw - this.targetYaw) > 0.0001 || Math.abs(this.pitch - this.targetPitch) > 0.0001 || Math.abs(this.distance - this.targetDistance) > 0.001;
+    const moving = Math.abs(this.yaw - this.targetYaw) > 0.0001 || Math.abs(this.pitch - this.targetPitch) > 0.0001 || Math.abs(this.distance - this.targetDistance) > 0.001 || now < this.animationUntil;
     this.frame = moving ? requestAnimationFrame(this.animate) : null;
   };
 
@@ -194,12 +222,20 @@ export class ThreeGameView implements GameView {
   }
 
   private clearWorld(): void {
+    for (const visual of this.actorVisuals) visual.mixer.stopAllAction();
+    this.actorVisuals = [];
     for (const child of [...this.world.children]) {
       this.world.remove(child);
-      if (!(child instanceof THREE.Mesh)) continue;
-      child.geometry.dispose();
-      const materials = Array.isArray(child.material) ? child.material : [child.material];
-      for (const material of materials) material.dispose();
+      disposeObjectTree(child);
     }
   }
+}
+
+export function disposeObjectTree(root: THREE.Object3D): void {
+  root.traverse(descendant => {
+    if (!(descendant instanceof THREE.Mesh)) return;
+    descendant.geometry.dispose();
+    const materials = Array.isArray(descendant.material) ? descendant.material : [descendant.material];
+    for (const material of materials) material.dispose();
+  });
 }
