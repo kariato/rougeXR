@@ -4,9 +4,10 @@ import type { RawEventInput } from '../model/action';
 import type { Position, TrapKind, WorldState } from '../model/state';
 import { rnd, roll } from '../random';
 import { IS_LEVITATING, IS_PROTECTED } from './flags';
+import { teleportPlayer } from './teleport';
 
-export const ACTIVE_TRAPS = new Set<TrapKind>(['bear', 'sleep', 'arrow', 'dart', 'rust', 'mystery']);
-export const DEFERRED_TRAPS = new Set<TrapKind>(['teleport']);
+export const ACTIVE_TRAPS = new Set<TrapKind>(['trapDoor', 'bear', 'sleep', 'arrow', 'teleport', 'dart', 'rust', 'mystery']);
+export const DEFERRED_TRAPS = new Set<TrapKind>();
 
 export function triggerTrap(state: WorldState, at: Position, emit: (event: RawEventInput) => void): void {
   const feature = state.level.tiles[cellIndex(state.level, at)]?.feature;
@@ -14,10 +15,12 @@ export function triggerTrap(state: WorldState, at: Position, emit: (event: RawEv
   if (!ACTIVE_TRAPS.has(feature.trap)) throw new Error(`Trap requires a later phase: ${feature.trap}`);
   feature.revealed = true; emit({ type: 'featureRevealed', at: { ...at }, feature: feature.trap });
   switch (feature.trap) {
+    case 'trapDoor': throw new Error('Trap door transition must be handled by movement');
     case 'bear': state.timing.noMove += spread(state, 3); message(emit, 'You are caught in a bear trap.'); break;
     case 'sleep': state.timing.noCommand += spread(state, 5); state.player.flags &= ~0o20000;
       message(emit, 'A strange white mist envelops you and you fall asleep.'); break;
     case 'arrow': arrowTrap(state, at, emit); break;
+    case 'teleport': teleportPlayer(state, emit); break;
     case 'dart': dartTrap(state, emit); break;
     case 'rust': rustTrap(state, emit); break;
     case 'mystery': mysteryTrap(state, emit); break;

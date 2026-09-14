@@ -275,7 +275,7 @@ Each row is a queue: make one effect, ability, or tightly related group its own 
 - [x] 11.4
 - [x] 11.5
 - [x] 11.6
-- [ ] 11.7
+- [x] 11.7
 - [ ] 11.8
 - [ ] 11.9
 
@@ -327,6 +327,11 @@ Phase 11.6 progress:
 - [x] Add dragon breath, hastened second moves, confusion recovery checks, and movement room-membership updates.
 - [x] Route cross-room pursuit through room exits and passage paths, retain greedy item collection, and prevent stepping onto scare scrolls.
 - [x] Audit every species-specific branch in `fight.c`, `chase.c`, and `monsters.c`; defer carried-object creation to the complete object generator in Phase 11.8.
+
+Phase 11.7 progress:
+
+- [x] Enable all eight source trap kinds, including generated trap doors and replayable same-level teleport traps.
+- [x] Verify levitation bypass, hidden-trap revelation, status recovery fuses, hallucinated observations, and monster/item detection overlays.
 
 Gate: enable `full` mode only after definition coverage and the command audit justify it. Deterministic TypeScript replay is not a claim of identical historical C RNG sequences. Any deferred gameplay command prevents claiming full source parity even if full content is available.
 

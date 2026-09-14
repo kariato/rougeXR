@@ -61,7 +61,7 @@ export function startWanderChecks(state: WorldState): void { startDaemon(state.t
 export function rollWanderCheck(state: WorldState): void {
   if (++state.timing.between < 4) return;
   if (roll(state.rng, 1, 6) === 4) {
-    // Full monster selection arrives in Phase 11; preserve timing and RNG now.
+    // Schedule the source wandering delay; Phase 11.8 creates the selected monster.
     killDaemon(state.timing.scheduler, 'rollwand'); scheduleFuse(state.timing.scheduler, 'swander', 0, 'before', spread(state, 70));
   }
   state.timing.between = 0;

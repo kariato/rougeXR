@@ -32,9 +32,10 @@ describe('trap handlers', () => {
     state.level.floorObjectOrder.push(id); transferItem(state, id, { kind: 'pack', owner: 'player' }); state.player.equipment.armor = id;
     triggerTrap(state, { x: 6, y: 5 }, () => {}); expect(state.entities[id]).toMatchObject({ armorClass: 6 });
   });
-  it('rejects teleport before movement and trap doors generate the next level', () => {
-    const teleport = new GameSession(trapped('teleport')); const rejected = teleport.submit({ expectedRevision: 0, action: { type: 'move', direction: 'E', pickup: true } });
-    expect(rejected).toMatchObject({ status: 'rejected', consumedSlot: false, reason: 'unsupported-trap:teleport' }); expect(teleport.exportState().player.at).toEqual({ x: 5, y: 5 });
+  it('teleports to a legal room cell and trap doors generate the next level', () => {
+    const teleport = new GameSession(trapped('teleport')); const teleported = teleport.submit({ expectedRevision: 0, action: { type: 'move', direction: 'E', pickup: true } });
+    expect(teleported).toMatchObject({ status: 'resolved', consumedSlot: true }); expect(teleport.exportState().player.at).not.toEqual({ x: 6, y: 5 });
+    expect(teleport.exportState().level.tiles[cellIndex(teleport.exportState().level, { x: 6, y: 5 })]!.feature).toMatchObject({ revealed: true });
     const trapDoor = new GameSession(trapped('trapDoor')); const descended = trapDoor.submit({ expectedRevision: 0, action: { type: 'move', direction: 'E', pickup: true } });
     expect(descended).toMatchObject({ status: 'resolved', consumedSlot: true }); expect(trapDoor.exportState().level.depth).toBe(2);
   });

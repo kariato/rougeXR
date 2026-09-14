@@ -29,7 +29,7 @@ describe('supported generated level population', () => {
     expect(occupied.has(`${generated.playerAt.x},${generated.playerAt.y}`)).toBe(false);
     expect(occupied.has(`${generated.level.stairs.x},${generated.level.stairs.y}`)).toBe(false);
     const trapKinds = generated.level.tiles.flatMap(tile => tile.feature?.kind === 'trap' ? [tile.feature.trap] : []);
-    expect(trapKinds.every(kind => !['teleport', 'trapDoor'].includes(kind))).toBe(true);
+    expect(trapKinds.every(kind => ['trapDoor', 'bear', 'sleep', 'arrow', 'teleport', 'dart', 'rust', 'mystery'].includes(kind))).toBe(true);
   });
   it('assembles into a valid world boundary with ordered registries', () => {
     const generated = generateLevelContent(2026, 6); const state = createTwoRoomFixture(2026);
