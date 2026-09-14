@@ -1,6 +1,6 @@
 # Implementation plan
 
-Status: implementation complete through Phase 10. This plan breaks the [TypeScript implementation specification](typescript-implementation.md) into small reviewable changes. The reference remains Davidslv/rogue commit `f4653c2a2ee6981a73abe9dfda055134285e1e79`.
+Status: software implementation complete through Phase 13.5. Phase 13.6 requires target-headset verification. This plan breaks the [TypeScript implementation specification](typescript-implementation.md) into small reviewable changes. The reference remains Davidslv/rogue commit `f4653c2a2ee6981a73abe9dfda055134285e1e79`.
 
 ## Working method
 
@@ -24,10 +24,12 @@ Outcome: a regular browser opens the application shell; engine code can be teste
 | 0.3 | Add the basic DOM shell with map host, message area, and disabled controls for unavailable capabilities. | Browser smoke test opens without WebXR; no startup errors. |
 | 0.4 | Record source revision, source-to-module tracking format, and applicable notices for code being reused. | Source provenance is documented and generated code has a defined attribution location. |
 
-- [ ] 0.1
-- [ ] 0.2
-- [ ] 0.3
-- [ ] 0.4
+- [x] 0.1
+- [x] 0.2
+- [x] 0.3
+- [x] 0.4
+
+Completed 2026-09-10. The pinned project/tooling, engine-browser boundary check, no-WebXR browser startup, source revision, and attribution records were all present before Phase 1 began. Current regression validation continues to cover this gate.
 
 Gate: runnable shell and headless verification. Do not add gameplay yet.
 
