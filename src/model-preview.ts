@@ -2,12 +2,20 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
+const model = new URLSearchParams(location.search).get('model') === 'kestrel' ? 'kestrel' : 'hobgoblin';
+const modelSelector = document.querySelector<HTMLSelectElement>('#model')!;
+modelSelector.value = model;
+modelSelector.addEventListener('change', () => { location.search = new URLSearchParams({ model: modelSelector.value }).toString(); });
+const title = `${model === 'kestrel' ? 'Kestrel' : 'Hobgoblin'} · model study`;
+document.querySelector('h1')!.textContent = title; document.title = title;
+
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 document.body.append(renderer.domElement);
 const scene = new THREE.Scene(); scene.background = new THREE.Color(0x111820);
 const camera = new THREE.PerspectiveCamera(42, 1, 0.01, 50); camera.position.set(2, 1.7, 3.4);
 const controls = new OrbitControls(camera, renderer.domElement); controls.target.set(0, 0.72, 0); controls.update();
+if (model === 'kestrel') { camera.position.set(1.25, 1.65, 2.0); controls.target.set(0, 0.8, 0); controls.update(); }
 scene.add(new THREE.HemisphereLight(0xe6efff, 0x716244, 2.5));
 const key = new THREE.DirectionalLight(0xffe4b3, 3); key.position.set(3, 5, 4); scene.add(key);
 const floor = new THREE.Mesh(new THREE.CircleGeometry(1.4, 64), new THREE.MeshStandardMaterial({ color: 0x27313a, roughness: 1 }));
@@ -16,7 +24,7 @@ const selector = document.querySelector<HTMLSelectElement>('#animation')!;
 const status = document.querySelector<HTMLElement>('#status')!;
 let mixer: THREE.AnimationMixer | null = null;
 let active: THREE.AnimationAction | null = null;
-new GLTFLoader().load('/assets/creatures/hobgoblin.glb', gltf => {
+new GLTFLoader().load(`/assets/creatures/${model}.glb`, gltf => {
   scene.add(gltf.scene); mixer = new THREE.AnimationMixer(gltf.scene);
   selector.replaceChildren(...gltf.animations.map(clip => { const option = document.createElement('option'); option.value = clip.name; option.textContent = clip.name; return option; }));
   const play = (): void => {
