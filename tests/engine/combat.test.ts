@@ -93,6 +93,30 @@ describe('source combat encounter', () => {
     expect(burned).toBe(true);
   });
 
+  it('routes pursuit through doors and refuses to step onto a scare scroll', () => {
+    const routed = createTwoRoomFixture(39); const monster = routed.entities.e1; if (monster?.kind !== 'monster') throw new Error('missing monster');
+    monster.definitionId = 'monster.hobgoblin'; monster.flags = IS_RUNNING; monster.target = { kind: 'player' };
+    for (let turn = 0; turn < 20; turn++) runMonsters(routed, () => {});
+    expect(monster.at.x).toBeLessThan(12);
+
+    const scared = createKestrelEncounterFixture(40); const blocked = scared.entities.e1; if (blocked?.kind !== 'monster') throw new Error('missing monster');
+    const scrollId = allocateId(scared); scared.entities[scrollId] = { kind: 'item', id: scrollId, definitionId: 'scroll.scare-monster', category: 'scroll',
+      location: { kind: 'floor', levelId: 1, at: { x: 7, y: 5 } }, quantity: 1, flags: 0, group: 0, label: null }; scared.level.floorObjectOrder.push(scrollId);
+    runMonsters(scared, () => {}); expect(blocked.at).not.toEqual({ x: 7, y: 5 });
+  });
+
+  it('releases flytrap holding on death and creates a leprechaun gold drop', () => {
+    const flytrapState = createKestrelEncounterFixture(41); const flytrap = flytrapState.entities.e1; if (flytrap?.kind !== 'monster') throw new Error('missing monster');
+    flytrap.definitionId = 'monster.venus-flytrap'; flytrap.stats.hp = 1; flytrapState.player.flags |= IS_HELD; flytrapState.sourceState.flytrapHits = 4;
+    flytrapState.player.stats.level = 30; flytrapState.player.stats.strength = 31; attackMonster(flytrapState, flytrap.id, () => {});
+    expect(flytrapState.player.flags & IS_HELD).toBe(0); expect(flytrapState.sourceState.flytrapHits).toBe(0);
+
+    const leprechaunState = createKestrelEncounterFixture(42); const leprechaun = leprechaunState.entities.e1; if (leprechaun?.kind !== 'monster') throw new Error('missing monster');
+    leprechaun.definitionId = 'monster.leprechaun'; leprechaun.stats.hp = 1; leprechaunState.player.stats.level = 30; leprechaunState.player.stats.strength = 31;
+    attackMonster(leprechaunState, leprechaun.id, () => {});
+    expect(Object.values(leprechaunState.entities)).toContainEqual(expect.objectContaining({ definitionId: 'gold.pieces', category: 'gold', location: expect.objectContaining({ kind: 'floor' }) }));
+  });
+
   it('transcribes strength tables and parses every damage group', () => {
     expect(STRENGTH_HIT_BONUS).toHaveLength(32); expect(STRENGTH_DAMAGE_BONUS).toHaveLength(32);
     expect(parseDamage('1x6/2x4/0x0')).toEqual([{ count: 1, sides: 6 }, { count: 2, sides: 4 }, { count: 0, sides: 0 }]);

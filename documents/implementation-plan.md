@@ -270,11 +270,11 @@ Each row is a queue: make one effect, ability, or tightly related group its own 
 | 11.9 | Audit commands and options, documenting deferred terminal-only features and intentional browser differences. | Every source command has an implemented, replaced, or explicitly deferred disposition. |
 
 - [x] 11.1
-- [ ] 11.2
-- [ ] 11.3
-- [ ] 11.4
+- [x] 11.2
+- [x] 11.3
+- [x] 11.4
 - [x] 11.5
-- [ ] 11.6
+- [x] 11.6
 - [ ] 11.7
 - [ ] 11.8
 - [ ] 11.9
@@ -325,7 +325,8 @@ Phase 11.6 progress:
 - [x] Add Aquator rust, ice freezing, rattlesnake poison, leprechaun gold theft, nymph magic theft, wraith/vampire drains, flytrap holding, and Xeroc discovery.
 - [x] Add player confusion-charge transfer and confused/Bat/Phantom movement variation.
 - [x] Add dragon breath, hastened second moves, confusion recovery checks, and movement room-membership updates.
-- [ ] Add source destination/path refinements, monster carried-object generation, and a final per-species behavior audit.
+- [x] Route cross-room pursuit through room exits and passage paths, retain greedy item collection, and prevent stepping onto scare scrolls.
+- [x] Audit every species-specific branch in `fight.c`, `chase.c`, and `monsters.c`; defer carried-object creation to the complete object generator in Phase 11.8.
 
 Gate: enable `full` mode only after definition coverage and the command audit justify it. Deterministic TypeScript replay is not a claim of identical historical C RNG sequences. Any deferred gameplay command prevents claiming full source parity even if full content is available.
 

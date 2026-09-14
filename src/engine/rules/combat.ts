@@ -1,5 +1,5 @@
 import { MONSTER_DEFINITIONS, STRENGTH_DAMAGE_BONUS, STRENGTH_HIT_BONUS } from '../../definitions/combat';
-import { buildIndexes, transferItem } from '../entities';
+import { allocateId, buildIndexes, transferItem } from '../entities';
 import { cellIndex, isPlayable, tileAt } from '../grid';
 import type { RawEventInput } from '../model/action';
 import type { CombatStats, EntityId, ItemState, MonsterState, Position, WorldState } from '../model/state';
@@ -192,6 +192,13 @@ function removeMonster(state: WorldState, monster: MonsterState): void { const i
 
 function destroyMonster(state: WorldState, monster: MonsterState, emit: EmitRaw): void {
   const at = { ...monster.at };
+  if (monster.definitionId === 'monster.venus-flytrap') { state.player.flags &= ~IS_HELD; state.sourceState.flytrapHits = 0; }
+  if (monster.definitionId === 'monster.leprechaun') {
+    let quantity = rnd(state.rng, 50 + 10 * state.level.depth) + 2;
+    if (saveThrow(state, 3)) for (let count = 0; count < 4; count++) quantity += rnd(state.rng, 50 + 10 * state.level.depth) + 2;
+    const id = allocateId(state); state.entities[id] = { kind: 'item', id, definitionId: 'gold.pieces', category: 'gold',
+      location: { kind: 'pack', owner: monster.id }, quantity, flags: 0, group: 1, label: null }; monster.packOrder.push(id);
+  }
   for (const itemId of [...monster.packOrder]) {
     const drop = findDrop(state, at);
     if (!drop) throw new Error('No legal carried-item drop position');
@@ -254,15 +261,18 @@ function chaseOnce(state: WorldState, monster: MonsterState, emit: EmitRaw): voi
     || (monster.definitionId === 'monster.phantom' && rnd(state.rng, 5) === 0) || (monster.definitionId === 'monster.bat' && rnd(state.rng, 2) === 0);
   if (randomStep && (monster.flags & IS_CONFUSED) !== 0 && rnd(state.rng, 20) === 0) monster.flags &= ~IS_CONFUSED;
   const targetItem = monster.target?.kind === 'item' ? state.entities[monster.target.id] : null;
-  const destination = monster.target?.kind === 'position' ? monster.target.at
+  const ultimate = monster.target?.kind === 'position' ? monster.target.at
     : targetItem?.kind === 'item' && targetItem.location.kind === 'floor' ? targetItem.location.at : state.player.at;
+  const destination = chaseDestination(state, monster, ultimate);
   for (let x = monster.at.x - 1; x <= monster.at.x + 1; x++) for (let y = monster.at.y - 1; y <= monster.at.y + 1; y++) {
     const at = { x, y };
     if ((x === monster.at.x && y === monster.at.y) || !isPlayable(state.level, at)
       || !canStepTerrain(tileAt(state.level, at).terrain) || !canMoveDiagonally(state, monster.at, at)) continue;
     const occupied = indexes.monsters.get(cellIndex(state.level, at));
     if (occupied && occupied !== monster.id) continue;
-    const distance = randomStep ? 0 : distanceSquared(at, destination);
+    const floorItemId = indexes.objects.get(cellIndex(state.level, at)); const floorItem = floorItemId ? state.entities[floorItemId] : null;
+    if (floorItem?.kind === 'item' && floorItem.definitionId === 'scroll.scare-monster') continue;
+    const distance = randomStep ? 0 : monster.roomId === null ? routeDistance(state, at, ultimate, indexes.monsters, monster.id) : distanceSquared(at, destination);
     if (distance < bestDistance) { best = at; bestDistance = distance; equal = 1; }
     else if (distance === bestDistance && rnd(state.rng, ++equal) === 0) best = at;
   }
@@ -274,6 +284,25 @@ function chaseOnce(state: WorldState, monster: MonsterState, emit: EmitRaw): voi
     const itemId = buildIndexes(state).objects.get(cellIndex(state.level, best)); if (itemId) transferItem(state, itemId, { kind: 'pack', owner: monster.id });
     monster.target = { kind: 'player' };
   }
+}
+
+function chaseDestination(state: WorldState, monster: MonsterState, ultimate: Position): Position {
+  const destinationRoom = tileAt(state.level, ultimate).roomId;
+  if (monster.roomId === null || monster.roomId === destinationRoom) return ultimate;
+  const room = state.level.rooms.find(candidate => candidate.id === monster.roomId);
+  return room?.exits.reduce((best, exit) => distanceSquared(exit, ultimate) < distanceSquared(best, ultimate) ? exit : best, room.exits[0]!) ?? ultimate;
+}
+
+function routeDistance(state: WorldState, start: Position, goal: Position, monsters: Map<number, EntityId>, self: EntityId): number {
+  const queue: Array<{ at: Position; distance: number }> = [{ at: start, distance: 0 }]; const seen = new Set([cellIndex(state.level, start)]);
+  for (let cursor = 0; cursor < queue.length; cursor++) { const current = queue[cursor]!; if (current.at.x === goal.x && current.at.y === goal.y) return current.distance;
+    for (let x = current.at.x - 1; x <= current.at.x + 1; x++) for (let y = current.at.y - 1; y <= current.at.y + 1; y++) { const at = { x, y };
+      if ((x === current.at.x && y === current.at.y) || !isPlayable(state.level, at) || !canStepTerrain(tileAt(state.level, at).terrain)
+        || !canMoveDiagonally(state, current.at, at)) continue; const index = cellIndex(state.level, at); const occupant = monsters.get(index);
+      if (seen.has(index) || (occupant && occupant !== self)) continue; seen.add(index); queue.push({ at, distance: current.distance + 1 });
+    }
+  }
+  return Number.POSITIVE_INFINITY;
 }
 
 function revealXeroc(state: WorldState, monster: MonsterState, emit: EmitRaw): boolean {
