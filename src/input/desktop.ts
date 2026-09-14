@@ -19,6 +19,7 @@ export function actionForKeyboardEvent(event: KeyboardInput): GameAction | null 
   if (event.key === 'f') return { type: 'search' };
   if (event.key === ',') return { type: 'pickup' };
   if (event.key === '>') return { type: 'descend' };
+  if (event.key === '<') return { type: 'ascend' };
   return null;
 }
 

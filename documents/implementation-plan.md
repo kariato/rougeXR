@@ -276,7 +276,7 @@ Each row is a queue: make one effect, ability, or tightly related group its own 
 - [x] 11.5
 - [x] 11.6
 - [x] 11.7
-- [ ] 11.8
+- [x] 11.8
 - [ ] 11.9
 
 Phase 11.1 progress:
@@ -338,7 +338,9 @@ Phase 11.8 progress:
 - [x] Transcribe category and definition weights for potions, scrolls, food, weapons, armor, rings, and sticks.
 - [x] Replace the food/mace population substitute with `new_thing()` quality, curse, stack, charge, food-forcing, and group rules.
 - [x] Generate source carry-chance monster packs from the same object pipeline.
-- [ ] Add treasure rooms, wandering monsters, Amulet placement, ascent, and victory.
+- [x] Add treasure rooms with next-depth guards and complete object generation.
+- [x] Add the 70-turn wandering cycle, source wandering table, off-room placement, and running pursuit.
+- [x] Add depth-26 Amulet placement, deepest-level tracking, treasure-free ascent, levitation checks, browser ascent input, and victory above level one.
 
 Gate: enable `full` mode only after definition coverage and the command audit justify it. Deterministic TypeScript replay is not a claim of identical historical C RNG sequences. Any deferred gameplay command prevents claiming full source parity even if full content is available.
 

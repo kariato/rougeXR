@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { createTwoRoomFixture } from '../../src/debug/fixtures';
 import { allocateId } from '../../src/engine/entities';
-import { recoverConfusion, recoverSight, runDoctor } from '../../src/engine/rules/effects';
-import { IS_BLIND, IS_CONFUSED } from '../../src/engine/rules/flags';
+import { recoverConfusion, recoverSight, rollWanderCheck, runDoctor } from '../../src/engine/rules/effects';
+import { IS_BLIND, IS_CONFUSED, IS_RUNNING } from '../../src/engine/rules/flags';
 import { scheduleFuse, startDaemon } from '../../src/engine/scheduler';
 import { GameSession } from '../../src/engine/session';
 import { restoreGame } from '../../src/persistence/save';
@@ -39,5 +39,16 @@ describe('healing and timed recovery', () => {
       original.submit({ expectedRevision: revision, action: { type: 'rest' } }); restored.submit({ expectedRevision: revision, action: { type: 'rest' } });
     }
     expect(restored.exportState()).toEqual(original.exportState()); expect(original.exportState().player.flags & IS_CONFUSED).toBe(0);
+  });
+
+  it('creates a depth-selected wandering monster outside the player room', () => {
+    let created = false;
+    for (let seed = 1; seed <= 100 && !created; seed++) { const state = createTwoRoomFixture(seed); state.timing.between = 3;
+      startDaemon(state.timing.scheduler, 'rollwand', 0, 'before'); rollWanderCheck(state); created = state.level.monsterOrder.length === 2;
+      if (created) { const monster = state.entities[state.level.monsterOrder[0]!]; if (monster?.kind !== 'monster') throw new Error('missing wanderer');
+        expect(monster.roomId).not.toBe(state.player.roomId); expect(monster.flags & IS_RUNNING).toBe(IS_RUNNING); expect(monster.target).toEqual({ kind: 'player' });
+        expect(state.timing.scheduler.slots).toContainEqual(expect.objectContaining({ effect: 'swander', remaining: 70 })); }
+    }
+    expect(created).toBe(true);
   });
 });

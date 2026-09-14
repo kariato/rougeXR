@@ -21,11 +21,11 @@ export function createNewGame(seed: number): WorldState {
   const identification = initializeIdentification(rng);
   const generated = generateLevelContentFromRandom(rng, 1, serial); const scheduler = createScheduler();
   startDaemon(scheduler, 'runners', 0, 'after'); startDaemon(scheduler, 'doctor', 0, 'after');
-  scheduleFuse(scheduler, 'swander', 0, 'after', spread(rng, 70)); startDaemon(scheduler, 'stomach', 0, 'after');
+  scheduleFuse(scheduler, 'swander', 0, 'after', 70); startDaemon(scheduler, 'stomach', 0, 'after');
   const starting = [food, armor, mace, bow, arrows]; const entities: Record<string, EntityState> = { ...generated.entities };
   for (const entry of starting) entities[entry.id] = entry;
   const state: WorldState = {
-    seed, rng, nextEntitySerial: generated.nextEntitySerial, sourceState: { flytrapHits: 0, nextGroup: generated.nextGroup }, entities, pendingDecision: null,
+    seed, rng, nextEntitySerial: generated.nextEntitySerial, sourceState: { flytrapHits: 0, nextGroup: generated.nextGroup, maximumDepth: 1 }, entities, pendingDecision: null,
     level: generated.level,
     player: { at: generated.playerAt, roomId: generated.playerRoomId, gold: 0, flags: 0, maximumStrength: 16,
       stats: { strength: 16, experience: 0, level: 1, armorClass: 10, hp: 12, maxHp: 12, damage: [{ count: 1, sides: 4 }] },
@@ -41,4 +41,3 @@ export function createNewGame(seed: number): WorldState {
 function item(id: string, definitionId: string, category: 'food' | 'armor' | 'weapon'): ItemState {
   return { kind: 'item', id, definitionId, category, location: { kind: 'pack', owner: 'player' }, quantity: 1, flags: 0, group: 0, label: definitionId } as ItemState;
 }
-function spread(state: WorldState['rng'], value: number): number { return value - Math.trunc(value / 20) + rnd(state, Math.trunc(value / 10)); }

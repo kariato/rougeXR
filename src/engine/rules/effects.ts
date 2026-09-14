@@ -2,6 +2,10 @@ import type { RawEventInput } from '../model/action';
 import type { WorldState } from '../model/state';
 import { rnd, roll } from '../random';
 import { CAN_DETECT_MONSTERS, CAN_SEE_INVISIBLE, IS_BLIND, IS_CONFUSED, IS_HALLUCINATING, IS_HASTED, IS_LEVITATING } from './flags';
+import { allocateId, buildIndexes } from '../entities';
+import { cellIndex, supportsOccupant } from '../grid';
+import { instantiateMonster, randomMonster } from '../generation/monsters';
+import { IS_RUNNING } from './flags';
 import { extinguish, killDaemon, scheduleFuse, startDaemon } from '../scheduler';
 import { isPositionVisible } from '../perception/knowledge';
 
@@ -61,9 +65,19 @@ export function startWanderChecks(state: WorldState): void { startDaemon(state.t
 export function rollWanderCheck(state: WorldState): void {
   if (++state.timing.between < 4) return;
   if (roll(state.rng, 1, 6) === 4) {
-    // Schedule the source wandering delay; Phase 11.8 creates the selected monster.
-    killDaemon(state.timing.scheduler, 'rollwand'); scheduleFuse(state.timing.scheduler, 'swander', 0, 'before', spread(state, 70));
+    createWanderer(state); killDaemon(state.timing.scheduler, 'rollwand'); scheduleFuse(state.timing.scheduler, 'swander', 0, 'before', 70);
   }
   state.timing.between = 0;
+}
+function createWanderer(state: WorldState): void { const indexes = buildIndexes(state); let at = { x: 0, y: 0 }; let roomId: number | null = null;
+  for (let attempts = 0; attempts < 10000; attempts++) { let room = state.level.rooms[rnd(state.rng, state.level.rooms.length)]!;
+    while (room.kind === 'gone') room = state.level.rooms[rnd(state.rng, state.level.rooms.length)]!; if (room.id === state.player.roomId || room.width <= 2 || room.height <= 2) continue;
+    const candidate = { x: room.origin.x + rnd(state.rng, room.width - 2) + 1, y: room.origin.y + rnd(state.rng, room.height - 2) + 1 };
+    if (!supportsOccupant(state.level, candidate) || indexes.monsters.has(cellIndex(state.level, candidate)) || indexes.objects.has(cellIndex(state.level, candidate))) continue;
+    at = candidate; roomId = room.id; break;
+  }
+  if (roomId === null) throw new Error('Unable to place wandering monster'); const id = allocateId(state);
+  const monster = instantiateMonster(state.rng, state.level.depth, id, randomMonster(state.rng, state.level.depth, true), at, roomId);
+  monster.flags |= IS_RUNNING; monster.target = { kind: 'player' }; state.entities[id] = monster; state.level.monsterOrder.unshift(id);
 }
 function spread(state: WorldState, value: number): number { return value - Math.trunc(value / 20) + rnd(state.rng, Math.trunc(value / 10)); }

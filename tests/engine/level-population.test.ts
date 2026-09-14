@@ -34,9 +34,21 @@ describe('supported generated level population', () => {
   it('assembles into a valid world boundary with ordered registries', () => {
     const generated = generateLevelContent(2026, 6); const state = createTwoRoomFixture(2026);
     state.rng = generated.rng; state.nextEntitySerial = generated.nextEntitySerial; state.level = generated.level; state.entities = generated.entities;
+    state.sourceState.nextGroup = generated.nextGroup; state.sourceState.maximumDepth = generated.level.depth;
     state.player.at = generated.playerAt; state.player.roomId = generated.playerRoomId; state.knowledge.levelId = generated.level.id;
     state.knowledge.remembered = Array.from({ length: generated.level.tiles.length }, () => null); updateKnowledge(state);
     expect(validateWorld(state)).toEqual([]);
     expect(state.level.tiles[cellIndex(state.level, state.level.stairs)]!.feature).toEqual({ kind: 'stairs' });
+  });
+  it('occasionally builds a treasure room with its larger guarded population', () => {
+    let found = false;
+    for (let seed = 1; seed <= 200 && !found; seed++) { const generated = generateLevelContent(seed, 12);
+      for (const room of generated.level.rooms) { const objects = generated.level.floorObjectOrder.filter(id => { const item = generated.entities[id];
+          return item?.kind === 'item' && item.location.kind === 'floor' && generated.level.tiles[cellIndex(generated.level, item.location.at)]!.roomId === room.id && item.category !== 'gold'; }).length;
+        const monsters = generated.level.monsterOrder.filter(id => { const monster = generated.entities[id]; return monster?.kind === 'monster' && monster.roomId === room.id; }).length;
+        if (objects >= 2 && monsters >= objects + 2) { found = true; break; }
+      }
+    }
+    expect(found).toBe(true);
   });
 });

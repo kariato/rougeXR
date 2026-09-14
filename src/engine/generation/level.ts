@@ -16,16 +16,18 @@ export function generateLevelContent(seed: number, depth: number): GeneratedLeve
   return generateLevelContentFromRandom(createRandom(seed), depth);
 }
 
-export function generateLevelContentFromRandom(rng: RandomState, depth: number, firstEntitySerial = 1, priorNoFood = 0, firstGroup = 2): GeneratedLevelContent {
+export function generateLevelContentFromRandom(rng: RandomState, depth: number, firstEntitySerial = 1, priorNoFood = 0, firstGroup = 2,
+  hasAmulet = false, maximumDepth = depth): GeneratedLevelContent {
   const layout = buildPassages(rng, depth, buildRooms(rng, depth));
   const entities: Record<EntityId, EntityState> = {}; const monsterOrder: EntityId[] = []; const floorObjectOrder: EntityId[] = [];
   let serial = firstEntitySerial; const allocate = (): EntityId => `e${serial++}`;
   const occupiedObjects = new Set<number>(); const occupiedMonsters = new Set<number>();
   const objectContext = { noFood: priorNoFood + 1, nextGroup: firstGroup };
+  const populateTreasure = !hasAmulet || depth >= maximumDepth;
   const floorRooms = layout.rooms.filter(room => room.kind !== 'gone');
   for (const room of floorRooms) {
     let gold = false;
-    if (rnd(rng, 2) === 0) {
+    if (rnd(rng, 2) === 0 && populateTreasure) {
       const at = findFloor(rng, layout.rooms, layout.tiles, occupiedObjects, occupiedMonsters, room); const id = allocate(); const quantity = rnd(rng, 50 + 10 * depth) + 2;
       entities[id] = { kind: 'item', id, definitionId: 'gold.pieces', category: 'gold', location: { kind: 'floor', levelId: depth, at }, quantity, flags: 0, group: 1, label: null };
       floorObjectOrder.unshift(id); occupiedObjects.add(index(at)); room.goldTarget = { ...at }; gold = true;
@@ -39,12 +41,26 @@ export function generateLevelContentFromRandom(rng: RandomState, depth: number, 
         entities[itemId] = generateObject(rng, objectContext, itemId, { kind: 'pack', owner: id }); monster.packOrder.unshift(itemId); }
     }
   }
-  rnd(rng, 20); // treasure-room check; treasure rooms require the full content tables
-  for (let attempt = 0; attempt < 9; attempt++) if (rnd(rng, 100) < 36) {
+  if (populateTreasure && rnd(rng, 20) === 0) {
+    let room = layout.rooms[rnd(rng, layout.rooms.length)]!; while (room.kind === 'gone') room = layout.rooms[rnd(rng, layout.rooms.length)]!;
+    const available = Math.min(8, (room.width - 2) * (room.height - 2) - 2); const treasureCount = rnd(rng, available) + 2;
+    for (let placed = 0; placed < treasureCount; placed++) { const at = findFloor(rng, layout.rooms, layout.tiles, occupiedObjects, occupiedMonsters, room); const id = allocate();
+      entities[id] = generateObject(rng, objectContext, id, { kind: 'floor', levelId: depth, at }); floorObjectOrder.unshift(id); occupiedObjects.add(index(at)); }
+    const monsterCount = Math.min((room.width - 2) * (room.height - 2), Math.max(rnd(rng, available) + 2, treasureCount + 2));
+    for (let placed = 0; placed < monsterCount; placed++) { const at = findFloorLimited(rng, layout.tiles, occupiedObjects, occupiedMonsters, room, 10); if (!at) continue;
+      const definition = randomMonster(rng, depth + 1, false); const id = allocate(); const monster = instantiateMonster(rng, depth + 1, id, definition, at, room.id);
+      monster.flags |= 0o4000; entities[id] = monster; monsterOrder.unshift(id); occupiedMonsters.add(index(at));
+      if (rnd(rng, 100) < definition.carryChance) { const itemId = allocate(); entities[itemId] = generateObject(rng, objectContext, itemId, { kind: 'pack', owner: id }); monster.packOrder.unshift(itemId); }
+    }
+  }
+  for (let attempt = 0; populateTreasure && attempt < 9; attempt++) if (rnd(rng, 100) < 36) {
     const at = findFloor(rng, layout.rooms, layout.tiles, occupiedObjects, occupiedMonsters); const id = allocate();
     entities[id] = generateObject(rng, objectContext, id, { kind: 'floor', levelId: depth, at });
     floorObjectOrder.unshift(id); occupiedObjects.add(index(at));
   }
+  if (depth >= 26 && !hasAmulet) { const at = findFloor(rng, layout.rooms, layout.tiles, occupiedObjects, occupiedMonsters); const id = allocate();
+    entities[id] = { kind: 'item', id, definitionId: 'amulet.yendor', category: 'amulet', location: { kind: 'floor', levelId: depth, at }, quantity: 1, flags: 0, group: 0, label: null };
+    floorObjectOrder.unshift(id); occupiedObjects.add(index(at)); }
   if (rnd(rng, 10) < depth) {
     const count = Math.min(10, rnd(rng, Math.trunc(depth / 4)) + 1); const kinds = [...ACTIVE_TRAPS] as TrapKind[];
     for (let placed = 0; placed < count; placed++) {
@@ -74,4 +90,9 @@ function findFloor(rng: RandomState, rooms: RoomState[], tiles: LevelState['tile
   }
   throw new Error('Unable to place generated content');
 }
+function findFloorLimited(rng: RandomState, tiles: LevelState['tiles'], objects: Set<number>, monsters: Set<number>, room: RoomState,
+  attempts: number): Position | null { for (let attempt = 0; attempt < attempts; attempt++) {
+    const at = { x: room.origin.x + rnd(rng, room.width - 2) + 1, y: room.origin.y + rnd(rng, room.height - 2) + 1 };
+    const cell = tiles[index(at)]!; if (cell.terrain === (room.kind === 'maze' ? 'passage' : 'floor') && !objects.has(index(at)) && !monsters.has(index(at)) && cell.feature === null) return at;
+  } return null; }
 const index = (at: Position): number => cellIndex({ width: GRID_WIDTH, height: GRID_HEIGHT }, at);

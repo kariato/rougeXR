@@ -27,6 +27,7 @@ const rest = required<HTMLButtonElement>('#rest');
 const search = required<HTMLButtonElement>('#search');
 const pickup = required<HTMLButtonElement>('#pickup');
 const descend = required<HTMLButtonElement>('#descend');
+const ascend = required<HTMLButtonElement>('#ascend');
 const worldMode = required<HTMLSelectElement>('#world-mode');
 const seedInput = required<HTMLInputElement>('#seed');
 const newGame = required<HTMLButtonElement>('#new-game');
@@ -139,7 +140,7 @@ function render(): void {
   actionTiming.textContent = latestActionTiming;
   document.body.classList.toggle('debug-reveal', reveal.checked);
   const replayMode = replayPlayer !== null;
-  for (const control of [rest, search, pickup, descend]) control.disabled = replayMode || decisionPending;
+  for (const control of [rest, search, pickup, descend, ascend]) control.disabled = replayMode || decisionPending;
   replayRestart.disabled = !replayMode;
   replayStep.disabled = !replayMode || replayPlaying || !replayPlayer?.canStep();
   replayPlay.disabled = !replayMode || replayPlaying || !replayPlayer?.canStep();
@@ -162,6 +163,7 @@ rest.addEventListener('click', () => {
 search.addEventListener('click', () => submit({ type: 'search' }));
 pickup.addEventListener('click', () => submit({ type: 'pickup' }));
 descend.addEventListener('click', () => submit({ type: 'descend' }));
+ascend.addEventListener('click', () => submit({ type: 'ascend' }));
 newGame.addEventListener('click', () => {
   actionQueue = actionQueue.then(async () => {
     leaveReplayMode();

@@ -4,6 +4,9 @@ import { createNewGame } from '../../src/engine/new-game';
 import { GameSession } from '../../src/engine/session';
 import { validateWorld } from '../../src/engine/validate';
 import { ReplayRecorder, parseReplay, replay } from '../../src/persistence/replay';
+import { allocateId } from '../../src/engine/entities';
+import { generateLevelContent } from '../../src/engine/generation/level';
+import { IS_LEVITATING } from '../../src/engine/rules/flags';
 
 function sessionOnStairs(seed: number): GameSession {
   const state = createNewGame(seed); state.player.at = { ...state.level.stairs };
@@ -11,6 +14,27 @@ function sessionOnStairs(seed: number): GameSession {
 }
 
 describe('generated level transition', () => {
+  it('places the Amulet at depth 26 and blocks ascent without it', () => {
+    expect(Object.values(generateLevelContent(500, 26).entities)).toContainEqual(expect.objectContaining({ definitionId: 'amulet.yendor', category: 'amulet' }));
+    const blocked = sessionOnStairs(500); expect(blocked.submit({ expectedRevision: 0, action: { type: 'ascend' } }))
+      .toMatchObject({ status: 'rejected', reason: 'amulet-required', consumedSlot: false });
+  });
+
+  it('ascends without repopulating treasure and wins above level one with the Amulet', () => {
+    const session = sessionOnStairs(502); session.submit({ expectedRevision: 0, action: { type: 'descend' } }); let state = session.exportState();
+    const amuletId = allocateId(state); state.entities[amuletId] = { kind: 'item', id: amuletId, definitionId: 'amulet.yendor', category: 'amulet',
+      location: { kind: 'pack', owner: 'player' }, quantity: 1, flags: 0, group: 0, label: null }; state.player.packOrder.push(amuletId);
+    state.player.at = { ...state.level.stairs }; state.player.roomId = state.level.tiles[cellIndex(state.level, state.player.at)]!.roomId;
+    const upward = new GameSession(state); upward.submit({ expectedRevision: 1, action: { type: 'ascend' } }); const levelOne = upward.exportState();
+    expect(levelOne.level.depth).toBe(1); expect(levelOne.level.floorObjectOrder).toEqual([]);
+    levelOne.player.at = { ...levelOne.level.stairs }; levelOne.player.roomId = levelOne.level.tiles[cellIndex(levelOne.level, levelOne.player.at)]!.roomId;
+    const winner = new GameSession(levelOne); winner.submit({ expectedRevision: 2, action: { type: 'ascend' } }); expect(winner.exportState().timing.status).toBe('won');
+  });
+
+  it('prevents stair use while levitating', () => {
+    const session = sessionOnStairs(503); const state = session.exportState(); state.player.flags |= IS_LEVITATING; const floating = new GameSession(state);
+    expect(floating.submit({ expectedRevision: 0, action: { type: 'descend' } })).toMatchObject({ status: 'rejected', reason: 'levitating' });
+  });
   it('preserves player item identity and equipment while deleting old level entities (L01)', () => {
     const session = sessionOnStairs(501); const before = session.exportState(); const carried = [...before.player.packOrder];
     const oldLevelIds = [...before.level.monsterOrder, ...before.level.floorObjectOrder];

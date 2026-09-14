@@ -10,7 +10,7 @@ import { collectAtPlayer, collectItem, dropItem, equipItem, unequipItem } from '
 import { eatItem } from './rules/inventory';
 import { runStomach } from './rules/hunger';
 import { comeDown, endMonsterDetection, land, loseSeeInvisible, recoverConfusion, recoverHaste, recoverSight, rollWanderCheck, runDoctor, runVisuals, startWanderChecks } from './rules/effects';
-import { descendAtStairs } from './level-transition';
+import { ascendAtStairs, descendAtStairs } from './level-transition';
 import { drinkItem } from './rules/potions';
 import { answerIdentify, readItem } from './rules/scrolls';
 import { throwItem } from './rules/projectiles';
@@ -173,6 +173,7 @@ function defaultAction(action: GameAction, context: RuleContext): RuleResult {
   if (action.type === 'throw') return throwItem(context.state, action.itemId, action.direction, context.emitRaw);
   if (action.type === 'zap') return zapItem(context.state, action.itemId, action.direction, context.emitRaw);
   if (action.type === 'descend') return descendAtStairs(context.state, context.emitRaw);
+  if (action.type === 'ascend') return ascendAtStairs(context.state, context.emitRaw);
   if (action.name === 'free') return { resolved: true, consumedSlot: false, reason: null };
   return { resolved: false, consumedSlot: false, reason: `Unsupported fixture action: ${action.name}` };
 }
@@ -181,7 +182,7 @@ function validRequest(value: unknown): value is ActionRequest {
   const request = value as Partial<ActionRequest>;
   if (!Number.isSafeInteger(request.expectedRevision) || request.action === null || typeof request.action !== 'object') return false;
   const action = request.action as GameAction;
-  if (action.type === 'rest' || action.type === 'search' || action.type === 'pickup' || action.type === 'descend') return true;
+  if (action.type === 'rest' || action.type === 'search' || action.type === 'pickup' || action.type === 'descend' || action.type === 'ascend') return true;
   if (action.type === 'move') return Object.hasOwn({ N: 1, NE: 1, E: 1, SE: 1, S: 1, SW: 1, W: 1, NW: 1 }, action.direction)
     && typeof action.pickup === 'boolean';
   if (action.type === 'throw' || action.type === 'zap') return typeof action.itemId === 'string' && Object.hasOwn({ N:1,NE:1,E:1,SE:1,S:1,SW:1,W:1,NW:1 }, action.direction);

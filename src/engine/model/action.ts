@@ -16,6 +16,7 @@ export type GameAction =
   | { type: 'answerCall'; label: string | null }
   | { type: 'answerIdentify'; itemId: string }
   | { type: 'descend' }
+  | { type: 'ascend' }
   | { type: 'fixture'; name: string };
 
 export interface ActionRequest { expectedRevision: number; action: GameAction }
