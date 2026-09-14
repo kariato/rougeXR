@@ -15,6 +15,7 @@ export type GameAction =
   | { type: 'zap'; itemId: string; direction: Direction }
   | { type: 'answerCall'; label: string | null }
   | { type: 'answerIdentify'; itemId: string }
+  | { type: 'nameItem'; itemId: string; label: string }
   | { type: 'descend' }
   | { type: 'ascend' }
   | { type: 'fixture'; name: string };

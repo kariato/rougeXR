@@ -81,4 +81,18 @@ describe('inventory pickup', () => {
     item.group = 1; expect(packSlots(state)).toBe(1);
     expect(collectAtPlayer(state, () => {})).toMatchObject({ resolved: false, reason: 'no-item-here' });
   });
+  it('calls unknown item types without consuming a turn', () => {
+    const state = createTwoRoomFixture(71); const item = state.entities.e2; if (item?.kind !== 'item') throw new Error('missing item');
+    item.category = 'potion'; item.definitionId = 'potion.healing'; transferItem(state, item.id, { kind: 'pack', owner: 'player' }); const session = new GameSession(state);
+    const result = session.submit({ expectedRevision: 0, action: { type: 'nameItem', itemId: item.id, label: 'pink cure' } });
+    expect(result).toMatchObject({ status: 'resolved', consumedSlot: false, ticksAdvanced: 0 });
+    expect(session.exportState().identification.find(entry => entry.definitionId === 'potion.healing')?.called).toBe('pink cure');
+  });
+  it('turns a previously carried scare scroll to dust when picked up again', () => {
+    const state = createTwoRoomFixture(72); const item = state.entities.e2; if (item?.kind !== 'item') throw new Error('missing item');
+    item.category = 'scroll'; item.definitionId = 'scroll.scare-monster'; transferItem(state, item.id, { kind: 'floor', levelId: 1, at: state.player.at });
+    expect(collectAtPlayer(state, () => {})).toMatchObject({ resolved: true }); expect(state.entities[item.id]).toMatchObject({ flags: expect.any(Number) });
+    expect(dropItem(state, item.id, () => {})).toMatchObject({ resolved: true }); expect(collectAtPlayer(state, () => {})).toMatchObject({ resolved: true });
+    expect(state.entities[item.id]).toBeUndefined();
+  });
 });

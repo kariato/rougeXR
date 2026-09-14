@@ -6,7 +6,7 @@ import { resolveMove } from './rules/movement';
 import { resolveSearch } from './rules/search';
 import { isPositionVisible, updateKnowledge } from './perception/knowledge';
 import { runMonsters } from './rules/combat';
-import { collectAtPlayer, collectItem, dropItem, equipItem, unequipItem } from './rules/inventory';
+import { collectAtPlayer, collectItem, dropItem, equipItem, nameItem, unequipItem } from './rules/inventory';
 import { eatItem } from './rules/inventory';
 import { runStomach } from './rules/hunger';
 import { comeDown, endMonsterDetection, land, loseSeeInvisible, recoverConfusion, recoverHaste, recoverSight, rollWanderCheck, runDoctor, runVisuals, startWanderChecks } from './rules/effects';
@@ -156,6 +156,7 @@ function defaultAction(action: GameAction, context: RuleContext): RuleResult {
   }
   if (action.type === 'answerCall') return { resolved: false, consumedSlot: false, reason: 'no-pending-decision' };
   if (action.type === 'answerIdentify') return { resolved: false, consumedSlot: false, reason: 'no-identify-decision' };
+  if (action.type === 'nameItem') return nameItem(context.state, action.itemId, action.label, context.emitRaw);
   if (action.type === 'rest') return { resolved: true, consumedSlot: true, reason: null };
   if (action.type === 'move') {
     const result = resolveMove(context.state, action.direction, action.pickup);
@@ -187,6 +188,7 @@ function validRequest(value: unknown): value is ActionRequest {
     && typeof action.pickup === 'boolean';
   if (action.type === 'throw' || action.type === 'zap') return typeof action.itemId === 'string' && Object.hasOwn({ N:1,NE:1,E:1,SE:1,S:1,SW:1,W:1,NW:1 }, action.direction);
   if (action.type === 'drop' || action.type === 'eat' || action.type === 'drink' || action.type === 'read') return typeof action.itemId === 'string';
+  if (action.type === 'nameItem') return typeof action.itemId === 'string' && typeof action.label === 'string' && action.label.length <= 80;
   if (action.type === 'equip') return typeof action.itemId === 'string'
     && ['weapon', 'armor', 'leftRing', 'rightRing'].includes(action.slot);
   if (action.type === 'unequip') return ['weapon', 'armor', 'leftRing', 'rightRing'].includes(action.slot);

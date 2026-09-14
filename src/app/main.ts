@@ -92,6 +92,12 @@ function render(): void {
         ? { type: 'unequip', slot: item.equippedSlot as 'weapon' | 'armor' }
         : { type: 'equip', itemId: item.token, slot: item.category as 'weapon' | 'armor' })); row.append(equipment);
     }
+    if (item.category === 'ring') {
+      if (item.equippedSlot) { const remove = document.createElement('button'); remove.type = 'button'; remove.textContent = 'Remove'; remove.disabled = replayPlayer !== null || decisionPending;
+        remove.addEventListener('click', () => submit({ type: 'unequip', slot: item.equippedSlot as 'leftRing' | 'rightRing' })); row.append(remove); }
+      else for (const [slot, text] of [['leftRing','Wear left'],['rightRing','Wear right']] as const) { const wear = document.createElement('button'); wear.type = 'button'; wear.textContent = text;
+        wear.disabled = replayPlayer !== null || decisionPending; wear.addEventListener('click', () => submit({ type: 'equip', itemId: item.token, slot })); row.append(wear); }
+    }
     if (item.category === 'weapon') {
       const direction = document.createElement('select'); direction.setAttribute('aria-label', 'Throw direction');
       for (const value of ['N','NE','E','SE','S','SW','W','NW'] as const) { const option=document.createElement('option'); option.value=value; option.textContent=value; direction.append(option); }
@@ -118,6 +124,8 @@ function render(): void {
       read.addEventListener('click', () => submit({ type: 'read', itemId: item.token })); row.append(read);
     }
     const drop = document.createElement('button'); drop.type = 'button'; drop.textContent = 'Drop'; drop.disabled = replayPlayer !== null || decisionPending;
+    if (item.category !== 'food' && item.category !== 'gold') { const call = document.createElement('button'); call.type = 'button'; call.textContent = 'Call'; call.disabled = replayPlayer !== null || decisionPending;
+      call.addEventListener('click', () => { const label = window.prompt('What do you want to call it?', ''); if (label !== null) submit({ type: 'nameItem', itemId: item.token, label }); }); row.append(call); }
     if (state.pendingDecision?.kind === 'identifyItem' && state.pendingDecision.categories.some(category => category === item.category)) {
       const identify = document.createElement('button'); identify.type = 'button'; identify.textContent = 'Identify'; identify.disabled = replayPlayer !== null;
       identify.addEventListener('click', () => submit({ type: 'answerIdentify', itemId: item.token })); row.append(identify);

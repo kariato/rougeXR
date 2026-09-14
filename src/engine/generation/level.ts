@@ -8,7 +8,7 @@ import { instantiateMonster, randomMonster } from './monsters';
 import { generateObject } from './objects';
 
 export interface GeneratedLevelContent {
-  profile: 'supported-slice'; rng: RandomState; nextEntitySerial: number; noFood: number; nextGroup: number;
+  profile: 'full-rules'; rng: RandomState; nextEntitySerial: number; noFood: number; nextGroup: number;
   level: LevelState; entities: Record<EntityId, EntityState>; playerAt: Position; playerRoomId: number | null;
 }
 
@@ -74,7 +74,7 @@ export function generateLevelContentFromRandom(rng: RandomState, depth: number, 
   const playerRoomId = layout.tiles[index(playerAt)]!.roomId;
   const level: LevelState = { id: depth, depth, width: GRID_WIDTH, height: GRID_HEIGHT, tiles: layout.tiles, rooms: layout.rooms,
     passages: layout.passages, stairs, monsterOrder, floorObjectOrder };
-  return { profile: 'supported-slice', rng, nextEntitySerial: serial, noFood: objectContext.noFood, nextGroup: objectContext.nextGroup, level, entities, playerAt, playerRoomId };
+  return { profile: 'full-rules', rng, nextEntitySerial: serial, noFood: objectContext.noFood, nextGroup: objectContext.nextGroup, level, entities, playerAt, playerRoomId };
 }
 
 function findFloor(rng: RandomState, rooms: RoomState[], tiles: LevelState['tiles'], objects: Set<number>, monsters: Set<number>,

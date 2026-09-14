@@ -277,7 +277,7 @@ Each row is a queue: make one effect, ability, or tightly related group its own 
 - [x] 11.6
 - [x] 11.7
 - [x] 11.8
-- [ ] 11.9
+- [x] 11.9
 
 Phase 11.1 progress:
 
@@ -341,6 +341,15 @@ Phase 11.8 progress:
 - [x] Add treasure rooms with next-depth guards and complete object generation.
 - [x] Add the 70-turn wandering cycle, source wandering table, off-room placement, and running pursuit.
 - [x] Add depth-26 Amulet placement, deepest-level tracking, treasure-free ascent, levitation checks, browser ascent input, and victory above level one.
+
+Phase 11.9 progress:
+
+- [x] Audit every non-wizard `command.c` branch in [command-audit.md](command-audit.md).
+- [x] Add free, replayable explicit item calling and browser ring-hand controls.
+- [x] Record browser replacements for persistent inventory/status/messages, help, repeat/run, save, quit, redraw, and terminal inspection commands.
+- [x] Restore the dropped scare-scroll lifecycle discovered during the audit.
+
+Phase 11 completed 2026-09-14. Validation at completion: 32 Vitest files with 192 tests passed, the TypeScript production build passed, and all 6 Chromium/Firefox browser checks passed.
 
 Gate: enable `full` mode only after definition coverage and the command audit justify it. Deterministic TypeScript replay is not a claim of identical historical C RNG sequences. Any deferred gameplay command prevents claiming full source parity even if full content is available.
 
@@ -412,4 +421,4 @@ Optional scheduling: 10 -> 12 for early spatial prototyping.
 | Spatial browser version | Phase 12 | Explore the same game in desktop 3D |
 | XR version | Phase 13 | Use a headset with verified input and presentation |
 
-Current Phase 11 progress includes the complete potion, scroll, stick, and ring tables plus the A–Z monster catalog and source depth selection. Phase 11.6 special monster behaviors remain in progress.
+Phase 11 is complete. The browser candidate now includes the complete source content tables, audited monster and item behavior, dungeon progression through victory, and an explicit disposition for every non-wizard source command.

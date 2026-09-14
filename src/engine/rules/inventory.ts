@@ -2,7 +2,7 @@ import { buildIndexes, mergeStacks, splitStack, stackCompatible, transferItem } 
 import { cellIndex } from '../grid';
 import type { RawEventInput } from '../model/action';
 import type { EntityId, EquipmentSlot, ItemState, WorldState } from '../model/state';
-import { IS_CURSED } from './flags';
+import { IS_CURSED, IS_FOUND } from './flags';
 import { rnd } from '../random';
 import { applyRingEquip, applyRingRemove } from './rings';
 
@@ -22,6 +22,8 @@ export function collectItem(state: WorldState, itemId: EntityId, emit: (event: R
     emit({ type: 'sourceMessage', text: `${item.quantity} gold pieces.` });
     return { resolved: true, consumedSlot: false, reason: null };
   }
+  if (item.definitionId === 'scroll.scare-monster' && (item.flags & IS_FOUND) !== 0) { removeFloorItem(state, item);
+    emit({ type: 'sourceMessage', text: 'The scroll turns to dust as you pick it up.' }); return { resolved: true, consumedSlot: false, reason: null }; }
   const existing = state.player.packOrder.find(id => state.entities[id]?.kind === 'item'
     && stackCompatible(state.entities[id] as ItemState, item));
   const addedSlots = existing && item.group !== 0 ? 0 : item.group === 0 ? item.quantity : 1;
@@ -29,7 +31,10 @@ export function collectItem(state: WorldState, itemId: EntityId, emit: (event: R
     emit({ type: 'sourceMessage', text: "There's no room in your pack." });
     return { resolved: false, consumedSlot: false, reason: 'pack-full' };
   }
-  transferItem(state, itemId, { kind: 'pack', owner: 'player' });
+  const floorAt = { ...item.location.at }; item.flags |= IS_FOUND; transferItem(state, itemId, { kind: 'pack', owner: 'player' });
+  for (const id of state.level.monsterOrder) { const monster = state.entities[id]; if (monster?.kind === 'monster'
+      && (monster.target?.kind === 'item' && monster.target.id === itemId || monster.target?.kind === 'position'
+        && monster.target.at.x === floorAt.x && monster.target.at.y === floorAt.y)) monster.target = { kind: 'player' }; }
   const retainedId = existing && mergeStacks(state, existing, itemId) ? existing : itemId;
   emit({ type: 'itemCollected', itemId: retainedId, category: item.category, quantity: item.quantity });
   emit({ type: 'sourceMessage', text: 'You now have an item in your pack.' });
@@ -88,7 +93,7 @@ export function equipItem(state: WorldState, itemId: EntityId, slot: EquipmentSl
   state.player.equipment[slot] = itemId;
   if(item.category==='ring')applyRingEquip(state,item);
   emit({ type: 'equipmentChanged', slot, itemId });
-  emit({ type: 'sourceMessage', text: slot === 'armor' ? 'You are now wearing armor.' : 'You are now wielding a weapon.' });
+  emit({ type: 'sourceMessage', text: slot === 'armor' ? 'You are now wearing armor.' : slot.endsWith('Ring') ? 'You are now wearing a ring.' : 'You are now wielding a weapon.' });
   return { resolved: true, consumedSlot: true, reason: null };
 }
 
@@ -103,6 +108,17 @@ export function unequipItem(state: WorldState, slot: EquipmentSlot, emit: (event
   if(item.category==='ring')applyRingRemove(state,item);
   state.player.equipment[slot] = null; emit({ type: 'equipmentChanged', slot, itemId: null });
   return { resolved: true, consumedSlot: true, reason: null };
+}
+
+export function nameItem(state: WorldState, itemId: EntityId, label: string, emit: (event: RawEventInput) => void): InventoryResult {
+  const item = state.entities[itemId]; if (item?.kind !== 'item' || item.location.kind !== 'pack' || item.location.owner !== 'player')
+    return { resolved: false, consumedSlot: false, reason: 'not-carried' };
+  if (item.category === 'food') return { resolved: false, consumedSlot: false, reason: 'not-callable' };
+  const entry = state.identification.find(candidate => candidate.definitionId === item.definitionId);
+  if (entry?.known) { emit({ type: 'sourceMessage', text: 'That has already been identified.' }); return { resolved: false, consumedSlot: false, reason: 'already-known' }; }
+  if (entry) entry.called = label || null; else item.label = label || null;
+  emit({ type: 'sourceMessage', text: label ? `You call it "${label}".` : 'You clear its name.' });
+  return { resolved: true, consumedSlot: false, reason: null };
 }
 
 export function eatItem(state: WorldState, itemId: EntityId, emit: (event: RawEventInput) => void): InventoryResult {
