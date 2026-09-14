@@ -7,6 +7,8 @@ test('starts without WebXR and protects focused controls from gameplay input', a
   await page.goto('/');
   await expect(page.locator('#dungeon-3d')).toBeVisible();
   expect(await page.evaluate(() => (navigator as Navigator & { xr?: unknown }).xr === undefined)).toBe(true);
+  await expect(page.locator('#xr-toggle')).toBeDisabled();
+  await expect(page.locator('#xr-status')).toContainText('Desktop mode is fully available');
   await page.locator('#seed').fill('4242'); await page.locator('#new-game').click();
   await expect(page.locator('#state-summary')).toContainText('Seed 4242 · Tick 0 · Revision 0');
   await page.locator('#seed').press('w');

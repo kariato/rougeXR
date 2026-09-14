@@ -6,6 +6,7 @@ import { GameSession } from '../engine/session';
 import { CanvasGridView } from '../presentation/grid/canvas-view';
 import type { GameView } from '../presentation/game-view';
 import { ThreeGameView } from '../presentation/three/three-view';
+import { XrSessionController, type XrSystemLike } from '../presentation/xr/session-controller';
 import { bindDesktopInput } from '../input/desktop';
 import type { PresentationEvent } from '../engine/model/action';
 import type { GameAction } from '../engine/model/action';
@@ -24,6 +25,8 @@ const canvas = required<HTMLCanvasElement>('#dungeon');
 const viewHost = required<HTMLElement>('#view-host');
 const viewMode = required<HTMLSelectElement>('#view-mode');
 const cameraMode = required<HTMLSelectElement>('#camera-mode');
+const xrToggle = required<HTMLButtonElement>('#xr-toggle');
+const xrStatus = required<HTMLElement>('#xr-status');
 const inspector = required<HTMLElement>('#inspector');
 const reveal = required<HTMLInputElement>('#reveal');
 const stateSummary = required<HTMLElement>('#state-summary');
@@ -56,6 +59,8 @@ const saveStatus = required<HTMLElement>('#save-status');
 const gridView = new CanvasGridView(canvas);
 const threeView = new ThreeGameView();
 let view: GameView = threeView;
+const xrSystem = (navigator as Navigator & { xr?: XrSystemLike }).xr ?? null;
+const xrController = new XrSessionController(xrSystem, session => threeView.setXrSession(session));
 const saveStore = new IndexedDbSaveStore();
 let session = new GameSession(initialWorld);
 let recorder = new ReplayRecorder(session.exportState());
@@ -181,6 +186,7 @@ viewMode.addEventListener('change', () => {
   render();
 });
 cameraMode.addEventListener('change', () => threeView.setMode(cameraMode.value as 'firstPerson' | 'orbit' | 'tabletop'));
+xrToggle.addEventListener('click', () => { void xrController.toggle().then(updateXrControls).catch(error => { xrStatus.textContent = `XR failed: ${error instanceof Error ? error.message : String(error)}`; }); });
 threeView.canvas.addEventListener('rougexr-select-cell', event => {
   const position = (event as CustomEvent<{ x: number; y: number }>).detail;
   const observation = observe(session.exportState());
@@ -348,4 +354,11 @@ new ResizeObserver(entries => {
 }).observe(viewHost);
 view.mount(viewHost);
 render();
+void xrController.detect().then(updateXrControls);
 actionQueue = actionQueue.then(restoreLatestAutosave);
+
+function updateXrControls(status: ReturnType<XrSessionController['status']>): void {
+  xrToggle.disabled = status === 'checking' || status === 'unavailable';
+  xrToggle.textContent = status === 'active' ? 'Exit XR' : status === 'available' ? 'Enter XR' : 'XR unavailable';
+  xrStatus.textContent = status === 'active' ? 'Immersive session active.' : status === 'available' ? 'Immersive VR is available.' : 'Desktop mode is fully available; immersive VR is not supported here.';
+}

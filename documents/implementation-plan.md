@@ -412,7 +412,7 @@ Outcome: XR uses the already-debugged browser engine and scene.
 | 13.5 | Add tabletop inspection and scale transition. | No movement bypass or hidden-information reveal. |
 | 13.6 | Test comfort, tracking loss, session teardown, and performance on target headset. | Device findings recorded; browser regressions still pass. |
 
-- [ ] 13.1
+- [x] 13.1
 - [ ] 13.2
 - [ ] 13.3
 - [ ] 13.4
@@ -420,6 +420,12 @@ Outcome: XR uses the already-debugged browser engine and scene.
 - [ ] 13.6
 
 Gate: headset-specific behavior verified on hardware. Browser-only tests cannot close this gate.
+
+Phase 13.1 progress:
+
+- [x] Detect immersive-VR support asynchronously without delaying desktop startup.
+- [x] Add explicit enter/exit session lifecycle and restore the available state after an XR session ends.
+- [x] Keep the XR control disabled with a clear desktop-availability message when `navigator.xr` is absent.
 
 ## Dependency and milestone summary
 

@@ -6,6 +6,7 @@ import { buildPrimitiveCells } from './scene-plan';
 import { nearestVisibleHit, smoothToward, type CameraMode } from './camera-model';
 import { createActorVisual, createItemVisual, type ActorVisual } from './entity-visual';
 import { SceneGeneration } from './asset-cache';
+import type { XrSessionLike } from '../xr/session-controller';
 
 const TILE = 1;
 
@@ -146,6 +147,11 @@ export class ThreeGameView implements GameView {
     this.targetPitch = mode === 'tabletop' ? -0.9 : mode === 'orbit' ? -0.2 : 0;
     this.targetDistance = mode === 'tabletop' ? 22 : 8;
     this.ensureAnimation();
+  }
+
+  async setXrSession(session: XrSessionLike | null): Promise<void> {
+    this.renderer.xr.enabled = session !== null;
+    await this.renderer.xr.setSession(session as XRSession | null);
   }
 
   private readonly animate = (now: number): void => {
