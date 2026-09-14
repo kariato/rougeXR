@@ -413,10 +413,10 @@ Outcome: XR uses the already-debugged browser engine and scene.
 | 13.6 | Test comfort, tracking loss, session teardown, and performance on target headset. | Device findings recorded; browser regressions still pass. |
 
 - [x] 13.1
-- [ ] 13.2
-- [ ] 13.3
-- [ ] 13.4
-- [ ] 13.5
+- [x] 13.2
+- [x] 13.3
+- [x] 13.4
+- [x] 13.5
 - [ ] 13.6
 
 Gate: headset-specific behavior verified on hardware. Browser-only tests cannot close this gate.
@@ -426,6 +426,15 @@ Phase 13.1 progress:
 - [x] Detect immersive-VR support asynchronously without delaying desktop startup.
 - [x] Add explicit enter/exit session lifecycle and restore the available state after an XR session ends.
 - [x] Keep the XR control disabled with a clear desktop-availability message when `navigator.xr` is absent.
+
+Phase 13.2–13.5 progress:
+
+- [x] Render two tracked controller rays and render through the WebXR animation loop without passing poses into the engine.
+- [x] Map controller forward vectors to the same eight-direction move action used by desktop input; report resolved and rejected XR commits.
+- [x] Capture the observation revision at gesture time and debounce select/squeeze so stale or repeated gestures cannot silently become later actions.
+- [x] Ray-select only geometry built from safe observations; ordinary Rogue movement into an adjacent monster remains the attack commitment.
+- [x] Smoothly scale the observation-only dungeon into tabletop mode and restore unit scale for first-person/orbit presentation.
+- [x] Add the hardware acceptance procedure in [xr-device-checklist.md](xr-device-checklist.md); Phase 13.6 remains open until run on the target headset.
 
 ## Dependency and milestone summary
 

@@ -185,13 +185,18 @@ viewMode.addEventListener('change', () => {
   selectedIndex = null;
   render();
 });
-cameraMode.addEventListener('change', () => threeView.setMode(cameraMode.value as 'firstPerson' | 'orbit' | 'tabletop'));
+cameraMode.addEventListener('change', () => { threeView.setMode(cameraMode.value as 'firstPerson' | 'orbit' | 'tabletop'); render(); });
 xrToggle.addEventListener('click', () => { void xrController.toggle().then(updateXrControls).catch(error => { xrStatus.textContent = `XR failed: ${error instanceof Error ? error.message : String(error)}`; }); });
 threeView.canvas.addEventListener('rougexr-select-cell', event => {
   const position = (event as CustomEvent<{ x: number; y: number }>).detail;
   const observation = observe(session.exportState());
   selectedIndex = cellIndex(observation, position);
   render();
+});
+threeView.canvas.addEventListener('rougexr-xr-action', event => {
+  const request = (event as CustomEvent<{ expectedRevision: number; action: GameAction }>).detail;
+  if (replayPlayer) return;
+  enqueue(request.action, request.expectedRevision);
 });
 reveal.addEventListener('change', render);
 eventFilter.addEventListener('change', render);
@@ -241,11 +246,13 @@ function submit(action: GameAction): void {
   if (replayPlayer) { replayStatus.textContent = 'Live input is locked during replay. Start a New Game to exit.'; return; }
   enqueue(action);
 }
-function enqueue(action: GameAction): void {
+function enqueue(action: GameAction, capturedRevision?: number): void {
   actionQueue = actionQueue.then(async () => {
-    const expectedRevision = session.exportState().timing.revision;
+    const expectedRevision = capturedRevision ?? session.exportState().timing.revision;
     const started = performance.now();
     const resolution = session.submit({ expectedRevision, action }); latestEvents = resolution.events;
+    if (capturedRevision !== undefined) xrStatus.textContent = resolution.status === 'rejected'
+      ? `XR action rejected: ${resolution.reason ?? 'blocked'}.` : `XR action committed at revision ${resolution.revision}.`;
     const engineMs = performance.now() - started;
     const snapshot = session.exportState();
     await recorder.record(action, expectedRevision, snapshot);

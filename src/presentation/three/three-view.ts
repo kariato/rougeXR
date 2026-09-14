@@ -7,6 +7,8 @@ import { nearestVisibleHit, smoothToward, type CameraMode } from './camera-model
 import { createActorVisual, createItemVisual, type ActorVisual } from './entity-visual';
 import { SceneGeneration } from './asset-cache';
 import type { XrSessionLike } from '../xr/session-controller';
+import { DebouncedXrIntent, directionFromForward } from '../xr/input';
+import type { ActionRequest } from '../../engine/model/action';
 
 const TILE = 1;
 
@@ -27,6 +29,8 @@ export class ThreeGameView implements GameView {
   private targetPitch = 0;
   private distance = 8;
   private targetDistance = 8;
+  private worldScale = 1;
+  private targetWorldScale = 1;
   private dragging = false;
   private pointerId: number | null = null;
   private frame: number | null = null;
@@ -35,6 +39,8 @@ export class ThreeGameView implements GameView {
   private animationUntil = 0;
   private lastAnimatedRevision = -1;
   private readonly generation = new SceneGeneration();
+  private readonly xrIntent = new DebouncedXrIntent();
+  private readonly xrControllers: THREE.Group[] = [];
 
   constructor() {
     this.canvas.id = 'dungeon-3d';
@@ -50,6 +56,14 @@ export class ThreeGameView implements GameView {
     lamp.position.set(0, 1.3, 0);
     this.camera.add(lamp);
     this.scene.add(this.camera);
+    for (let index = 0; index < 2; index++) {
+      const controller = this.renderer.xr.getController(index);
+      const ray = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3(0, 0, -1)]), new THREE.LineBasicMaterial({ color: 0x67e8f9 }));
+      ray.scale.z = 2; controller.add(ray); controller.visible = false;
+      controller.addEventListener('select', () => this.commitXrIntent(controller, true));
+      controller.addEventListener('squeeze', () => this.commitXrIntent(controller, false));
+      this.xrControllers.push(controller); this.scene.add(controller);
+    }
   }
 
   mount(host: HTMLElement): void {
@@ -145,13 +159,17 @@ export class ThreeGameView implements GameView {
     this.mode = mode;
     if (this.actorVisuals[0]) this.actorVisuals[0].root.visible = mode !== 'firstPerson';
     this.targetPitch = mode === 'tabletop' ? -0.9 : mode === 'orbit' ? -0.2 : 0;
-    this.targetDistance = mode === 'tabletop' ? 22 : 8;
+    this.targetDistance = mode === 'tabletop' ? 7 : 8;
+    this.targetWorldScale = mode === 'tabletop' ? 0.12 : 1;
     this.ensureAnimation();
   }
 
   async setXrSession(session: XrSessionLike | null): Promise<void> {
     this.renderer.xr.enabled = session !== null;
     await this.renderer.xr.setSession(session as XRSession | null);
+    for (const controller of this.xrControllers) controller.visible = session !== null;
+    if (session) this.renderer.setAnimationLoop(() => this.renderer.render(this.scene, this.camera));
+    else { this.renderer.setAnimationLoop(null); this.xrIntent.reset(); this.placeCamera(); }
   }
 
   private readonly animate = (now: number): void => {
@@ -160,9 +178,11 @@ export class ThreeGameView implements GameView {
     this.yaw = smoothToward(this.yaw, this.targetYaw, 14, elapsed);
     this.pitch = smoothToward(this.pitch, this.targetPitch, 14, elapsed);
     this.distance = smoothToward(this.distance, this.targetDistance, 12, elapsed);
+    this.worldScale = smoothToward(this.worldScale, this.targetWorldScale, 12, elapsed);
+    this.world.scale.setScalar(this.worldScale);
     for (const visual of this.actorVisuals) visual.mixer.update(elapsed);
     this.placeCamera();
-    const moving = Math.abs(this.yaw - this.targetYaw) > 0.0001 || Math.abs(this.pitch - this.targetPitch) > 0.0001 || Math.abs(this.distance - this.targetDistance) > 0.001 || now < this.animationUntil;
+    const moving = Math.abs(this.yaw - this.targetYaw) > 0.0001 || Math.abs(this.pitch - this.targetPitch) > 0.0001 || Math.abs(this.distance - this.targetDistance) > 0.001 || Math.abs(this.worldScale - this.targetWorldScale) > 0.0001 || now < this.animationUntil;
     this.frame = moving ? requestAnimationFrame(this.animate) : null;
   };
 
@@ -175,8 +195,8 @@ export class ThreeGameView implements GameView {
       const horizontal = Math.cos(this.pitch);
       this.camera.lookAt(player.x + Math.sin(this.yaw) * horizontal, 0.72 + Math.sin(this.pitch), player.y + Math.cos(this.yaw) * horizontal);
     } else {
-      const targetX = this.mode === 'tabletop' ? observation.width / 2 : player.x;
-      const targetZ = this.mode === 'tabletop' ? observation.height / 2 : player.y;
+      const targetX = (this.mode === 'tabletop' ? observation.width / 2 : player.x) * this.worldScale;
+      const targetZ = (this.mode === 'tabletop' ? observation.height / 2 : player.y) * this.worldScale;
       const horizontal = Math.cos(this.pitch) * this.distance;
       this.camera.position.set(targetX - Math.sin(this.yaw) * horizontal, 1.2 - Math.sin(this.pitch) * this.distance, targetZ - Math.cos(this.yaw) * horizontal);
       this.camera.lookAt(targetX, 0, targetZ);
@@ -227,6 +247,22 @@ export class ThreeGameView implements GameView {
     this.frame = requestAnimationFrame(this.animate);
   }
 
+  private commitXrIntent(controller: THREE.Object3D, select: boolean): void {
+    const observation = this.observation; if (!observation) return;
+    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(controller.getWorldQuaternion(new THREE.Quaternion()));
+    if (select) {
+      const origin = controller.getWorldPosition(new THREE.Vector3()); const ray = new THREE.Raycaster(origin, forward.clone().normalize());
+      const selected = nearestVisibleHit(ray.intersectObjects(this.world.children, true).map(hit => {
+        const data = inheritedUserData(hit.object);
+        return { distance: hit.distance, eligible: data.eligible === true, occludes: data.occludes === true,
+          value: data.cell as { x: number; y: number } };
+      }));
+      if (selected) this.canvas.dispatchEvent(new CustomEvent('rougexr-select-cell', { detail: selected }));
+    }
+    const request = this.xrIntent.commit(directionFromForward(forward.x, forward.z), observation.revision, performance.now());
+    if (request) this.canvas.dispatchEvent(new CustomEvent<ActionRequest>('rougexr-xr-action', { detail: request }));
+  }
+
   private clearWorld(): void {
     for (const visual of this.actorVisuals) visual.mixer.stopAllAction();
     this.actorVisuals = [];
@@ -235,6 +271,12 @@ export class ThreeGameView implements GameView {
       disposeObjectTree(child);
     }
   }
+}
+
+function inheritedUserData(object: THREE.Object3D): Record<string, unknown> {
+  let current: THREE.Object3D | null = object;
+  while (current) { if (current.userData.cell) return current.userData as Record<string, unknown>; current = current.parent; }
+  return {};
 }
 
 export function disposeObjectTree(root: THREE.Object3D): void {
