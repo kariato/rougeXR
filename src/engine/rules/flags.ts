@@ -16,3 +16,6 @@ export const IS_FLYING = 0o40000;
 export const IS_SLOWED = 0o100000;
 export const IS_INVISIBLE = 0o2000;
 export const IS_CANCELLED = 0o10;
+export const IS_FOUND = 0o20;
+export const IS_GREEDY = 0o40;
+export const IS_REGENERATING = 0o10000;

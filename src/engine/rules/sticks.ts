@@ -5,7 +5,7 @@ import type { Direction, EntityId, ItemState, Position, WorldState } from '../mo
 import { rnd, roll } from '../random';
 import { instantiateMonster, randomMonsterUniform } from '../generation/monsters';
 import { attackMonsterWithWeapon, damageMonster } from './combat';
-import { IS_CANCELLED, IS_CONFUSED, IS_HASTED, IS_INVISIBLE, IS_RUNNING, IS_SLOWED } from './flags';
+import { IS_CANCELLED, IS_CONFUSED, IS_HASTED, IS_HELD, IS_INVISIBLE, IS_RUNNING, IS_SLOWED } from './flags';
 import type { InventoryResult } from './inventory';
 import { canStepTerrain } from './movement';
 
@@ -32,6 +32,7 @@ export function zapItem(state:WorldState,itemId:EntityId,direction:Direction,emi
   item.charges--;emit({type:'itemChargesChanged',itemId,charges:item.charges});return{resolved:true,consumedSlot:true,reason:null};
 }
 function polymorph(state:WorldState,direction:Direction):void{const id=firstMonster(state,direction);const previous=id?state.entities[id]:null;if(previous?.kind!=='monster')return;
+  if(previous.definitionId==='monster.venus-flytrap')state.player.flags&=~IS_HELD;
   const replacement=instantiateMonster(state.rng,state.level.depth,previous.id,randomMonsterUniform(state.rng),previous.at,previous.roomId);
   replacement.packOrder=[...previous.packOrder];replacement.flags|=previous.flags&IS_RUNNING;replacement.target=previous.target;state.entities[id!]=replacement;
 }

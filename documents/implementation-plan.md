@@ -321,7 +321,10 @@ Phase 11.6 progress:
 - [x] Transcribe the complete A–Z monster catalog, source flags, combat statistics, depth table, wandering table, and post-Amulet scaling.
 - [x] Generate source-selected species without the former Kestrel substitution and preserve Xeroc disguises.
 - [x] Reuse the catalog for create-monster and polymorph, including serialized IDs, packs, room membership, and deterministic RNG.
-- [ ] Add activation and special behavior groups: stealth/levitation wake checks, gaze/status attacks, theft, drain, holding, regeneration, and disguise discovery.
+- [x] Add probabilistic mean-monster activation with stealth/levitation suppression, Medusa gaze, and greedy gold targeting.
+- [x] Add Aquator rust, ice freezing, rattlesnake poison, leprechaun gold theft, nymph magic theft, wraith/vampire drains, flytrap holding, and Xeroc discovery.
+- [x] Add player confusion-charge transfer and confused/Bat/Phantom movement variation.
+- [ ] Add dragon breath, source destination/path refinements, monster carried-object generation, and a final per-species behavior audit.
 
 Gate: enable `full` mode only after definition coverage and the command audit justify it. Deterministic TypeScript replay is not a claim of identical historical C RNG sequences. Any deferred gameplay command prevents claiming full source parity even if full content is available.
 

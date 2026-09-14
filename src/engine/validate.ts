@@ -32,6 +32,7 @@ export function validateWorld(input: unknown): ValidationIssue[] {
     check(integer(s.seed) && s.seed <= 0xffffffff, 'seed', 'Expected uint32');
     check(s.rng.algorithm === 'xorshift32-v1' && integer(s.rng.word, 1) && s.rng.word <= 0xffffffff && integer(s.rng.draws), 'rng', 'Invalid random state');
     check(integer(s.nextEntitySerial, 1) && s.nextEntitySerial < Number.MAX_SAFE_INTEGER, 'nextEntitySerial', 'Invalid serial');
+    check(!!s.sourceState && integer(s.sourceState.flytrapHits), 'sourceState.flytrapHits', 'Invalid flytrap hit count');
     const timing = s.timing;
     check([timing.revision, timing.actionSequence, timing.tick, timing.noCommand, timing.noMove, timing.noFood, timing.quiet, timing.between, timing.hungerStage]
       .every(value => integer(value)), 'timing', 'Invalid timing counter');

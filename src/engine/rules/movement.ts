@@ -78,7 +78,7 @@ export function resolveMove(state: WorldState, direction: Direction, pickup: boo
   }
   transitionRegion(state, from, to);
   state.player.at = to;
-  wakeRoomMonsters(state);
+  wakeRoomMonsters(state, event => events.push(event));
   events.push({ type: 'actorMoved', actorId: 'player', from, to: { ...to } });
   if (destinationFeature?.kind === 'trap' && ACTIVE_TRAPS.has(destinationFeature.trap)) triggerTrap(state, to, event => events.push(event));
   const item = buildIndexes(state).objects.get(cellIndex(state.level, to)) ?? null;

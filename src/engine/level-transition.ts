@@ -21,7 +21,7 @@ export function descendLevel(state: WorldState, emit: (event: RawEventInput) => 
   const generated = generateLevelContentFromRandom(state.rng, fromDepth + 1, state.nextEntitySerial);
   state.entities = { ...retained, ...generated.entities }; state.level = generated.level; state.nextEntitySerial = generated.nextEntitySerial;
   state.player.at = generated.playerAt; state.player.roomId = generated.playerRoomId; state.player.flags &= ~IS_HELD;
-  wakeRoomMonsters(state);
+  wakeRoomMonsters(state, emit);
   state.timing.noFood = Object.values(generated.entities).some(entity => entity.kind === 'item' && entity.category === 'food') ? 0 : state.timing.noFood + 1;
   state.knowledge = { levelId: state.level.id, remembered: Array.from({ length: state.level.tiles.length }, () => null) }; updateKnowledge(state);
   emit({ type: 'levelChanged', fromDepth, toDepth: state.level.depth, cause });

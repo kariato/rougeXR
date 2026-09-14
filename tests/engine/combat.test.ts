@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { parseDamage, STRENGTH_DAMAGE_BONUS, STRENGTH_HIT_BONUS } from '../../src/definitions/combat';
 import { createKestrelEncounterFixture, createTwoRoomFixture } from '../../src/debug/fixtures';
-import { transferItem } from '../../src/engine/entities';
-import { attackMonster, wakeRoomMonsters } from '../../src/engine/rules/combat';
-import { IS_MEAN, IS_RUNNING } from '../../src/engine/rules/flags';
+import { allocateId, transferItem } from '../../src/engine/entities';
+import { attackMonster, attackPlayer, wakeRoomMonsters } from '../../src/engine/rules/combat';
+import { CAN_CONFUSE_MONSTER, IS_CONFUSED, IS_HELD, IS_LEVITATING, IS_MEAN, IS_RUNNING } from '../../src/engine/rules/flags';
 import { GameSession } from '../../src/engine/session';
 import { ReplayRecorder, replay } from '../../src/persistence/replay';
 
@@ -13,9 +13,69 @@ describe('source combat encounter', () => {
     const monster = state.entities.e1;
     if (monster?.kind !== 'monster') throw new Error('missing monster');
     monster.roomId = state.player.roomId; monster.flags = IS_MEAN; monster.target = null;
-    wakeRoomMonsters(state);
+    for (let attempt = 0; attempt < 10 && (monster.flags & IS_RUNNING) === 0; attempt++) wakeRoomMonsters(state);
     expect(monster.flags & IS_RUNNING).toBe(IS_RUNNING);
     expect(monster.target).toEqual({ kind: 'player' });
+  });
+
+  it('keeps mean monsters asleep while stealthy or levitating', () => {
+    for (const protection of ['ring.stealth', 'levitation'] as const) {
+      const state = createTwoRoomFixture(31); const monster = state.entities.e1; if (monster?.kind !== 'monster') throw new Error('missing monster');
+      monster.roomId = state.player.roomId; monster.flags = IS_MEAN; const draws = state.rng.draws;
+      if (protection === 'levitation') state.player.flags |= IS_LEVITATING;
+      else { const id = allocateId(state); state.entities[id] = { kind: 'item', id, definitionId: protection, category: 'ring',
+        location: { kind: 'pack', owner: 'player' }, quantity: 1, flags: 0, group: 0, label: null, magnitude: 1 };
+        state.player.packOrder.push(id); state.player.equipment.leftRing = id; }
+      wakeRoomMonsters(state); expect(monster.flags & IS_RUNNING).toBe(0); expect(state.rng.draws).toBe(draws);
+    }
+  });
+
+  it('applies source ice, rust, and leprechaun hit effects', () => {
+    const frozen = createTwoRoomFixture(32); const ice = frozen.entities.e1; if (ice?.kind !== 'monster') throw new Error('missing monster');
+    ice.definitionId = 'monster.ice-monster'; ice.stats.level = 30; ice.stats.damage = [{ count: 0, sides: 0 }];
+    attackPlayer(frozen, ice, () => {}); expect(frozen.timing.noCommand).toBeGreaterThanOrEqual(2);
+
+    const rusted = createTwoRoomFixture(33); const aquator = rusted.entities.e1; if (aquator?.kind !== 'monster') throw new Error('missing monster');
+    const armorId = allocateId(rusted); rusted.entities[armorId] = { kind: 'item', id: armorId, definitionId: 'armor.chain', category: 'armor',
+      location: { kind: 'pack', owner: 'player' }, quantity: 1, flags: 0, group: 0, label: null, armorClass: 5 };
+    rusted.player.packOrder.push(armorId); rusted.player.equipment.armor = armorId; aquator.definitionId = 'monster.aquator'; aquator.stats.level = 30; aquator.stats.damage = [{ count: 0, sides: 0 }];
+    attackPlayer(rusted, aquator, () => {}); expect(rusted.entities[armorId]).toMatchObject({ armorClass: 6 });
+
+    const robbed = createTwoRoomFixture(34); const leprechaun = robbed.entities.e1; if (leprechaun?.kind !== 'monster') throw new Error('missing monster');
+    robbed.player.gold = 500; leprechaun.definitionId = 'monster.leprechaun'; leprechaun.stats.level = 30;
+    attackPlayer(robbed, leprechaun, () => {}); expect(robbed.player.gold).toBeLessThan(500); expect(robbed.entities.e1).toBeUndefined();
+  });
+
+  it('tracks flytrap constriction and lets nymphs steal unequipped magic', () => {
+    const trapped = createTwoRoomFixture(35); const flytrap = trapped.entities.e1; if (flytrap?.kind !== 'monster') throw new Error('missing monster');
+    flytrap.definitionId = 'monster.venus-flytrap'; flytrap.stats.level = 30; flytrap.stats.damage = [{ count: 0, sides: 0 }]; const hp = trapped.player.stats.hp;
+    attackPlayer(trapped, flytrap, () => {}); expect(trapped.player.flags & IS_HELD).toBe(IS_HELD);
+    expect(trapped.sourceState.flytrapHits).toBe(1); expect(trapped.player.stats.hp).toBe(hp - 1);
+
+    const stolen = createTwoRoomFixture(36); const nymph = stolen.entities.e1; if (nymph?.kind !== 'monster') throw new Error('missing monster');
+    const potionId = allocateId(stolen); stolen.entities[potionId] = { kind: 'item', id: potionId, definitionId: 'potion.healing', category: 'potion',
+      location: { kind: 'pack', owner: 'player' }, quantity: 1, flags: 0, group: 0, label: null }; stolen.player.packOrder.push(potionId);
+    nymph.definitionId = 'monster.nymph'; nymph.stats.level = 30; nymph.stats.damage = [{ count: 0, sides: 0 }]; attackPlayer(stolen, nymph, () => {});
+    expect(stolen.entities[potionId]).toBeUndefined(); expect(stolen.entities.e1).toBeUndefined();
+  });
+
+  it('applies a visible Medusa gaze once when she wakes', () => {
+    let confused = false;
+    for (let seed = 1; seed <= 100 && !confused; seed++) { const state = createTwoRoomFixture(seed); const medusa = state.entities.e1;
+      if (medusa?.kind !== 'monster') throw new Error('missing monster'); medusa.definitionId = 'monster.medusa'; medusa.roomId = state.player.roomId; medusa.flags = IS_MEAN;
+      wakeRoomMonsters(state); confused = (state.player.flags & IS_CONFUSED) !== 0;
+      if (confused) expect(state.timing.scheduler.slots).toContainEqual(expect.objectContaining({ effect: 'unconfuse', phase: 'after' }));
+    }
+    expect(confused).toBe(true);
+  });
+
+  it('reveals a disguised Xeroc before melee and transfers a confusion charge on a later hit', () => {
+    const state = createKestrelEncounterFixture(37); const xeroc = state.entities.e1; if (xeroc?.kind !== 'monster') throw new Error('missing monster');
+    xeroc.definitionId = 'monster.xeroc'; xeroc.disguise = '!'; xeroc.stats.hp = xeroc.stats.maxHp = 20; state.player.stats.level = 30;
+    state.player.stats.damage = [{ count: 0, sides: 0 }]; state.player.flags |= CAN_CONFUSE_MONSTER;
+    const hp = xeroc.stats.hp; attackMonster(state, xeroc.id, () => {}); expect(xeroc.disguise).toBe('X'); expect(xeroc.stats.hp).toBe(hp);
+    expect(state.player.flags & CAN_CONFUSE_MONSTER).toBe(CAN_CONFUSE_MONSTER);
+    attackMonster(state, xeroc.id, () => {}); expect(xeroc.flags & IS_CONFUSED).toBe(IS_CONFUSED); expect(state.player.flags & CAN_CONFUSE_MONSTER).toBe(0);
   });
 
   it('transcribes strength tables and parses every damage group', () => {
