@@ -2,6 +2,20 @@
 
 The complete creation, export, registration, and validation workflow is documented in [`docs/MONSTER_ASSET_PIPELINE.md`](../docs/MONSTER_ASSET_PIPELINE.md).
 
+## Centaur
+
+Original stylized chestnut centaur with four articulated horse legs, armored human torso, bronze helmet and breastplate, tail, and spear. Generated using Blender 4.5 LTS; no external models or textures.
+
+- Source: `art/blender/creatures/centaur.blend`
+- Runtime: `public/assets/creatures/centaur.glb`
+- Preview: `art/previews/centaur.png`
+- Rig: 10 bones (root, horse body, spine, head, two arms, four legs).
+- Clips: `idle` (watchful stance), `move` (diagonal-pair trot), `attack` (spear thrust), `hurt` (recoil), `death` (side fall).
+- Height: approximately 1.95 m including the crest; Blender -Y / glTF +Z forward.
+
+Regenerate with `blender --background --python tools/blender/create_centaur.py`.
+Preview on the development server at `/model-preview.html?model=centaur`. Gameplay renderer integration remains pending.
+
 ## Leprechaun
 
 Original stylized small rogue with a green coat, tall buckled hat, copper beard, pointed shoes, coin pouch, and loose coins. Generated using Blender 4.5 LTS; no external models or textures.
