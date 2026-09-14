@@ -47,11 +47,19 @@ export function updateKnowledge(state: WorldState): void {
 }
 
 export function observe(state: WorldState): PlayerObservation {
+  const revealedTreasureRooms = new Set(Object.values(state.entities).flatMap(entity => {
+    if (entity.kind !== 'item' || entity.location.kind !== 'floor' || !isPositionVisible(state, entity.location.at)) return [];
+    const roomId = state.level.tiles[cellIndex(state.level, entity.location.at)]?.roomId; return roomId === null || roomId === undefined ? [] : [roomId];
+  }));
   const cells = state.level.tiles.map((tile, index) => {
     const visible = isPositionVisible(state, positionAt(state.level, index));
     const remembered = state.knowledge.remembered[index] ?? null;
     const visibility: Visibility = visible ? 'visible' : remembered ? 'remembered' : 'unknown';
-    return { visibility, appearance: visible ? appearanceFor(tile) : remembered ? { ...remembered } : null };
+    const room = tile.roomId === null ? null : state.level.rooms.find(candidate => candidate.id === tile.roomId) ?? null;
+    const observedTheme = room?.design.theme === 'treasure' && !revealedTreasureRooms.has(room.id) ? room.design.baseTheme : room?.design.theme;
+    return { visibility, appearance: visible ? appearanceFor(tile) : remembered ? { ...remembered } : null,
+      visualRegion: visibility === 'unknown' || !room || !observedTheme ? null : { token: room.design.token, theme: observedTheme,
+        condition: room.design.condition, dark: room.dark } };
   });
   const detecting = (state.player.flags & CAN_DETECT_MONSTERS) !== 0;
   const hallucinating = (state.player.flags & IS_HALLUCINATING) !== 0;
@@ -74,8 +82,15 @@ export function observe(state: WorldState): PlayerObservation {
     const equippedSlot = Object.entries(state.player.equipment).find(([, equipped]) => equipped === id)?.[0] ?? null;
     return { token: item.id, label: observedItemLabel(state, item), quantity: item.quantity, category: item.category, equippedSlot };
   });
+  const decorations = state.level.rooms.flatMap(room => room.design.decorations.flatMap(decoration => {
+    if (room.design.theme === 'treasure' && !revealedTreasureRooms.has(room.id)) return [];
+    const cell = cells[cellIndex(state.level, decoration.at)];
+    return cell?.visibility === 'unknown' ? [] : [{ token: decoration.id, at: { ...decoration.at }, kind: decoration.kind,
+      rotation: decoration.rotation, variant: decoration.variant, scale: decoration.scale,
+      theme: room.design.theme === 'treasure' && !revealedTreasureRooms.has(room.id) ? room.design.baseTheme : room.design.theme }];
+  }));
   return { revision: state.timing.revision, width: state.level.width, height: state.level.height,
-    playerAt: { ...state.player.at }, cells, entities,
+    playerAt: { ...state.player.at }, cells, entities, decorations,
     status: { hp: state.player.stats.hp, maxHp: state.player.stats.maxHp, gold: state.player.gold, depth: state.level.depth,
       hungerStage: state.timing.hungerStage }, inventory, pendingDecision: state.pendingDecision?.kind ?? null };
 }

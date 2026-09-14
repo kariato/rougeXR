@@ -1,10 +1,14 @@
 import type { PlayerObservation, Visibility } from '../../engine/model/observation';
+import type { RoomTheme } from '../../engine/model/state';
 
 export interface PrimitiveCell {
   x: number;
   z: number;
   kind: 'floor' | 'wall' | 'door';
   visibility: Exclude<Visibility, 'unknown'>;
+  theme: RoomTheme;
+  condition: 0 | 1 | 2;
+  dark: boolean;
 }
 
 /** Converts only disclosed observation cells; authoritative level state is never accepted here. */
@@ -17,7 +21,8 @@ export function buildPrimitiveCells(observation: PlayerObservation, radius = Num
     const z = Math.floor(index / observation.width);
     if (Math.abs(x - observation.playerAt.x) + Math.abs(z - observation.playerAt.y) > radius) continue;
     const terrain = cell.appearance.terrainLabel;
-    result.push({ x, z, kind: terrain === 'wallH' || terrain === 'wallV' ? 'wall' : terrain === 'door' ? 'door' : 'floor', visibility: cell.visibility });
+    result.push({ x, z, kind: terrain === 'wallH' || terrain === 'wallV' ? 'wall' : terrain === 'door' ? 'door' : 'floor', visibility: cell.visibility,
+      theme: cell.visualRegion?.theme ?? 'dungeon', condition: cell.visualRegion?.condition ?? 0, dark: cell.visualRegion?.dark ?? false });
   }
   return result;
 }

@@ -21,14 +21,16 @@ export function createTwoRoomFixture(seed = 12345): WorldState {
       equipment: { weapon: null, armor: null, leftRing: null, rightRing: null } },
     level: { id: 1, depth: 1, width: GRID_WIDTH, height: GRID_HEIGHT,
       tiles: Array.from({ length: GRID_WIDTH * GRID_HEIGHT }, (): TileState => ({ terrain: 'void', secret: false, feature: null, roomId: null, passageId: null })),
-      rooms: Array.from({ length: 9 }, (_, id) => ({ id, origin: { x: 0, y: 1 }, width: 1, height: 1, kind: 'gone', dark: false, exits: [], goldTarget: null })),
+      rooms: Array.from({ length: 9 }, (_, id) => ({ id, origin: { x: 0, y: 1 }, width: 1, height: 1, kind: 'gone', dark: false, exits: [], goldTarget: null,
+        design: { token: `fixture-${id}`, theme: 'none', baseTheme: 'none', condition: 0, decorations: [] } })),
       passages: [], stairs: { x: 25, y: 5 }, monsterOrder: [], floorObjectOrder: [] }
   };
   // Keep fixture gameplay vectors stable; production new games consume the authoritative RNG here.
   state.identification = initializeIdentification(createRandom((seed ^ 0x504f544e) >>> 0));
   for (const [id, left] of [[0, 2], [1, 20]] as const) {
     state.level.rooms[id] = { id, origin: { x: left, y: 2 }, width: 10, height: 8, kind: 'room', dark: false,
-      exits: [{ x: id === 0 ? 11 : 20, y: 5 }], goldTarget: null };
+      exits: [{ x: id === 0 ? 11 : 20, y: 5 }], goldTarget: null,
+      design: { token: `fixture-room-${id}`, theme: id === 0 ? 'dungeon' : 'store', baseTheme: id === 0 ? 'dungeon' : 'store', condition: 0, decorations: [] } };
     for (let y = 2; y < 10; y++) for (let x = left; x < left + 10; x++) {
       state.level.tiles[cellIndex(state.level, { x, y })] = { terrain: y === 2 || y === 9 ? 'wallH' : x === left || x === left + 9 ? 'wallV' : 'floor', secret: false, feature: null, roomId: id, passageId: null };
     }

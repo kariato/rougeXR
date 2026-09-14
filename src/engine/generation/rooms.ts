@@ -1,6 +1,7 @@
 import { GRID_HEIGHT, GRID_WIDTH, cellIndex } from '../grid';
 import type { RandomState, RoomState, TileState } from '../model/state';
 import { rnd } from '../random';
+import { createRoomDesign } from './room-design';
 
 export interface RoomLayout { rooms: RoomState[]; tiles: TileState[] }
 
@@ -19,17 +20,18 @@ export function buildRooms(rng: RandomState, depth: number): RoomLayout {
       let origin: { x: number; y: number };
       do origin = { x: top.x + rnd(rng, boxWidth - 2) + 1, y: top.y + rnd(rng, boxHeight - 2) + 1 };
       while (origin.y <= 0 || origin.y >= GRID_HEIGHT - 1);
-      rooms.push({ id, origin, width: 1, height: 1, kind: 'gone', dark: false, exits: [], goldTarget: null }); continue;
+      const room = roomWithDesign({ id, origin, width: 1, height: 1, kind: 'gone', dark: false, exits: [], goldTarget: null }, depth);
+      rooms.push(room); continue;
     }
     let dark = false; let maze = false;
     if (rnd(rng, 10) < depth - 1) { dark = true; if (rnd(rng, 15) === 0) { maze = true; dark = false; } }
     if (maze) {
       let origin = { ...top }; let width = boxWidth - 1; let height = boxHeight - 1;
       if (origin.x === 1) origin.x = 0; if (origin.y === 0) { origin.y++; height--; }
-      const room: RoomState = { id, origin, width, height, kind: 'maze', dark: false, exits: [], goldTarget: null };
+      const room = roomWithDesign({ id, origin, width, height, kind: 'maze', dark: false, exits: [], goldTarget: null }, depth);
       rooms.push(room); carveMaze(rng, depth, tiles, room); continue;
     }
-    const room = createOrdinaryRoom(rng, id, top, boxWidth, boxHeight, dark); rooms.push(room); drawOrdinaryRoom(tiles, room);
+    const room = createOrdinaryRoom(rng, depth, id, top, boxWidth, boxHeight, dark); rooms.push(room); drawOrdinaryRoom(tiles, room);
   }
   return { rooms, tiles };
 }
@@ -46,26 +48,30 @@ export function buildOrdinaryRooms(rng: RandomState, depth: number, excludedSlot
   for (let id = 0; id < 9; id++) {
     const top = { x: (id % 3) * boxWidth + 1, y: Math.trunc(id / 3) * boxHeight };
     if (excludedSlots.has(id)) {
-      rooms.push({ id, origin: { x: top.x + 1, y: Math.max(1, top.y + 1) }, width: 1, height: 1,
-        kind: 'gone', dark: false, exits: [], goldTarget: null }); continue;
+      const room = roomWithDesign({ id, origin: { x: top.x + 1, y: Math.max(1, top.y + 1) }, width: 1, height: 1,
+        kind: 'gone', dark: false, exits: [], goldTarget: null }, depth); rooms.push(room); continue;
     }
     let dark = false;
     if (rnd(rng, 10) < depth - 1) {
       dark = true;
       if (rnd(rng, 15) === 0) throw new Error('Maze room selected before Phase 9.3');
     }
-    const room = createOrdinaryRoom(rng, id, top, boxWidth, boxHeight, dark);
+    const room = createOrdinaryRoom(rng, depth, id, top, boxWidth, boxHeight, dark);
     rooms.push(room); drawOrdinaryRoom(tiles, room);
   }
   return { rooms, tiles };
 }
 
 function emptyTiles(): TileState[] { return Array.from({ length: GRID_WIDTH * GRID_HEIGHT }, (): TileState => ({ terrain: 'void', secret: false, feature: null, roomId: null, passageId: null })); }
-function createOrdinaryRoom(rng: RandomState, id: number, top: { x: number; y: number }, boxWidth: number, boxHeight: number, dark: boolean): RoomState {
+function createOrdinaryRoom(rng: RandomState, depth: number, id: number, top: { x: number; y: number }, boxWidth: number, boxHeight: number, dark: boolean): RoomState {
   let width = 0; let height = 0; let x = 0; let y = 0;
   do { width = rnd(rng, boxWidth - 4) + 4; height = rnd(rng, boxHeight - 4) + 4;
     x = top.x + rnd(rng, boxWidth - width); y = top.y + rnd(rng, boxHeight - height); } while (y === 0);
-  return { id, origin: { x, y }, width, height, kind: 'room', dark, exits: [], goldTarget: null };
+  return roomWithDesign({ id, origin: { x, y }, width, height, kind: 'room', dark, exits: [], goldTarget: null }, depth);
+}
+
+function roomWithDesign(room: Omit<RoomState, 'design'>, depth: number): RoomState {
+  return { ...room, design: createRoomDesign(room, depth) };
 }
 
 function carveMaze(rng: RandomState, depth: number, tiles: TileState[], room: RoomState): void {

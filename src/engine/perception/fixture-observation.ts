@@ -43,6 +43,7 @@ export function describeObservedCell(observation: PlayerObservation, index: numb
     lines.push(`Terrain: ${cell.appearance.terrainLabel}`);
     if (cell.appearance.featureLabel) lines.push(`Feature: ${cell.appearance.featureLabel}`);
   }
+  if (cell.visualRegion) lines.push(`Room theme: ${cell.visualRegion.theme}`);
   for (const entity of observation.entities.filter(candidate => candidate.at.x === at.x && candidate.at.y === at.y)) {
     lines.push(`Visible entity: ${entity.label}`);
   }

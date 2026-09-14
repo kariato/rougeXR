@@ -4,7 +4,7 @@ import type { PlayerObservation } from '../../engine/model/observation';
 import type { GameView } from '../game-view';
 import { buildPrimitiveCells } from './scene-plan';
 import { nearestVisibleHit, smoothToward, type CameraMode } from './camera-model';
-import { createActorVisual, createItemVisual, type ActorVisual } from './entity-visual';
+import { createActorVisual, createDecorationVisual, createItemVisual, type ActorVisual } from './entity-visual';
 import { SceneGeneration } from './asset-cache';
 import type { XrSessionLike } from '../xr/session-controller';
 import { DebouncedXrIntent, directionFromForward } from '../xr/input';
@@ -89,24 +89,36 @@ export class ThreeGameView implements GameView {
     const floorGeometry = new THREE.PlaneGeometry(TILE, TILE);
     floorGeometry.rotateX(-Math.PI / 2);
     const wallGeometry = new THREE.BoxGeometry(TILE, 1.8, TILE);
-    const floorVisible = new THREE.MeshStandardMaterial({ color: 0x344457, roughness: 0.95 });
-    const floorRemembered = new THREE.MeshStandardMaterial({ color: 0x202a36, roughness: 1 });
-    const wallVisible = new THREE.MeshStandardMaterial({ color: 0x66788b, roughness: 0.9 });
-    const wallRemembered = new THREE.MeshStandardMaterial({ color: 0x303b47, roughness: 1 });
     const doorMaterial = new THREE.MeshStandardMaterial({ color: 0x7d4d2f, roughness: 0.85 });
 
-    for (const cell of buildPrimitiveCells(observation, this.mode === 'tabletop' ? Number.POSITIVE_INFINITY : 14)) {
+    const primitiveCells = buildPrimitiveCells(observation, this.mode === 'tabletop' ? Number.POSITIVE_INFINITY : 14);
+    const activeCells = new Set(primitiveCells.map(cell => `${cell.x},${cell.z}`));
+    for (const cell of primitiveCells) {
+      const palette = themePalette(cell.theme, cell.condition, cell.visibility === 'remembered', cell.dark);
       if (cell.kind === 'wall') {
-        const mesh = new THREE.Mesh(wallGeometry, cell.visibility === 'visible' ? wallVisible : wallRemembered);
+        const geometry = cell.theme === 'cave' ? new THREE.DodecahedronGeometry(0.68, 0) : wallGeometry;
+        const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: palette.wall, roughness: 0.92 }));
+        if (cell.theme === 'cave') mesh.scale.set(0.9, 1.35 + cell.condition * 0.08, 0.9);
         mesh.position.set(cell.x, 0.9, cell.z); mesh.userData = { cell: { x: cell.x, y: cell.z }, eligible: false, occludes: true }; this.world.add(mesh);
       } else {
-        const floor = new THREE.Mesh(floorGeometry, cell.visibility === 'visible' ? floorVisible : floorRemembered);
+        const floor = new THREE.Mesh(floorGeometry, new THREE.MeshStandardMaterial({ color: palette.floor, roughness: 0.98 }));
         floor.position.set(cell.x, 0, cell.z); floor.userData = { cell: { x: cell.x, y: cell.z }, eligible: true, occludes: false }; this.world.add(floor);
         if (cell.kind === 'door') {
           const door = new THREE.Mesh(new THREE.BoxGeometry(0.82, 1.65, 0.16), doorMaterial);
           door.position.set(cell.x, 0.825, cell.z); door.userData = { cell: { x: cell.x, y: cell.z }, eligible: true, occludes: true }; this.world.add(door);
         }
       }
+    }
+
+    const reserved = new Set([`${observation.playerAt.x},${observation.playerAt.y}`,
+      ...observation.entities.map(entity => `${entity.at.x},${entity.at.y}`)]);
+    for (let index = 0; index < observation.cells.length; index++) if (observation.cells[index]?.appearance?.featureLabel) reserved.add(`${index % observation.width},${Math.floor(index / observation.width)}`);
+    for (const decoration of observation.decorations) {
+      const key = `${decoration.at.x},${decoration.at.y}`;
+      if (!activeCells.has(key) || reserved.has(key)) continue;
+      const visual = createDecorationVisual(decoration.kind, decoration.theme, decoration.variant);
+      visual.position.x = decoration.at.x; visual.position.z = decoration.at.y; visual.rotation.y = decoration.rotation * Math.PI / 2; visual.scale.multiplyScalar(decoration.scale);
+      visual.userData = { cell: { ...decoration.at }, eligible: false, occludes: false }; this.world.add(visual);
     }
 
     const movementTokens = new Set(observation.revision === this.lastAnimatedRevision ? []
@@ -286,4 +298,18 @@ export function disposeObjectTree(root: THREE.Object3D): void {
     const materials = Array.isArray(descendant.material) ? descendant.material : [descendant.material];
     for (const material of materials) material.dispose();
   });
+}
+
+function themePalette(theme: NonNullable<PlayerObservation['cells'][number]['visualRegion']>['theme'], condition: number, remembered: boolean, dark: boolean): { floor: number; wall: number } {
+  const palettes = {
+    dungeon: [0x3d4650, 0x74777a], cave: [0x263c35, 0x46594d], crypt: [0x403b43, 0x79717d],
+    store: [0x4b382c, 0x745943], treasure: [0x514225, 0x94743b], none: [0x252b33, 0x46505b],
+  } as const;
+  let [floor, wall] = palettes[theme];
+  const factor = (remembered ? 0.56 : 1) * (dark ? 0.72 : 1) * (1 - Math.min(2, condition) * 0.05);
+  const dim = (color: number): number => {
+    const r = Math.round(((color >>> 16) & 255) * factor); const g = Math.round(((color >>> 8) & 255) * factor); const b = Math.round((color & 255) * factor);
+    return (r << 16) | (g << 8) | b;
+  };
+  return { floor: dim(floor), wall: dim(wall) };
 }

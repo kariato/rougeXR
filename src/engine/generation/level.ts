@@ -6,6 +6,7 @@ import { buildPassages } from './passages';
 import { buildRooms } from './rooms';
 import { instantiateMonster, randomMonster } from './monsters';
 import { generateObject } from './objects';
+import { clearDecorationApproaches, redesignRoom } from './room-design';
 
 export interface GeneratedLevelContent {
   profile: 'full-rules'; rng: RandomState; nextEntitySerial: number; noFood: number; nextGroup: number;
@@ -18,7 +19,7 @@ export function generateLevelContent(seed: number, depth: number): GeneratedLeve
 
 export function generateLevelContentFromRandom(rng: RandomState, depth: number, firstEntitySerial = 1, priorNoFood = 0, firstGroup = 2,
   hasAmulet = false, maximumDepth = depth): GeneratedLevelContent {
-  const layout = buildPassages(rng, depth, buildRooms(rng, depth));
+  const layout = buildPassages(rng, depth, buildRooms(rng, depth)); clearDecorationApproaches(layout.rooms);
   const entities: Record<EntityId, EntityState> = {}; const monsterOrder: EntityId[] = []; const floorObjectOrder: EntityId[] = [];
   let serial = firstEntitySerial; const allocate = (): EntityId => `e${serial++}`;
   const occupiedObjects = new Set<number>(); const occupiedMonsters = new Set<number>();
@@ -43,6 +44,7 @@ export function generateLevelContentFromRandom(rng: RandomState, depth: number, 
   }
   if (populateTreasure && rnd(rng, 20) === 0) {
     let room = layout.rooms[rnd(rng, layout.rooms.length)]!; while (room.kind === 'gone') room = layout.rooms[rnd(rng, layout.rooms.length)]!;
+    redesignRoom(room, depth, 'treasure'); clearDecorationApproaches([room]);
     const available = Math.min(8, (room.width - 2) * (room.height - 2) - 2); const treasureCount = rnd(rng, available) + 2;
     for (let placed = 0; placed < treasureCount; placed++) { const at = findFloor(rng, layout.rooms, layout.tiles, occupiedObjects, occupiedMonsters, room); const id = allocate();
       entities[id] = generateObject(rng, objectContext, id, { kind: 'floor', levelId: depth, at }); floorObjectOrder.unshift(id); occupiedObjects.add(index(at)); }

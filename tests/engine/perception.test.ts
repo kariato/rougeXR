@@ -4,6 +4,7 @@ import { cellIndex } from '../../src/engine/grid';
 import { observe, updateKnowledge } from '../../src/engine/perception/knowledge';
 import { CAN_DETECT_MONSTERS, IS_BLIND, IS_INVISIBLE } from '../../src/engine/rules/flags';
 import { GameSession, type ActionHandler } from '../../src/engine/session';
+import { redesignRoom } from '../../src/engine/generation/room-design';
 
 describe('player knowledge', () => {
   it('remembers a lit room after entering a passage without exposing the next room', () => {
@@ -12,7 +13,7 @@ describe('player knowledge', () => {
     const view = observe(state);
     expect(view.cells[cellIndex(state.level, { x: 5, y: 5 })]?.visibility).toBe('remembered');
     expect(view.cells[cellIndex(state.level, { x: 12, y: 5 })]?.visibility).toBe('visible');
-    expect(view.cells[cellIndex(state.level, { x: 23, y: 5 })]).toEqual({ visibility: 'unknown', appearance: null });
+    expect(view.cells[cellIndex(state.level, { x: 23, y: 5 })]).toEqual({ visibility: 'unknown', appearance: null, visualRegion: null });
   });
   it('shows only the local neighborhood in a dark room and only the player cell while blind', () => {
     const state = createTwoRoomFixture(); state.level.rooms[0]!.dark = true;
@@ -33,7 +34,15 @@ describe('player knowledge', () => {
     state.player.flags |= CAN_DETECT_MONSTERS; view = observe(state);
     expect(view.entities[0]).toMatchObject({ appearance: '$', label: 'detected monster' });
     expect(view.entities[0]?.label).not.toContain('fixture.monster');
-    expect(view.cells[cellIndex(state.level, monster.at)]).toEqual({ visibility: 'unknown', appearance: null });
+    expect(view.cells[cellIndex(state.level, monster.at)]).toEqual({ visibility: 'unknown', appearance: null, visualRegion: null });
+  });
+  it('does not reveal a treasure design until treasure in that room is visible', () => {
+    const state = createTwoRoomFixture(); const room = state.level.rooms[0]!; redesignRoom(room, 10, 'treasure');
+    const at = cellIndex(state.level, { x: 5, y: 5 });
+    expect(observe(state).cells[at]?.visualRegion?.theme).toBe(room.design.baseTheme);
+    const item = state.entities.e2!; if (item.kind !== 'item') throw new Error('fixture item missing');
+    item.location = { kind: 'floor', levelId: 1, at: { x: 6, y: 5 } };
+    expect(observe(state).cells[at]?.visualRegion?.theme).toBe('treasure');
   });
   it('keeps unseen actor movement in raw debug events only (P01)', () => {
     const handler: ActionHandler = (_action, { state, emitRaw }) => {

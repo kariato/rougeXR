@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import type { DecorationKind, RoomTheme } from '../../engine/model/state';
 
 export interface ActorVisual {
   root: THREE.Group;
@@ -32,4 +33,20 @@ export function createActorVisual(color: number): ActorVisual {
 
 export function createItemVisual(): THREE.Mesh {
   return new THREE.Mesh(new THREE.OctahedronGeometry(0.2), new THREE.MeshStandardMaterial({ color: 0xf0b84a, emissive: 0x3b2508, roughness: 0.5 }));
+}
+
+export function createDecorationVisual(kind: DecorationKind, theme: RoomTheme, variant: number): THREE.Object3D {
+  const colors: Record<RoomTheme, number> = { dungeon: 0x6f6254, cave: 0x435448, crypt: 0x77706c, store: 0x76543c, treasure: 0xb58b37, none: 0x555555 };
+  const material = new THREE.MeshStandardMaterial({ color: colors[theme], roughness: kind === 'coinScatter' ? 0.35 : 0.9,
+    emissive: kind === 'mushroom' ? 0x102d20 : kind === 'coinScatter' ? 0x2b1900 : 0x000000 });
+  let geometry: THREE.BufferGeometry;
+  if (kind === 'pillar') geometry = new THREE.CylinderGeometry(0.16 + variant * 0.025, 0.2, 0.85, 7);
+  else if (kind === 'urn') geometry = new THREE.SphereGeometry(0.18, 7, 5);
+  else if (kind === 'crate') geometry = new THREE.BoxGeometry(0.34, 0.34, 0.34);
+  else if (kind === 'mushroom') geometry = new THREE.ConeGeometry(0.18, 0.3, 7);
+  else if (kind === 'bones') geometry = new THREE.CapsuleGeometry(0.035, 0.3, 2, 6);
+  else if (kind === 'coinScatter') geometry = new THREE.CylinderGeometry(0.22, 0.24, 0.035, 10);
+  else geometry = new THREE.DodecahedronGeometry(0.18 + variant * 0.03, 0);
+  const mesh = new THREE.Mesh(geometry, material); mesh.position.y = kind === 'pillar' ? 0.425 : kind === 'crate' ? 0.17 : kind === 'urn' ? 0.18 : kind === 'coinScatter' ? 0.025 : 0.12;
+  return mesh;
 }

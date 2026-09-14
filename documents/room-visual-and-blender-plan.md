@@ -288,6 +288,8 @@ Treat these as starting budgets. Target-headset profiling decides final limits.
 
 Completion: reading observations cannot infer an undiscovered room's presence, extent, or theme; replay hashes remain unchanged.
 
+Implemented 2026-09-14 with creation-time `RoomDesign` metadata. The first implementation stores primitive decoration placements directly with each generated room, uses a cosmetic hash that does not consume Rogue RNG, clears door approaches after passages are connected, and filters all visual metadata through disclosed observation cells. Detailed modular meshes and Blender-authored replacements remain in later slices.
+
 ### 14.2 — Deterministic theme catalog
 
 - Add the versioned theme and asset-manifest schemas.

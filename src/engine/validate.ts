@@ -92,6 +92,18 @@ export function validateWorld(input: unknown): ValidationIssue[] {
       check(integer(room.width, 1) && integer(room.height, 1) && inBounds(level, room.origin)
         && inBounds(level, { x: room.origin.x + room.width - 1, y: room.origin.y + room.height - 1 }), `room.${room.id}`, 'Invalid rectangle');
       check(room.exits.every(p => isPlayable(level, p)) && (room.goldTarget === null || isPlayable(level, room.goldTarget)), `room.${room.id}`, 'Invalid exit/gold target');
+      check(!!room.design && typeof room.design.token === 'string' && room.design.token.length > 0
+        && ['dungeon', 'cave', 'crypt', 'store', 'treasure', 'none'].includes(room.design.theme)
+        && ['dungeon', 'cave', 'crypt', 'store', 'none'].includes(room.design.baseTheme)
+        && integer(room.design.condition) && room.design.condition <= 2 && Array.isArray(room.design.decorations), `room.${room.id}.design`, 'Invalid room design');
+      const decorationIds = new Set<string>();
+      for (const decoration of room.design?.decorations ?? []) {
+        check(typeof decoration.id === 'string' && !decorationIds.has(decoration.id), `room.${room.id}.design`, 'Invalid decoration ID'); decorationIds.add(decoration.id);
+        check(['rubble', 'pillar', 'urn', 'crate', 'mushroom', 'bones', 'coinScatter'].includes(decoration.kind)
+          && isPlayable(level, decoration.at) && level.tiles[decoration.at.y * level.width + decoration.at.x]?.roomId === room.id
+          && integer(decoration.rotation) && decoration.rotation <= 3 && integer(decoration.variant)
+          && Number.isFinite(decoration.scale) && decoration.scale > 0, `room.${room.id}.design`, 'Invalid decoration');
+      }
     }
     const passageIds = new Set(level.passages.map(p => p.id));
     check(passageIds.size === level.passages.length, 'passages', 'Duplicate passage IDs');

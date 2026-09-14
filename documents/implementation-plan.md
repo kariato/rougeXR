@@ -455,7 +455,7 @@ The detailed data contracts, theme language, placement rules, Blender convention
 | 14.7 | Replace monster placeholders in Blender-authored silhouette-family batches. | Every monster has a specific asset or documented fallback; rigs remain independent. |
 | 14.8 | Add visual regression, disposal, privacy, desktop, and headset acceptance. | Approved fixed-seed captures and target-device results close the visual milestone. |
 
-- [ ] 14.1
+- [x] 14.1
 - [ ] 14.2
 - [ ] 14.3
 - [ ] 14.4
@@ -465,6 +465,14 @@ The detailed data contracts, theme language, placement rules, Blender convention
 - [ ] 14.8
 
 Gate: presentation variety is deterministic and observation-safe; source gameplay remains identical with detailed assets enabled, disabled, delayed, or replaced by primitives.
+
+Phase 14.1 progress:
+
+- [x] Generate and store a deterministic non-colliding visual design with every room during level creation without consuming gameplay RNG.
+- [x] Assign maze rooms to the cave family and ordinary rooms to depth-aware dungeon, crypt, or store families; upgrade selected treasure rooms in the same level transaction.
+- [x] Store deterministic prop kind, cell, rotation, variant, and scale metadata; clear door approaches after passage construction.
+- [x] Expose themes and props only on already-visible or remembered cells and render primitive themed materials, cave silhouettes, and prop stand-ins.
+- [x] Reserve visible actors, objects, stairs, and revealed traps at render time so decoration remains non-blocking and unambiguous.
 
 ## Dependency and milestone summary
 

@@ -9,7 +9,7 @@ describe('fixture observation', () => {
     const state = createTwoRoomFixture();
     const observation = observeFixture(state);
     const unknown = cellIndex(state.level, { x: 23, y: 5 });
-    expect(observation.cells[unknown]).toEqual({ visibility: 'unknown', appearance: null });
+    expect(observation.cells[unknown]).toEqual({ visibility: 'unknown', appearance: null, visualRegion: null });
     expect(observation.entities).toEqual([]);
     expect(describeObservedCell(observation, unknown)).toEqual(['Cell 23, 5', 'Visibility: unknown']);
   });

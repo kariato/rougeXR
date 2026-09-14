@@ -1,4 +1,4 @@
-import type { Position } from './state';
+import type { DecorationKind, Position, RoomTheme } from './state';
 
 export type Visibility = 'unknown' | 'remembered' | 'visible';
 
@@ -11,7 +11,10 @@ export interface CellAppearance {
 export interface ObservedCell {
   visibility: Visibility;
   appearance: CellAppearance | null;
+  visualRegion: { token: string; theme: RoomTheme; condition: 0 | 1 | 2; dark: boolean } | null;
 }
+
+export interface ObservedDecoration { token: string; at: Position; kind: DecorationKind; rotation: 0 | 1 | 2 | 3; variant: number; scale: number; theme: RoomTheme }
 
 export interface ObservedEntity {
   token: string;
@@ -27,6 +30,7 @@ export interface PlayerObservation {
   playerAt: Position;
   cells: ObservedCell[];
   entities: ObservedEntity[];
+  decorations: ObservedDecoration[];
   status: { hp: number; maxHp: number; gold: number; depth: number; hungerStage: number };
   inventory: Array<{ token: string; label: string; quantity: number; category: string; equippedSlot: string | null }>;
   pendingDecision: 'callItem' | 'identifyItem' | null;

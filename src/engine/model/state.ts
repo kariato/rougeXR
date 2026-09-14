@@ -15,7 +15,12 @@ export interface RoomState {
   id: number; origin: Position; width: number; height: number;
   kind: 'room' | 'gone' | 'maze'; dark: boolean;
   exits: Position[]; goldTarget: Position | null;
+  design: RoomDesign;
 }
+export type RoomTheme = 'dungeon' | 'cave' | 'crypt' | 'store' | 'treasure' | 'none';
+export type DecorationKind = 'rubble' | 'pillar' | 'urn' | 'crate' | 'mushroom' | 'bones' | 'coinScatter';
+export interface RoomDecoration { id: string; kind: DecorationKind; at: Position; rotation: 0 | 1 | 2 | 3; variant: number; scale: number }
+export interface RoomDesign { token: string; theme: RoomTheme; baseTheme: RoomTheme; condition: 0 | 1 | 2; decorations: RoomDecoration[] }
 export interface PassageState { id: number; cells: number[] }
 export interface LevelState {
   id: number; depth: number; width: number; height: number;
