@@ -2,6 +2,20 @@
 
 The complete creation, export, registration, and validation workflow is documented in [`docs/MONSTER_ASSET_PIPELINE.md`](../docs/MONSTER_ASSET_PIPELINE.md).
 
+## Leprechaun
+
+Original stylized small rogue with a green coat, tall buckled hat, copper beard, pointed shoes, coin pouch, and loose coins. Generated using Blender 4.5 LTS; no external models or textures.
+
+- Source: `art/blender/creatures/leprechaun.blend`
+- Runtime: `public/assets/creatures/leprechaun.glb`
+- Preview: `art/previews/leprechaun.png`
+- Rig: 7 bones (root, spine, head, two arms, two legs).
+- Clips: `idle` (watchful sway), `move` (quick scamper), `attack` (pouch-hand swipe), `hurt` (sidestep recoil), `death` (side fall).
+- Height: approximately 1.3 m including the hat; Blender -Y / glTF +Z forward.
+
+Regenerate with `blender --background --python tools/blender/create_leprechaun.py`.
+Preview on the development server at `/model-preview.html?model=leprechaun`. Gameplay renderer integration remains pending.
+
 ## Zombie
 
 Original stylized shambling corpse with asymmetric decay, a missing eye, exposed ribs and shin bone, torn clothing, broken teeth, and clawed hands. Generated using Blender 4.5 LTS; no external models or textures.
