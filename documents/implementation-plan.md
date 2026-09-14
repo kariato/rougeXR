@@ -438,6 +438,34 @@ Phase 13.2–13.5 progress:
 - [x] Smoothly scale the observation-only dungeon into tabletop mode and restore unit scale for first-person/orbit presentation.
 - [x] Add the hardware acceptance procedure in [xr-device-checklist.md](xr-device-checklist.md); Phase 13.6 remains open until run on the target headset.
 
+## Phase 14 — Procedural environment variety and production assets
+
+Outcome: disclosed rooms have deterministic structural themes, safe decoration, and Blender-authored environment and creature assets without affecting Rogue rules or revealing hidden areas.
+
+The detailed data contracts, theme language, placement rules, Blender conventions, asset budgets, and validation workflow are defined in [room-visual-and-blender-plan.md](room-visual-and-blender-plan.md).
+
+| Step | Small deliverable | Completion check |
+| --- | --- | --- |
+| 14.1 | Add the safe visual-region observation contract. | Unknown cells expose no region/theme data; replay hashes are unchanged. |
+| 14.2 | Add versioned deterministic theme and asset catalogs. | Theme choice matches across Chromium and Firefox without gameplay RNG draws. |
+| 14.3 | Build cached room/cave structure from exposed faces and transitions. | Rooms and caves have distinct silhouettes with unchanged traversability. |
+| 14.4 | Add deterministic semantic decoration anchors and exclusion volumes. | Generated decoration never blocks doors, stairs, traps, objects, actors, or XR lanes. |
+| 14.5 | Add the Blender validation/export pipeline and first dungeon/cave kits. | Clean checkout regenerates validated GLBs and manifests from committed sources. |
+| 14.6 | Add crypt, store, treasure, connector, decal, light, and quality-profile content. | All themes are recognizable and meet measured render budgets. |
+| 14.7 | Replace monster placeholders in Blender-authored silhouette-family batches. | Every monster has a specific asset or documented fallback; rigs remain independent. |
+| 14.8 | Add visual regression, disposal, privacy, desktop, and headset acceptance. | Approved fixed-seed captures and target-device results close the visual milestone. |
+
+- [ ] 14.1
+- [ ] 14.2
+- [ ] 14.3
+- [ ] 14.4
+- [ ] 14.5
+- [ ] 14.6
+- [ ] 14.7
+- [ ] 14.8
+
+Gate: presentation variety is deterministic and observation-safe; source gameplay remains identical with detailed assets enabled, disabled, delayed, or replaced by primitives.
+
 ## Dependency and milestone summary
 
 ```text
@@ -445,7 +473,7 @@ Phase 13.2–13.5 progress:
  -> 4 Movement -> 5 Knowledge -> 6 Save/reproduce
  -> 7 Combat -> 8 Inventory/survival -> 9 Generated game
  -> 10 Stable browser debugger -> 11 Full rules
- -> 12 Desktop 3D -> 13 XR
+ -> 12 Desktop 3D -> 13 XR -> 14 Environment and asset production
 
 Optional scheduling: 10 -> 12 for early spatial prototyping.
 ```
