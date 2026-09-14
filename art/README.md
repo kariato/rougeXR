@@ -2,6 +2,20 @@
 
 The complete creation, export, registration, and validation workflow is documented in [`docs/MONSTER_ASSET_PIPELINE.md`](../docs/MONSTER_ASSET_PIPELINE.md).
 
+## Orc
+
+Original stylized armored raider with olive skin, iron helmet and chest plate, round riveted shield, heavy cleaver, tusks, and oversized boots. Generated using Blender 4.5 LTS; no external models or textures.
+
+- Source: `art/blender/creatures/orc.blend`
+- Runtime: `public/assets/creatures/orc.glb`
+- Preview: `art/previews/orc.png`
+- Rig: 7 bones (root, spine, head, two arms, two legs).
+- Clips: `idle` (look/breathe), `move` (armored walk), `attack` (cleaver strike), `hurt` (recoil), `death` (side fall).
+- Height: approximately 1.75 m; Blender -Y / glTF +Z forward. Animation translation is cosmetic.
+
+Regenerate with `blender --background --python tools/blender/create_orc.py`.
+Preview on the development server at `/model-preview.html?model=orc`. Gameplay renderer integration remains pending.
+
 ## Ice monster
 
 Original stylized crystalline elemental with a deep-blue core, frost plates, glowing eyes, crown and back spikes, heavy fists, and ice claws. Generated using Blender 4.5 LTS; no external models or textures.
