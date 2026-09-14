@@ -5,7 +5,7 @@ import type { RawEventInput } from '../model/action';
 import type { CombatStats, EntityId, ItemState, MonsterState, Position, WorldState } from '../model/state';
 import { rnd, roll } from '../random';
 import { canMoveDiagonally, canStepTerrain } from './movement';
-import { CAN_CONFUSE_MONSTER, IS_BLIND, IS_CANCELLED, IS_CONFUSED, IS_FLYING, IS_FOUND, IS_GREEDY, IS_HALLUCINATING, IS_HELD, IS_LEVITATING, IS_MEAN, IS_PROTECTED, IS_RUNNING, IS_SLOWED } from './flags';
+import { CAN_CONFUSE_MONSTER, IS_BLIND, IS_CANCELLED, IS_CONFUSED, IS_FLYING, IS_FOUND, IS_GREEDY, IS_HALLUCINATING, IS_HASTED, IS_HELD, IS_LEVITATING, IS_MEAN, IS_PROTECTED, IS_RUNNING, IS_SLOWED } from './flags';
 import { checkLevel, EXPERIENCE_LEVELS } from './experience';
 import { ringCombatBonus } from './rings';
 import { lengthen, scheduleFuse } from '../scheduler';
@@ -180,7 +180,10 @@ function damagePlayer(state: WorldState, amount: number, cause: string, emit: Em
 }
 
 function killPlayer(state: WorldState, _cause: string, _emit: EmitRaw): void { state.player.stats.hp = 0; state.timing.status = 'dead'; }
-function saveThrow(state: WorldState, which: number): boolean { return roll(state.rng, 1, 20) >= 14 + which - Math.trunc(state.player.stats.level / 2); }
+function saveThrow(state: WorldState, which: number): boolean { let adjusted = which;
+  if (which === 3) for (const slot of ['leftRing', 'rightRing'] as const) { const id = state.player.equipment[slot]; const ring = id ? state.entities[id] : null;
+    if (ring?.kind === 'item' && ring.category === 'ring' && ring.definitionId === 'ring.protection') adjusted -= ring.magnitude; }
+  return roll(state.rng, 1, 20) >= 14 + adjusted - Math.trunc(state.player.stats.level / 2); }
 function wearing(state: WorldState, definitionId: string): boolean { return (['leftRing', 'rightRing'] as const).some(slot => {
   const id = state.player.equipment[slot]; return id !== null && state.entities[id]?.definitionId === definitionId;
 }); }
@@ -220,10 +223,28 @@ export function runMonsters(state: WorldState, emit: EmitRaw): void {
   for (const id of [...state.level.monsterOrder]) {
     const monster = state.entities[id];
     if (state.timing.status !== 'playing' || monster?.kind !== 'monster' || (monster.flags & (IS_RUNNING | IS_HELD)) !== IS_RUNNING) continue;
+    if (dragonBreath(state, monster, emit)) continue;
     if ((monster.flags & IS_SLOWED) === 0 || monster.slowTurn) chaseOnce(state, monster, emit);
     monster.slowTurn = !monster.slowTurn;
+    if (state.timing.status === 'playing' && (monster.flags & IS_HASTED) !== 0) chaseOnce(state, monster, emit);
     if (state.timing.status === 'playing' && (monster.flags & IS_FLYING) !== 0 && distanceSquared(monster.at, state.player.at) >= 3) chaseOnce(state, monster, emit);
   }
+}
+
+function dragonBreath(state: WorldState, monster: MonsterState, emit: EmitRaw): boolean {
+  if (monster.definitionId !== 'monster.dragon' || (monster.flags & IS_CANCELLED) !== 0) return false;
+  const dx = Math.sign(state.player.at.x - monster.at.x); const dy = Math.sign(state.player.at.y - monster.at.y);
+  if ((dx === 0 && dy === 0) || (monster.at.x !== state.player.at.x && monster.at.y !== state.player.at.y
+    && Math.abs(monster.at.x - state.player.at.x) !== Math.abs(monster.at.y - state.player.at.y)) || distanceSquared(monster.at, state.player.at) > 36
+    || rnd(state.rng, 5) !== 0) return false;
+  let at = { ...monster.at };
+  for (let step = 0; step < 6; step++) { at = { x: at.x + dx, y: at.y + dy };
+    if (!isPlayable(state.level, at) || !canStepTerrain(tileAt(state.level, at).terrain)) return false;
+    if (at.x === state.player.at.x && at.y === state.player.at.y) { if (!saveThrow(state, 3)) { damagePlayer(state, roll(state.rng, 6, 6), monster.id, emit);
+        emit({ type: 'sourceMessage', text: 'You are hit by the flame.' }); } else emit({ type: 'sourceMessage', text: 'The flame whizzes by you.' });
+      state.timing.quiet = 0; return true; }
+  }
+  return false;
 }
 
 function chaseOnce(state: WorldState, monster: MonsterState, emit: EmitRaw): void {
@@ -231,6 +252,7 @@ function chaseOnce(state: WorldState, monster: MonsterState, emit: EmitRaw): voi
   const indexes = buildIndexes(state);
   const randomStep = ((monster.flags & IS_CONFUSED) !== 0 && rnd(state.rng, 5) !== 0)
     || (monster.definitionId === 'monster.phantom' && rnd(state.rng, 5) === 0) || (monster.definitionId === 'monster.bat' && rnd(state.rng, 2) === 0);
+  if (randomStep && (monster.flags & IS_CONFUSED) !== 0 && rnd(state.rng, 20) === 0) monster.flags &= ~IS_CONFUSED;
   const targetItem = monster.target?.kind === 'item' ? state.entities[monster.target.id] : null;
   const destination = monster.target?.kind === 'position' ? monster.target.at
     : targetItem?.kind === 'item' && targetItem.location.kind === 'floor' ? targetItem.location.at : state.player.at;
@@ -246,7 +268,7 @@ function chaseOnce(state: WorldState, monster: MonsterState, emit: EmitRaw): voi
   }
   if (!best) return;
   if (best.x === state.player.at.x && best.y === state.player.at.y) { attackPlayer(state, monster, emit); return; }
-  const from = { ...monster.at }; monster.at = best;
+  const from = { ...monster.at }; monster.at = best; monster.roomId = tileAt(state.level, best).roomId;
   emit({ type: 'actorMoved', actorId: monster.id, from, to: { ...best } });
   if (monster.target?.kind === 'position' && best.x === monster.target.at.x && best.y === monster.target.at.y) {
     const itemId = buildIndexes(state).objects.get(cellIndex(state.level, best)); if (itemId) transferItem(state, itemId, { kind: 'pack', owner: monster.id });

@@ -324,7 +324,8 @@ Phase 11.6 progress:
 - [x] Add probabilistic mean-monster activation with stealth/levitation suppression, Medusa gaze, and greedy gold targeting.
 - [x] Add Aquator rust, ice freezing, rattlesnake poison, leprechaun gold theft, nymph magic theft, wraith/vampire drains, flytrap holding, and Xeroc discovery.
 - [x] Add player confusion-charge transfer and confused/Bat/Phantom movement variation.
-- [ ] Add dragon breath, source destination/path refinements, monster carried-object generation, and a final per-species behavior audit.
+- [x] Add dragon breath, hastened second moves, confusion recovery checks, and movement room-membership updates.
+- [ ] Add source destination/path refinements, monster carried-object generation, and a final per-species behavior audit.
 
 Gate: enable `full` mode only after definition coverage and the command audit justify it. Deterministic TypeScript replay is not a claim of identical historical C RNG sequences. Any deferred gameplay command prevents claiming full source parity even if full content is available.
 

@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { parseDamage, STRENGTH_DAMAGE_BONUS, STRENGTH_HIT_BONUS } from '../../src/definitions/combat';
 import { createKestrelEncounterFixture, createTwoRoomFixture } from '../../src/debug/fixtures';
 import { allocateId, transferItem } from '../../src/engine/entities';
-import { attackMonster, attackPlayer, wakeRoomMonsters } from '../../src/engine/rules/combat';
-import { CAN_CONFUSE_MONSTER, IS_CONFUSED, IS_HELD, IS_LEVITATING, IS_MEAN, IS_RUNNING } from '../../src/engine/rules/flags';
+import { attackMonster, attackPlayer, runMonsters, wakeRoomMonsters } from '../../src/engine/rules/combat';
+import { CAN_CONFUSE_MONSTER, IS_CONFUSED, IS_HASTED, IS_HELD, IS_LEVITATING, IS_MEAN, IS_RUNNING } from '../../src/engine/rules/flags';
 import { GameSession } from '../../src/engine/session';
 import { ReplayRecorder, replay } from '../../src/persistence/replay';
 
@@ -76,6 +76,21 @@ describe('source combat encounter', () => {
     const hp = xeroc.stats.hp; attackMonster(state, xeroc.id, () => {}); expect(xeroc.disguise).toBe('X'); expect(xeroc.stats.hp).toBe(hp);
     expect(state.player.flags & CAN_CONFUSE_MONSTER).toBe(CAN_CONFUSE_MONSTER);
     attackMonster(state, xeroc.id, () => {}); expect(xeroc.flags & IS_CONFUSED).toBe(IS_CONFUSED); expect(state.player.flags & CAN_CONFUSE_MONSTER).toBe(0);
+  });
+
+  it('gives hastened monsters a second move and lets aligned dragons breathe flame', () => {
+    const haste = createTwoRoomFixture(38); const runner = haste.entities.e1; if (runner?.kind !== 'monster') throw new Error('missing monster');
+    runner.definitionId = 'monster.hobgoblin'; runner.at = { x: 8, y: 5 }; runner.roomId = 0; runner.flags = IS_RUNNING | IS_HASTED; runner.target = { kind: 'player' };
+    runMonsters(haste, () => {}); expect(runner.at).toEqual({ x: 6, y: 5 });
+
+    let burned = false;
+    for (let seed = 1; seed <= 100 && !burned; seed++) { const state = createTwoRoomFixture(seed); const dragon = state.entities.e1;
+      if (dragon?.kind !== 'monster') throw new Error('missing monster'); dragon.definitionId = 'monster.dragon'; dragon.at = { x: 10, y: 5 }; dragon.roomId = 0;
+      dragon.flags = IS_RUNNING; dragon.target = { kind: 'player' }; state.player.stats.hp = state.player.stats.maxHp = 100;
+      runMonsters(state, () => {}); burned = state.player.stats.hp < 100;
+      if (burned) expect(dragon.at).toEqual({ x: 10, y: 5 });
+    }
+    expect(burned).toBe(true);
   });
 
   it('transcribes strength tables and parses every damage group', () => {
