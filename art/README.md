@@ -1,5 +1,7 @@
 # Blender creature assets
 
+The complete creation, export, registration, and validation workflow is documented in [`docs/MONSTER_ASSET_PIPELINE.md`](../docs/MONSTER_ASSET_PIPELINE.md).
+
 ## Bat
 
 Original stylized bat with solid scalloped wing membranes, long ears, fangs, and claws. Generated with Blender 4.5 LTS; no external models or textures.
