@@ -1,4 +1,4 @@
-import{describe,expect,it}from'vitest';import{createKestrelEncounterFixture,createTwoRoomFixture}from'../../src/debug/fixtures';import{allocateId}from'../../src/engine/entities';import type{WorldState}from'../../src/engine/model/state';import{CAN_SEE_INVISIBLE,IS_RUNNING}from'../../src/engine/rules/flags';import{ringCombatBonus}from'../../src/engine/rules/rings';import{GameSession}from'../../src/engine/session';import{restoreGame}from'../../src/persistence/save';
+import{describe,expect,it}from'vitest';import{createKestrelEncounterFixture,createTwoRoomFixture}from'../../src/debug/fixtures';import{allocateId}from'../../src/engine/entities';import{cellIndex}from'../../src/engine/grid';import type{WorldState}from'../../src/engine/model/state';import{CAN_SEE_INVISIBLE,IS_RUNNING}from'../../src/engine/rules/flags';import{ringCombatBonus}from'../../src/engine/rules/rings';import{GameSession}from'../../src/engine/session';import{restoreGame}from'../../src/persistence/save';
 function ring(state:WorldState,definitionId:string,magnitude=0):string{const id=allocateId(state);state.entities[id]={kind:'item',id,definitionId,category:'ring',location:{kind:'pack',owner:'player'},quantity:1,flags:0,group:0,label:null,magnitude};state.player.packOrder.push(id);return id;}
 describe('ring identities and passive effects',()=>{
  it('assigns distinct source stones and stores their added worth',()=>{const entries=createTwoRoomFixture(501).identification.filter(value=>value.definitionId.startsWith('ring.'));expect(entries).toHaveLength(14);expect(new Set(entries.map(value=>value.appearanceId)).size).toBe(14);expect(entries.every(value=>typeof value.worth==='number'&&value.worth>0)).toBe(true);});
@@ -10,4 +10,14 @@ describe('ring identities and passive effects',()=>{
   session.submit({expectedRevision:1,action:{type:'equip',itemId:regen,slot:'rightRing'}});const before=session.exportState().timing.foodLeft;session.submit({expectedRevision:2,action:{type:'rest'}});expect(session.exportState().timing.foodLeft).toBe(before-3);});
  it('provides per-hand protection, dexterity, and damage combat totals',()=>{const state=createTwoRoomFixture(504);const hit=ring(state,'ring.dexterity',3);const damage=ring(state,'ring.increase-damage',2);state.player.equipment.leftRing=hit;state.player.equipment.rightRing=damage;
   expect(ringCombatBonus(state,'hit')).toBe(3);expect(ringCombatBonus(state,'damage')).toBe(2);expect(ringCombatBonus(state,'armor')).toBe(0);});
+ it('runs left and right searching hooks after each completed turn',()=>{const state=createTwoRoomFixture(505);const left=ring(state,'ring.searching');const right=ring(state,'ring.searching');state.player.equipment.leftRing=left;state.player.equipment.rightRing=right;
+  const hidden=state.level.tiles[cellIndex(state.level,{x:5,y:4})]!;hidden.terrain='wallH';hidden.secret=true;const session=new GameSession(state);const draws=session.exportState().rng.draws;
+  for(let step=0;step<100&&session.exportState().level.tiles.some(tile=>tile.secret);step++){const revision=session.exportState().timing.revision;session.submit({expectedRevision:revision,action:{type:'rest'}});}
+  expect(session.exportState().level.tiles.some(tile=>tile.secret)).toBe(false);expect(session.exportState().rng.draws).toBeGreaterThan(draws);
+  expect(session.trace().filter(entry=>entry.kind==='ring').map(entry=>entry.detail)).toEqual(['left','right']);
+ });
+ it('checks teleportation independently per hand and preserves the resulting position',()=>{const state=createTwoRoomFixture(506);const id=ring(state,'ring.teleportation');state.player.equipment.leftRing=id;const start={...state.player.at};const session=new GameSession(state);
+  for(let step=0;step<500&&session.exportState().player.at.x===start.x&&session.exportState().player.at.y===start.y;step++){const revision=session.exportState().timing.revision;session.submit({expectedRevision:revision,action:{type:'rest'}});}
+  expect(session.exportState().player.at).not.toEqual(start);expect(restoreGame(session.exportState()).exportState()).toEqual(session.exportState());
+ });
 });

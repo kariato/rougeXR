@@ -45,7 +45,7 @@ function apply(state: WorldState, item: ItemState, entry: WorldState['identifica
     case 'scroll.identify-weapon': identifyDecision(state, entry, ['weapon'], emit); break;
     case 'scroll.identify-armor': identifyDecision(state, entry, ['armor'], emit); break;
     case 'scroll.identify-ring-stick': identifyDecision(state, entry, ['ring', 'stick'], emit); break;
-    case 'scroll.teleportation': teleport(state, entry, emit); break;
+    case 'scroll.teleportation': teleportPlayer(state, entry, emit); break;
   }
 }
 
@@ -95,7 +95,7 @@ function identifyDecision(state: WorldState, entry: WorldState['identification']
   if (state.player.packOrder.some(id => { const item = state.entities[id]; return item?.kind === 'item' && categories.includes(item.category); }))
     state.pendingDecision = { kind: 'identifyItem', categories };
 }
-function teleport(state: WorldState, entry: WorldState['identification'][number], emit: (event: RawEventInput) => void): void {
+export function teleportPlayer(state: WorldState, entry: WorldState['identification'][number] | null, emit: (event: RawEventInput) => void): void {
   const from = { ...state.player.at }; const fromRoom = state.player.roomId; const monsters = buildIndexes(state).monsters;
   for (let attempt = 0; attempt < 10000; attempt++) {
     let room = state.level.rooms[rnd(state.rng, state.level.rooms.length)]!; while (room.kind === 'gone') room = state.level.rooms[rnd(state.rng, state.level.rooms.length)]!;
@@ -104,7 +104,7 @@ function teleport(state: WorldState, entry: WorldState['identification'][number]
     if (!supportsOccupant(state.level, at) || monsters.has(cellIndex(state.level, at))) continue;
     state.player.at = at; state.player.roomId = state.level.tiles[cellIndex(state.level, at)]!.roomId;
     state.player.flags &= ~IS_HELD; state.timing.noMove = 0; state.player.flags &= ~IS_RUNNING;
-    if (state.player.roomId !== fromRoom) learn(entry, emit); emit({ type: 'actorMoved', actorId: 'player', from, to: { ...at } }); return;
+    if (entry && state.player.roomId !== fromRoom) learn(entry, emit); emit({ type: 'actorMoved', actorId: 'player', from, to: { ...at } }); return;
   }
   throw new Error('Unable to find teleport destination');
 }

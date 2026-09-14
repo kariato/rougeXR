@@ -15,6 +15,7 @@ import { drinkItem } from './rules/potions';
 import { answerIdentify, readItem } from './rules/scrolls';
 import { throwItem } from './rules/projectiles';
 import { zapItem } from './rules/sticks';
+import { runRingAfter } from './rules/rings';
 
 export interface RuleResult { resolved: boolean; consumedSlot: boolean; reason: string | null; deferredPickup?: string | null }
 export interface RuleContext { state: WorldState; emit(event: PresentationEvent): void; emitRaw(event: RawEventInput): void }
@@ -132,7 +133,9 @@ export class GameSession {
       runFuses(state.timing.scheduler, 'after', effects);
       if (state.timing.status !== 'playing') continue;
       trace.push({ kind: 'ring', detail: 'left', tick: state.timing.tick });
+      runRingAfter(state, 'leftRing', emitRaw); if (state.timing.status !== 'playing') continue;
       trace.push({ kind: 'ring', detail: 'right', tick: state.timing.tick });
+      runRingAfter(state, 'rightRing', emitRaw); if (state.timing.status !== 'playing') continue;
       state.timing.tick++; state.timing.cycle = { phase: 'begin', slotsRemaining: 0 };
     }
   }

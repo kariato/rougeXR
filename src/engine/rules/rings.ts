@@ -1,4 +1,5 @@
 import type{ItemState,WorldState}from'../model/state';import{rnd}from'../random';import{extinguish}from'../scheduler';import{CAN_SEE_INVISIBLE,IS_RUNNING}from'./flags';
+import type{RawEventInput}from'../model/action';import{resolveSearch}from'./search';import{teleportPlayer}from'./scrolls';
 type Ring=Extract<ItemState,{category:'ring'}>;
 export function applyRingEquip(state:WorldState,ring:Ring):void{if(ring.definitionId==='ring.add-strength')state.player.stats.strength=clamp(state.player.stats.strength+ring.magnitude);
  else if(ring.definitionId==='ring.see-invisible')state.player.flags|=CAN_SEE_INVISIBLE;else if(ring.definitionId==='ring.aggravate-monster')for(const id of state.level.monsterOrder){const monster=state.entities[id];if(monster?.kind==='monster'){monster.flags|=IS_RUNNING;monster.target={kind:'player'};}}}
@@ -9,4 +10,6 @@ export function ringFoodCost(state:WorldState,slot:'leftRing'|'rightRing'):numbe
  const chance:Record<string,number>={'ring.searching':3,'ring.see-invisible':5,'ring.dexterity':3,'ring.increase-damage':3,'ring.slow-digestion':2};const used=rnd(state.rng,chance[ring.definitionId]!)===0?1:0;return ring.definitionId==='ring.slow-digestion'?-used:used;}
 export function ringCombatBonus(state:WorldState,kind:'hit'|'damage'|'armor'):number{return(['leftRing','rightRing']as const).reduce((sum,slot)=>{const id=state.player.equipment[slot];const ring=id?state.entities[id]:null;if(ring?.kind!=='item'||ring.category!=='ring')return sum;
  const match=kind==='hit'?'ring.dexterity':kind==='damage'?'ring.increase-damage':'ring.protection';return sum+(ring.definitionId===match?ring.magnitude:0);},0);}
+export function runRingAfter(state:WorldState,slot:'leftRing'|'rightRing',emit:(event:RawEventInput)=>void):void{const id=state.player.equipment[slot];const ring=id?state.entities[id]:null;if(ring?.kind!=='item'||ring.category!=='ring')return;
+ if(ring.definitionId==='ring.searching')resolveSearch(state,emit);else if(ring.definitionId==='ring.teleportation'&&rnd(state.rng,50)===0)teleportPlayer(state,null,emit);}
 function clamp(value:number):number{return Math.max(3,Math.min(31,value));}

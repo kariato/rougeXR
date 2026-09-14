@@ -273,7 +273,7 @@ Each row is a queue: make one effect, ability, or tightly related group its own 
 - [ ] 11.2
 - [ ] 11.3
 - [ ] 11.4
-- [ ] 11.5
+- [x] 11.5
 - [ ] 11.6
 - [ ] 11.7
 - [ ] 11.8
@@ -313,7 +313,8 @@ Phase 11.5 progress:
 
 - [x] Add all 14 randomized stone identities, stone worth, saved known bonus labels, and save version 7.
 - [x] Add strength, see-invisible, aggravation, protection, dexterity, damage, regeneration, and exact per-ring hunger interactions.
-- [ ] Add left/right AFTER searching and teleportation hooks plus combined-order coverage.
+- [x] Add left/right AFTER searching and teleportation hooks plus combined-order coverage.
+- [x] Verify sustain strength and maintain armor integrations; carry stealth into Phase 11.6 monster activation.
 
 Gate: enable `full` mode only after definition coverage and the command audit justify it. Deterministic TypeScript replay is not a claim of identical historical C RNG sequences. Any deferred gameplay command prevents claiming full source parity even if full content is available.
 
