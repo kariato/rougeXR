@@ -1,10 +1,10 @@
-import { KESTREL } from '../../definitions/combat';
 import { GRID_HEIGHT, GRID_WIDTH, cellIndex } from '../grid';
 import type { EntityId, EntityState, LevelState, Position, RandomState, RoomState, TrapKind } from '../model/state';
-import { createRandom, rnd, roll } from '../random';
+import { createRandom, rnd } from '../random';
 import { ACTIVE_TRAPS } from '../rules/traps';
 import { buildPassages } from './passages';
 import { buildRooms } from './rooms';
+import { instantiateMonster, randomMonster } from './monsters';
 
 export interface GeneratedLevelContent {
   profile: 'supported-slice'; rng: RandomState; nextEntitySerial: number;
@@ -29,10 +29,9 @@ export function generateLevelContentFromRandom(rng: RandomState, depth: number, 
       floorObjectOrder.unshift(id); occupiedObjects.add(index(at)); room.goldTarget = { ...at }; gold = true;
     }
     if (rnd(rng, 100) < (gold ? 80 : 25)) {
-      rnd(rng, 100); // source randmonster selection draw; supported slice maps the result to Kestrel
-      const at = findFloor(rng, layout.rooms, layout.tiles, occupiedObjects, occupiedMonsters, room); const id = allocate(); const hp = roll(rng, KESTREL.stats.level, 8);
-      entities[id] = { kind: 'monster', id, definitionId: KESTREL.id, at, stats: { ...KESTREL.stats, hp, maxHp: hp, damage: KESTREL.stats.damage.map(group => ({ ...group })) },
-        flags: KESTREL.flags, slowTurn: true, target: null, disguise: KESTREL.glyph, roomId: room.id, packOrder: [] };
+      const definition=randomMonster(rng,depth,false);
+      const at = findFloor(rng, layout.rooms, layout.tiles, occupiedObjects, occupiedMonsters, room); const id = allocate();
+      entities[id] = instantiateMonster(rng, depth, id, definition, at, room.id);
       monsterOrder.unshift(id); occupiedMonsters.add(index(at));
     }
   }

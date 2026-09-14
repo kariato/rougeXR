@@ -298,7 +298,7 @@ Phase 11.3 progress:
 - [x] Add monster confusion, magic mapping, hold monster, sleep, enchant armor, scare monster, food detection, enchant weapon, remove curse, aggravate monsters, and protect armor.
 - [x] Add serialized identify-item decisions for all five identify scrolls.
 - [x] Add teleportation with source-shaped room and interior-cell selection.
-- [ ] Add create-monster behavior after the monster definition catalog is available.
+- [x] Add create-monster behavior after the monster definition catalog is available.
 
 Phase 11.4 progress:
 
@@ -307,7 +307,7 @@ Phase 11.4 progress:
 - [x] Add light, invisibility, magic missile, haste monster, slow monster, nothing, and cancellation effects.
 - [x] Add drain life and teleport-away/to with direct damage, death, room membership, and save continuation.
 - [x] Add the shared six-cell bouncing lightning/fire/cold bolt engine with magic saves, return-path player damage, death, identification, and replay.
-- [ ] Add polymorph after the monster definition catalog is available.
+- [x] Add polymorph after the monster definition catalog is available.
 
 Phase 11.5 progress:
 
@@ -315,6 +315,13 @@ Phase 11.5 progress:
 - [x] Add strength, see-invisible, aggravation, protection, dexterity, damage, regeneration, and exact per-ring hunger interactions.
 - [x] Add left/right AFTER searching and teleportation hooks plus combined-order coverage.
 - [x] Verify sustain strength and maintain armor integrations; carry stealth into Phase 11.6 monster activation.
+
+Phase 11.6 progress:
+
+- [x] Transcribe the complete A–Z monster catalog, source flags, combat statistics, depth table, wandering table, and post-Amulet scaling.
+- [x] Generate source-selected species without the former Kestrel substitution and preserve Xeroc disguises.
+- [x] Reuse the catalog for create-monster and polymorph, including serialized IDs, packs, room membership, and deterministic RNG.
+- [ ] Add activation and special behavior groups: stealth/levitation wake checks, gaze/status attacks, theft, drain, holding, regeneration, and disguise discovery.
 
 Gate: enable `full` mode only after definition coverage and the command audit justify it. Deterministic TypeScript replay is not a claim of identical historical C RNG sequences. Any deferred gameplay command prevents claiming full source parity even if full content is available.
 
@@ -386,4 +393,4 @@ Optional scheduling: 10 -> 12 for early spatial prototyping.
 | Spatial browser version | Phase 12 | Explore the same game in desktop 3D |
 | XR version | Phase 13 | Use a headset with verified input and presentation |
 
-Current Phase 11 progress includes the complete potion table and 17 of 18 scroll effects. Create-monster is ordered after the Phase 11.6 monster catalog so its source random selection does not substitute a single species.
+Current Phase 11 progress includes the complete potion, scroll, stick, and ring tables plus the A–Z monster catalog and source depth selection. Phase 11.6 special monster behaviors remain in progress.

@@ -2,16 +2,19 @@ import { appearanceFor, updateKnowledge } from '../perception/knowledge';
 import type { RawEventInput } from '../model/action';
 import type { EntityId, ItemState, WorldState } from '../model/state';
 import { rnd } from '../random';
-import { buildIndexes } from '../entities';
-import { cellIndex, supportsOccupant } from '../grid';
+import { allocateId, buildIndexes } from '../entities';
+import { cellIndex, isPlayable, supportsOccupant, tileAt } from '../grid';
+import { instantiateMonster, randomMonster } from '../generation/monsters';
 import { CAN_CONFUSE_MONSTER, IS_CURSED, IS_HELD, IS_PROTECTED, IS_RUNNING } from './flags';
 import type { InventoryResult } from './inventory';
+import { canStepTerrain } from './movement';
 
 const SUPPORTED = new Set(['scroll.monster-confusion', 'scroll.magic-mapping', 'scroll.hold-monster', 'scroll.sleep',
   'scroll.enchant-armor', 'scroll.scare-monster', 'scroll.food-detection', 'scroll.enchant-weapon',
   'scroll.remove-curse', 'scroll.aggravate-monsters', 'scroll.protect-armor', 'scroll.identify-potion', 'scroll.identify-scroll',
   'scroll.identify-weapon', 'scroll.identify-armor', 'scroll.identify-ring-stick']);
 SUPPORTED.add('scroll.teleportation');
+SUPPORTED.add('scroll.create-monster');
 
 export function readItem(state: WorldState, itemId: EntityId, emit: (event: RawEventInput) => void): InventoryResult {
   const item = state.entities[itemId];
@@ -46,7 +49,23 @@ function apply(state: WorldState, item: ItemState, entry: WorldState['identifica
     case 'scroll.identify-armor': identifyDecision(state, entry, ['armor'], emit); break;
     case 'scroll.identify-ring-stick': identifyDecision(state, entry, ['ring', 'stick'], emit); break;
     case 'scroll.teleportation': teleportPlayer(state, entry, emit); break;
+    case 'scroll.create-monster': createMonster(state, emit); break;
   }
+}
+
+function createMonster(state: WorldState, emit: (event: RawEventInput) => void): void {
+  const indexes = buildIndexes(state); let selected: { x: number; y: number } | null = null; let count = 0;
+  for (let y = state.player.at.y - 1; y <= state.player.at.y + 1; y++) for (let x = state.player.at.x - 1; x <= state.player.at.x + 1; x++) {
+    const at = { x, y }; if ((x === state.player.at.x && y === state.player.at.y) || !isPlayable(state.level, at)
+      || !canStepTerrain(tileAt(state.level, at).terrain) || indexes.monsters.has(cellIndex(state.level, at))
+      || indexes.objects.has(cellIndex(state.level, at))) continue;
+    if (rnd(state.rng, ++count) === 0) selected = at;
+  }
+  if (!selected) { message(emit, 'You hear a faint cry of anguish in the distance.'); return; }
+  const id = allocateId(state); const definition = randomMonster(state.rng, state.level.depth, false);
+  const roomId = state.level.tiles[cellIndex(state.level, selected)]!.roomId;
+  state.entities[id] = instantiateMonster(state.rng, state.level.depth, id, definition, selected, roomId);
+  state.level.monsterOrder.unshift(id);
 }
 
 function magicMap(state: WorldState): void {

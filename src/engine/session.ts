@@ -197,7 +197,7 @@ function projectEvent(state: WorldState, event: RawEvent): PresentationEvent | n
   if (event.type === 'sourceMessage') return { type: 'message', text: event.text };
   if (event.type === 'featureRevealed') return { type: 'message', text: `You found ${event.feature}.` };
   if (event.type === 'attackResolved') {
-    const subject = event.attackerId === 'player' ? 'You' : 'The kestrel';
+    const subject = event.attackerId === 'player' ? 'You' : 'The monster';
     return { type: 'message', text: event.hit ? `${subject} hit for ${event.damage}.` : `${subject} missed.` };
   }
   if (event.type === 'hpChanged' || event.type === 'actorDefeated') return null;

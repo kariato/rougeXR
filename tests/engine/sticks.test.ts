@@ -38,4 +38,8 @@ describe('stick identities, charges, and first target effects',()=>{
    session.submit({expectedRevision:0,action:{type:'zap',itemId:id,direction:'E'}});await recorder.record({type:'zap',itemId:id,direction:'E'},0,session.exportState());const after=session.exportState();
    expect(after.identification.find(value=>value.definitionId===effect)?.known).toBe(true);expect((after.entities[id]as ItemState)).toMatchObject({charges:1});expect(await replay(recorder.bundle())).toEqual({ok:true,completed:1});}}
  );
+ it('polymorphs the first target while preserving its identity and carried pack',()=>{const state=createKestrelEncounterFixture(420);const id=stick(state,'stick.polymorph',2);const before=state.entities.e1;if(before?.kind!=='monster')throw new Error('missing monster');const session=new GameSession(state);
+  session.submit({expectedRevision:0,action:{type:'zap',itemId:id,direction:'E'}});const monster=session.exportState().entities.e1;if(monster?.kind!=='monster')throw new Error('missing polymorphed monster');
+  expect(monster.id).toBe('e1');expect(monster.definitionId).toMatch(/^monster\./);expect(monster.definitionId).not.toBe('monster.kestrel');expect((session.exportState().entities[id]as ItemState)).toMatchObject({charges:1});
+ });
 });

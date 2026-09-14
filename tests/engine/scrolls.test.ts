@@ -87,4 +87,13 @@ describe('scroll reading foundation and status effects', () => {
     expect(result.events).toContainEqual(expect.objectContaining({ type: 'visibleMovement', token: 'player', from: before }));
     expect(restoreGame(after).exportState()).toEqual(after);
   });
+
+  it('creates a source-selected monster on a legal adjacent cell', () => {
+    const state = createTwoRoomFixture(207); const scrollId = addScroll(state, 'scroll.create-monster');
+    const before = state.level.monsterOrder.length; const session = new GameSession(state);
+    session.submit({ expectedRevision: 0, action: { type: 'read', itemId: scrollId } }); const after = session.exportState();
+    expect(after.level.monsterOrder).toHaveLength(before + 1);
+    const created = after.entities[after.level.monsterOrder[0]!]; if (created?.kind !== 'monster') throw new Error('missing created monster');
+    expect(created.definitionId).toMatch(/^monster\./); expect(Math.abs(created.at.x - 5)).toBeLessThanOrEqual(1); expect(Math.abs(created.at.y - 5)).toBeLessThanOrEqual(1);
+  });
 });

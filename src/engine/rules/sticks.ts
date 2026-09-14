@@ -3,13 +3,14 @@ import { cellIndex, isPlayable, supportsOccupant, tileAt } from '../grid';
 import type { RawEventInput } from '../model/action';
 import type { Direction, EntityId, ItemState, Position, WorldState } from '../model/state';
 import { rnd, roll } from '../random';
+import { instantiateMonster, randomMonsterUniform } from '../generation/monsters';
 import { attackMonsterWithWeapon, damageMonster } from './combat';
 import { IS_CANCELLED, IS_CONFUSED, IS_HASTED, IS_INVISIBLE, IS_RUNNING, IS_SLOWED } from './flags';
 import type { InventoryResult } from './inventory';
 import { canStepTerrain } from './movement';
 
 const VECTORS:Record<Direction,Position>={N:{x:0,y:-1},NE:{x:1,y:-1},E:{x:1,y:0},SE:{x:1,y:1},S:{x:0,y:1},SW:{x:-1,y:1},W:{x:-1,y:0},NW:{x:-1,y:-1}};
-const SUPPORTED=new Set(['stick.light','stick.invisibility','stick.magic-missile','stick.haste-monster','stick.slow-monster','stick.nothing','stick.cancellation','stick.drain-life','stick.teleport-away','stick.teleport-to','stick.lightning','stick.fire','stick.cold']);
+const SUPPORTED=new Set(['stick.light','stick.invisibility','stick.magic-missile','stick.haste-monster','stick.slow-monster','stick.nothing','stick.cancellation','stick.drain-life','stick.teleport-away','stick.teleport-to','stick.lightning','stick.fire','stick.cold','stick.polymorph']);
 
 export function initializeStickCharges(state:WorldState,definitionId:string):number{return definitionId==='stick.light'?rnd(state.rng,10)+10:rnd(state.rng,5)+3;}
 
@@ -24,10 +25,15 @@ export function zapItem(state:WorldState,itemId:EntityId,direction:Direction,emi
     case'stick.magic-missile':missile(state,direction,emit);break;
     case'stick.nothing':break;case'stick.drain-life':drain(state,emit);break;
     case'stick.teleport-away':relocateTarget(state,direction,false);break;case'stick.teleport-to':relocateTarget(state,direction,true);break;
+    case'stick.polymorph':polymorph(state,direction);break;
     case'stick.lightning':case'stick.fire':case'stick.cold':elementalBolt(state,direction,item.definitionId,emit);break;
     default:{const target=firstMonster(state,direction);if(target)affect(state,target,item.definitionId);break;}
   }
   item.charges--;emit({type:'itemChargesChanged',itemId,charges:item.charges});return{resolved:true,consumedSlot:true,reason:null};
+}
+function polymorph(state:WorldState,direction:Direction):void{const id=firstMonster(state,direction);const previous=id?state.entities[id]:null;if(previous?.kind!=='monster')return;
+  const replacement=instantiateMonster(state.rng,state.level.depth,previous.id,randomMonsterUniform(state.rng),previous.at,previous.roomId);
+  replacement.packOrder=[...previous.packOrder];replacement.flags|=previous.flags&IS_RUNNING;replacement.target=previous.target;state.entities[id!]=replacement;
 }
 function light(state:WorldState,item:Extract<ItemState,{category:'stick'}>,emit:(event:RawEventInput)=>void):void{
   learn(state,item.definitionId,emit);const room=state.player.roomId===null?null:state.level.rooms.find(value=>value.id===state.player.roomId);

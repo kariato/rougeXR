@@ -1,4 +1,4 @@
-import { STRENGTH_DAMAGE_BONUS, STRENGTH_HIT_BONUS } from '../../definitions/combat';
+import { MONSTER_DEFINITIONS, STRENGTH_DAMAGE_BONUS, STRENGTH_HIT_BONUS } from '../../definitions/combat';
 import { buildIndexes, transferItem } from '../entities';
 import { cellIndex, isPlayable, tileAt } from '../grid';
 import type { RawEventInput } from '../model/action';
@@ -55,7 +55,7 @@ export function attackPlayer(state: WorldState, monster: MonsterState, emit: Emi
   if (state.player.stats.hp === 0) {
     state.timing.status = 'dead';
     emit({ type: 'actorDefeated', actorId: 'player', byActorId: monster.id });
-    emit({ type: 'sourceMessage', text: `The kestrel defeated you.` });
+    emit({ type: 'sourceMessage', text: `The ${monsterName(monster)} defeated you.` });
   }
 }
 
@@ -91,7 +91,11 @@ function destroyMonster(state: WorldState, monster: MonsterState, emit: EmitRaw)
   state.player.stats.experience += monster.stats.experience;
   checkLevel(state, emit);
   emit({ type: 'actorDefeated', actorId: monster.id, byActorId: 'player' });
-  emit({ type: 'sourceMessage', text: 'You defeated the kestrel.' });
+  emit({ type: 'sourceMessage', text: `You defeated the ${monsterName(monster)}.` });
+}
+
+function monsterName(monster: MonsterState): string {
+  return MONSTER_DEFINITIONS.find(definition => definition.id === monster.definitionId)?.name ?? 'monster';
 }
 
 function findDrop(state: WorldState, origin: Position): Position | null {
