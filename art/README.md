@@ -2,6 +2,20 @@
 
 The complete creation, export, registration, and validation workflow is documented in [`docs/MONSTER_ASSET_PIPELINE.md`](../docs/MONSTER_ASSET_PIPELINE.md).
 
+## Zombie
+
+Original stylized shambling corpse with asymmetric decay, a missing eye, exposed ribs and shin bone, torn clothing, broken teeth, and clawed hands. Generated using Blender 4.5 LTS; no external models or textures.
+
+- Source: `art/blender/creatures/zombie.blend`
+- Runtime: `public/assets/creatures/zombie.glb`
+- Preview: `art/previews/zombie.png`
+- Rig: 8 bones (root, spine, head, jaw, two arms, two legs).
+- Clips: `idle` (crooked sway), `move` (asymmetric shamble), `attack` (two-handed grab and bite), `hurt` (recoil), `death` (forward collapse).
+- Height: approximately 1.65 m; Blender -Y / glTF +Z forward. Animation translation is cosmetic.
+
+Regenerate with `blender --background --python tools/blender/create_zombie.py`.
+Preview on the development server at `/model-preview.html?model=zombie`. Gameplay renderer integration remains pending.
+
 ## Orc
 
 Original stylized armored raider with olive skin, iron helmet and chest plate, round riveted shield, heavy cleaver, tusks, and oversized boots. Generated using Blender 4.5 LTS; no external models or textures.
