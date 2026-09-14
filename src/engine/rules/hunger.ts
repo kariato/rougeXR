@@ -1,6 +1,7 @@
 import type { RawEventInput } from '../model/action';
 import type { WorldState } from '../model/state';
 import { rnd } from '../random';
+import { ringFoodCost } from './rings';
 
 export const HUNGER_TIME = 1300;
 export const MORE_TIME = 150;
@@ -19,7 +20,7 @@ export function runStomach(state: WorldState, emit: (event: RawEventInput) => vo
     timing.noCommand += rnd(state.rng, 8) + 4; timing.hungerStage = 3;
     emit({ type: 'sourceMessage', text: 'You faint from lack of food.' });
   } else {
-    const oldFood = timing.foodLeft; timing.foodLeft--;
+    const oldFood = timing.foodLeft; timing.foodLeft-=1+ringFoodCost(state,'leftRing')+ringFoodCost(state,'rightRing');
     if (timing.foodLeft < MORE_TIME && oldFood >= MORE_TIME) {
       timing.hungerStage = 2; emit({ type: 'sourceMessage', text: 'You are starting to feel weak.' });
     } else if (timing.foodLeft < 2 * MORE_TIME && oldFood >= 2 * MORE_TIME) {

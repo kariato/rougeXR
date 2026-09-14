@@ -4,6 +4,7 @@ import type { RawEventInput } from '../model/action';
 import type { EntityId, EquipmentSlot, ItemState, WorldState } from '../model/state';
 import { IS_CURSED } from './flags';
 import { rnd } from '../random';
+import { applyRingEquip, applyRingRemove } from './rings';
 
 export const MAX_PACK_SLOTS = 23;
 export interface InventoryResult { resolved: boolean; consumedSlot: boolean; reason: string | null }
@@ -82,8 +83,10 @@ export function equipItem(state: WorldState, itemId: EntityId, slot: EquipmentSl
       return { resolved: false, consumedSlot: false, reason: 'cursed' };
     }
     if (slot === 'armor') return { resolved: false, consumedSlot: false, reason: 'armor-already-worn' };
+    if(slot.endsWith('Ring')&&current?.kind==='item'&&current.category==='ring')applyRingRemove(state,current);
   }
   state.player.equipment[slot] = itemId;
+  if(item.category==='ring')applyRingEquip(state,item);
   emit({ type: 'equipmentChanged', slot, itemId });
   emit({ type: 'sourceMessage', text: slot === 'armor' ? 'You are now wearing armor.' : 'You are now wielding a weapon.' });
   return { resolved: true, consumedSlot: true, reason: null };
@@ -97,6 +100,7 @@ export function unequipItem(state: WorldState, slot: EquipmentSlot, emit: (event
     emit({ type: 'sourceMessage', text: 'You cannot remove the cursed item.' });
     return { resolved: false, consumedSlot: false, reason: 'cursed' };
   }
+  if(item.category==='ring')applyRingRemove(state,item);
   state.player.equipment[slot] = null; emit({ type: 'equipmentChanged', slot, itemId: null });
   return { resolved: true, consumedSlot: true, reason: null };
 }

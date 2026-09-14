@@ -7,6 +7,7 @@ import { rnd } from '../random';
 import { canMoveDiagonally, canStepTerrain } from './movement';
 import { IS_FLYING, IS_HELD, IS_MEAN, IS_RUNNING, IS_SLOWED } from './flags';
 import { checkLevel } from './experience';
+import { ringCombatBonus } from './rings';
 
 export type EmitRaw = (event: RawEventInput) => void;
 
@@ -27,7 +28,7 @@ export function attackMonster(state: WorldState, id: EntityId, emit: EmitRaw): v
   const weapon = state.player.equipment.weapon ? state.entities[state.player.equipment.weapon] : null;
   const hitBonus = weapon?.kind === 'item' && weapon.category === 'weapon' ? weapon.hitBonus : 0;
   const damageBonus = weapon?.kind === 'item' && weapon.category === 'weapon' ? weapon.damageBonus : 0;
-  strike(state, 'player', state.player.stats, id, monster.stats, emit, hitBonus, damageBonus);
+  strike(state, 'player', state.player.stats, id, monster.stats, emit, hitBonus+ringCombatBonus(state,'hit'), damageBonus+ringCombatBonus(state,'damage'));
   if (monster.stats.hp === 0) destroyMonster(state, monster, emit);
 }
 
@@ -47,7 +48,8 @@ export function damageMonster(state:WorldState,id:EntityId,amount:number,emit:Em
 export function attackPlayer(state: WorldState, monster: MonsterState, emit: EmitRaw): void {
   state.timing.quiet = 0;
   const armor = state.player.equipment.armor ? state.entities[state.player.equipment.armor] : null;
-  const defender = armor?.kind === 'item' && armor.category === 'armor' ? { ...state.player.stats, armorClass: armor.armorClass } : state.player.stats;
+  const defender = armor?.kind === 'item' && armor.category === 'armor' ? { ...state.player.stats, armorClass: armor.armorClass-ringCombatBonus(state,'armor') }
+    : { ...state.player.stats, armorClass: state.player.stats.armorClass-ringCombatBonus(state,'armor') };
   strike(state, monster.id, monster.stats, 'player', defender, emit);
   state.player.stats.hp = defender.hp;
   if (state.player.stats.hp === 0) {

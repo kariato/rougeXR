@@ -309,6 +309,12 @@ Phase 11.4 progress:
 - [x] Add the shared six-cell bouncing lightning/fire/cold bolt engine with magic saves, return-path player damage, death, identification, and replay.
 - [ ] Add polymorph after the monster definition catalog is available.
 
+Phase 11.5 progress:
+
+- [x] Add all 14 randomized stone identities, stone worth, saved known bonus labels, and save version 7.
+- [x] Add strength, see-invisible, aggravation, protection, dexterity, damage, regeneration, and exact per-ring hunger interactions.
+- [ ] Add left/right AFTER searching and teleportation hooks plus combined-order coverage.
+
 Gate: enable `full` mode only after definition coverage and the command audit justify it. Deterministic TypeScript replay is not a claim of identical historical C RNG sequences. Any deferred gameplay command prevents claiming full source parity even if full content is available.
 
 ## Phase 12 — Desktop 3D with the same engine

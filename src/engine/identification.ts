@@ -43,6 +43,8 @@ export const STICK_DEFINITIONS = [
   ['stick.slow-monster','slow monster'],['stick.drain-life','drain life'],['stick.nothing','nothing'],['stick.teleport-away','teleport away'],
   ['stick.teleport-to','teleport to'],['stick.cancellation','cancellation'],
 ] as const;
+export const RING_DEFINITIONS=[['ring.protection','protection'],['ring.add-strength','add strength'],['ring.sustain-strength','sustain strength'],['ring.searching','searching'],['ring.see-invisible','see invisible'],['ring.adornment','adornment'],['ring.aggravate-monster','aggravate monster'],['ring.dexterity','dexterity'],['ring.increase-damage','increase damage'],['ring.regeneration','regeneration'],['ring.slow-digestion','slow digestion'],['ring.teleportation','teleportation'],['ring.stealth','stealth'],['ring.maintain-armor','maintain armor']]as const;
+const RING_STONES=[['agate',25],['alexandrite',40],['amethyst',50],['carnelian',40],['diamond',300],['emerald',300],['germanium',225],['granite',5],['garnet',50],['jade',150],['kryptonite',300],['lapis lazuli',50],['moonstone',50],['obsidian',15],['onyx',60],['opal',200],['pearl',220],['peridot',63],['ruby',350],['sapphire',285],['stibotantalite',200],['tiger eye',50],['topaz',60],['turquoise',70],['taaffeite',300],['zircon',80]]as const;
 const WOODS=['avocado wood','balsa','bamboo','banyan','birch','cedar','cherry','cinnibar','cypress','dogwood','driftwood','ebony','elm','eucalyptus','fall','hemlock','holly','ironwood','kukui wood','mahogany','manzanita','maple','oaken','persimmon wood','pecan','pine','poplar','redwood','rosewood','spruce','teak','walnut','zebrawood'] as const;
 const METALS=['aluminum','beryllium','bone','brass','bronze','copper','electrum','gold','iron','lead','magnesium','mercury','nickel','pewter','platinum','steel','silver','silicon','tin','titanium','tungsten','zinc'] as const;
 
@@ -78,8 +80,9 @@ export function initializeScrollIdentification(rng: RandomState): Identification
 }
 
 export function initializeIdentification(rng: RandomState): IdentificationEntry[] {
-  return [...initializePotionIdentification(rng), ...initializeScrollIdentification(rng), ...initializeStickIdentification(rng)];
+  return [...initializePotionIdentification(rng), ...initializeScrollIdentification(rng), ...initializeRingIdentification(rng), ...initializeStickIdentification(rng)];
 }
+export function initializeRingIdentification(rng:RandomState):IdentificationEntry[]{const used=new Set<number>();return RING_DEFINITIONS.map(([definitionId])=>{let index:number;do index=rnd(rng,RING_STONES.length);while(used.has(index));used.add(index);const stone=RING_STONES[index]!;return{definitionId,appearanceId:stone[0],known:false,called:null,worth:stone[1]};});}
 
 export function initializeStickIdentification(rng: RandomState): IdentificationEntry[] {
   const wood=new Set<number>(); const metal=new Set<number>(); return STICK_DEFINITIONS.map(([definitionId])=>{
@@ -89,10 +92,10 @@ export function initializeStickIdentification(rng: RandomState): IdentificationE
 }
 
 export function observedItemLabel(state: WorldState, item: ItemState): string {
-  if (item.category !== 'potion' && item.category !== 'scroll' && item.category !== 'stick') return item.label ?? item.definitionId;
+  if (item.category !== 'potion' && item.category !== 'scroll' && item.category !== 'stick' && item.category !== 'ring') return item.label ?? item.definitionId;
   const entry = state.identification.find(candidate => candidate.definitionId === item.definitionId);
   if (!entry) throw new Error(`Missing identification entry for ${item.definitionId}`);
-  const definitions = item.category === 'potion' ? POTION_DEFINITIONS : item.category === 'scroll' ? SCROLL_DEFINITIONS : STICK_DEFINITIONS;
+  const definitions = item.category === 'potion' ? POTION_DEFINITIONS : item.category === 'scroll' ? SCROLL_DEFINITIONS : item.category==='stick'?STICK_DEFINITIONS:RING_DEFINITIONS;
   const sourceName = definitions.find(([id]) => id === item.definitionId)?.[1];
   if (!sourceName) throw new Error(`Unknown ${item.category} definition ${item.definitionId}`);
   if (item.category === 'potion') {
@@ -106,6 +109,8 @@ export function observedItemLabel(state: WorldState, item: ItemState): string {
     if(entry.called!==null)return `${entry.appearanceId} called ${entry.called}${charges}`;
     return entry.appearanceId;
   }
+  if(item.category==='ring'){const bonus=['ring.protection','ring.add-strength','ring.dexterity','ring.increase-damage'].includes(item.definitionId)&&item.flags&0o2?` [${item.magnitude<0?'': '+'}${item.magnitude}]`:'';
+    if(entry.known)return `${entry.appearanceId} ring of ${sourceName}${bonus}`;if(entry.called!==null)return `${entry.appearanceId} ring called ${entry.called}${bonus}`;return `${entry.appearanceId} ring${bonus}`;}
   if (entry.known) return `scroll of ${sourceName} (titled '${entry.appearanceId}')`;
   if (entry.called !== null) return `scroll called ${entry.called} (titled '${entry.appearanceId}')`;
   return `scroll titled '${entry.appearanceId}'`;
