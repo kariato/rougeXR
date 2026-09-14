@@ -1,5 +1,19 @@
 # Blender creature assets
 
+## Rattlesnake
+
+Original stylized rattlesnake with a diamond-patterned, smoothly weighted body, raised head, forked tongue, fangs, and segmented rattle. Generated using Blender 4.5 LTS; no external models or textures.
+
+- Source: `art/blender/creatures/rattlesnake.blend`
+- Runtime: `public/assets/creatures/rattlesnake.glb`
+- Preview: `art/previews/rattlesnake.png`
+- Rig: 18 bones (root, 13 body controls, head, jaw, tongue, rattle).
+- Clips: `idle` (breathing/rattle/tongue), `move` (slither), `attack` (forward strike), `hurt` (recoil), `death` (collapse).
+- Facing: Blender -Y / glTF +Z. Animation translation is cosmetic; engine movement remains separate.
+
+Regenerate with `blender --background --python tools/blender/create_rattlesnake.py`.
+Preview on the development server at `/model-preview.html?model=rattlesnake`. This asset is available in the standalone viewer; gameplay renderer integration remains pending.
+
 ## Kestrel
 
 Original stylized bird of prey with layered solid feathers, russet coverts, a slate head, hooked beak, and talons. Generated using Blender 4.5 LTS; no external models or textures.
@@ -13,7 +27,7 @@ Original stylized bird of prey with layered solid feathers, russet coverts, a sl
 - Animation translation is cosmetic; no clip is intended to advance engine movement.
 
 Regenerate with `blender --background --python tools/blender/create_kestrel.py`.
-Preview on the development server at `/model-preview.html?model=kestrel`. The model selector also switches between both completed assets.
+Preview on the development server at `/model-preview.html?model=kestrel`. The model selector switches between completed assets.
 
 ## Hobgoblin
 

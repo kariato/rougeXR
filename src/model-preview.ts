@@ -2,11 +2,12 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-const model = new URLSearchParams(location.search).get('model') === 'kestrel' ? 'kestrel' : 'hobgoblin';
+const requestedModel = new URLSearchParams(location.search).get('model');
+const model = requestedModel === 'kestrel' || requestedModel === 'rattlesnake' ? requestedModel : 'hobgoblin';
 const modelSelector = document.querySelector<HTMLSelectElement>('#model')!;
 modelSelector.value = model;
 modelSelector.addEventListener('change', () => { location.search = new URLSearchParams({ model: modelSelector.value }).toString(); });
-const title = `${model === 'kestrel' ? 'Kestrel' : 'Hobgoblin'} · model study`;
+const title = `${model.charAt(0).toUpperCase() + model.slice(1)} · model study`;
 document.querySelector('h1')!.textContent = title; document.title = title;
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -16,6 +17,7 @@ const scene = new THREE.Scene(); scene.background = new THREE.Color(0x111820);
 const camera = new THREE.PerspectiveCamera(42, 1, 0.01, 50); camera.position.set(2, 1.7, 3.4);
 const controls = new OrbitControls(camera, renderer.domElement); controls.target.set(0, 0.72, 0); controls.update();
 if (model === 'kestrel') { camera.position.set(1.25, 1.65, 2.0); controls.target.set(0, 0.8, 0); controls.update(); }
+if (model === 'rattlesnake') { camera.position.set(1.2, 1.3, 1.9); controls.target.set(0, 0.18, -0.12); controls.update(); }
 scene.add(new THREE.HemisphereLight(0xe6efff, 0x716244, 2.5));
 const key = new THREE.DirectionalLight(0xffe4b3, 3); key.position.set(3, 5, 4); scene.add(key);
 const floor = new THREE.Mesh(new THREE.CircleGeometry(1.4, 64), new THREE.MeshStandardMaterial({ color: 0x27313a, roughness: 1 }));
