@@ -71,4 +71,11 @@ test('switches between first-person and map views without changing the game sess
   await page.locator('#view-mode').selectOption('3d');
   await expect(page.locator('#dungeon-3d')).toBeVisible();
   await expect(page.locator('#state-summary')).toContainText('Seed 9090 · Tick 1 · Revision 1');
+  await page.locator('#camera-mode').selectOption('orbit');
+  const box = await page.locator('#dungeon-3d').boundingBox(); expect(box).not.toBeNull();
+  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+  await page.mouse.down(); await page.mouse.move(box!.x + box!.width / 2 + 80, box!.y + box!.height / 2 + 30); await page.mouse.up();
+  await page.locator('#dungeon-3d').hover(); await page.mouse.wheel(0, 120);
+  await page.locator('#camera-mode').selectOption('tabletop');
+  await expect(page.locator('#state-summary')).toContainText('Seed 9090 · Tick 1 · Revision 1');
 });

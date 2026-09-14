@@ -23,6 +23,7 @@ if (issues.length) throw new Error(`Initial world validation failed: ${JSON.stri
 const canvas = required<HTMLCanvasElement>('#dungeon');
 const viewHost = required<HTMLElement>('#view-host');
 const viewMode = required<HTMLSelectElement>('#view-mode');
+const cameraMode = required<HTMLSelectElement>('#camera-mode');
 const inspector = required<HTMLElement>('#inspector');
 const reveal = required<HTMLInputElement>('#reveal');
 const stateSummary = required<HTMLElement>('#state-summary');
@@ -161,6 +162,7 @@ function render(): void {
   replayPlay.disabled = !replayMode || replayPlaying || !replayPlayer?.canStep();
   replayPause.disabled = !replayMode || !replayPlaying;
   replaySpeed.disabled = !replayMode;
+  cameraMode.disabled = view === gridView;
 }
 
 canvas.addEventListener('click', event => {
@@ -176,6 +178,13 @@ viewMode.addEventListener('change', () => {
   view = viewMode.value === '2d' ? gridView : threeView;
   view.mount(viewHost);
   selectedIndex = null;
+  render();
+});
+cameraMode.addEventListener('change', () => threeView.setMode(cameraMode.value as 'firstPerson' | 'orbit' | 'tabletop'));
+threeView.canvas.addEventListener('rougexr-select-cell', event => {
+  const position = (event as CustomEvent<{ x: number; y: number }>).detail;
+  const observation = observe(session.exportState());
+  selectedIndex = cellIndex(observation, position);
   render();
 });
 reveal.addEventListener('change', render);

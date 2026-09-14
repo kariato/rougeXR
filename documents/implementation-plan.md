@@ -369,7 +369,7 @@ Use the [Quick 3D MMORPG review](quick-3d-mmorpg-review.md) as a selective prese
 
 - [x] 12.1
 - [x] 12.2
-- [ ] 12.3
+- [x] 12.3
 - [ ] 12.4
 - [ ] 12.5
 
@@ -381,6 +381,13 @@ Phase 12.1–12.2 progress:
 - [x] Make first-person 3D the default while retaining the map as an explicit switchable debugging view.
 - [x] Render primitive floors, walls, and doors from `PlayerObservation` alone; unknown cells generate no scene primitives.
 - [x] Preserve the active session, tick, revision, and replay state across view switches.
+
+Phase 12.3 progress:
+
+- [x] Add first-person look plus orbit and tabletop inspection modes with elapsed-time-based smoothing.
+- [x] Keep camera drag, zoom, and mode changes entirely in presentation state without advancing a turn.
+- [x] Select distance-sorted observed geometry with nearer walls acting as occluders.
+- [x] Remove listeners and clear captured pointer state on blur, visibility loss, and view disposal.
 
 ## Phase 13 — XR adapter and device verification
 
