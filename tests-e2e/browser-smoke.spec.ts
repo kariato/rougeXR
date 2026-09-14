@@ -5,7 +5,7 @@ test('starts without WebXR and protects focused controls from gameplay input', a
   const errors: Error[] = []; page.on('pageerror', error => errors.push(error));
   await page.addInitScript(() => Object.defineProperty(Navigator.prototype, 'xr', { configurable: true, get: () => undefined }));
   await page.goto('/');
-  await expect(page.locator('#dungeon')).toBeVisible();
+  await expect(page.locator('#dungeon-3d')).toBeVisible();
   expect(await page.evaluate(() => (navigator as Navigator & { xr?: unknown }).xr === undefined)).toBe(true);
   await page.locator('#seed').fill('4242'); await page.locator('#new-game').click();
   await expect(page.locator('#state-summary')).toContainText('Seed 4242 · Tick 0 · Revision 0');
@@ -37,6 +37,7 @@ test('supports generated inventory plus manual save, load, and report export', a
 
 test('keeps CSS-pixel hit testing correct after resize at devicePixelRatio 2', async ({ page }) => {
   await page.goto('/');
+  await page.locator('#view-mode').selectOption('2d');
   await page.locator('#world-mode').selectOption('rooms'); await page.locator('#new-game').click();
   expect(await page.evaluate(() => devicePixelRatio)).toBe(2);
   for (const viewport of [{ width: 1280, height: 720 }, { width: 1000, height: 640 }]) {
@@ -56,4 +57,18 @@ test('keeps CSS-pixel hit testing correct after resize at devicePixelRatio 2', a
     await canvas.click({ position: { x: offsetX + 5.5 * cellSize, y: offsetY + 5.5 * cellSize } });
     await expect(page.locator('#inspector')).toContainText('Cell 5, 5'); await expect(page.locator('#inspector')).toContainText('Player');
   }
+});
+
+test('switches between first-person and map views without changing the game session', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('#seed').fill('9090'); await page.locator('#new-game').click();
+  await page.locator('h1').click();
+  await page.keyboard.press('.');
+  await expect(page.locator('#state-summary')).toContainText('Seed 9090 · Tick 1 · Revision 1');
+  await page.locator('#view-mode').selectOption('2d');
+  await expect(page.locator('#dungeon')).toBeVisible();
+  await expect(page.locator('#state-summary')).toContainText('Seed 9090 · Tick 1 · Revision 1');
+  await page.locator('#view-mode').selectOption('3d');
+  await expect(page.locator('#dungeon-3d')).toBeVisible();
+  await expect(page.locator('#state-summary')).toContainText('Seed 9090 · Tick 1 · Revision 1');
 });

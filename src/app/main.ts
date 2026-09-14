@@ -4,6 +4,8 @@ import { observe } from '../engine/perception/knowledge';
 import { validateWorld } from '../engine/validate';
 import { GameSession } from '../engine/session';
 import { CanvasGridView } from '../presentation/grid/canvas-view';
+import type { GameView } from '../presentation/game-view';
+import { ThreeGameView } from '../presentation/three/three-view';
 import { bindDesktopInput } from '../input/desktop';
 import type { PresentationEvent } from '../engine/model/action';
 import type { GameAction } from '../engine/model/action';
@@ -19,6 +21,8 @@ const issues = validateWorld(initialWorld);
 if (issues.length) throw new Error(`Initial world validation failed: ${JSON.stringify(issues)}`);
 
 const canvas = required<HTMLCanvasElement>('#dungeon');
+const viewHost = required<HTMLElement>('#view-host');
+const viewMode = required<HTMLSelectElement>('#view-mode');
 const inspector = required<HTMLElement>('#inspector');
 const reveal = required<HTMLInputElement>('#reveal');
 const stateSummary = required<HTMLElement>('#state-summary');
@@ -48,7 +52,9 @@ const loadButton = required<HTMLButtonElement>('#load');
 const exportReport = required<HTMLButtonElement>('#export-report');
 const loadFile = required<HTMLInputElement>('#load-file');
 const saveStatus = required<HTMLElement>('#save-status');
-const view = new CanvasGridView(canvas);
+const gridView = new CanvasGridView(canvas);
+const threeView = new ThreeGameView();
+let view: GameView = threeView;
 const saveStore = new IndexedDbSaveStore();
 let session = new GameSession(initialWorld);
 let recorder = new ReplayRecorder(session.exportState());
@@ -73,7 +79,8 @@ function render(): void {
   const debugSnapshot = debugFixtureSnapshot(state);
   const detections = latestEvents.flatMap(event => event.type === 'magicDetected' ? event.positions.map(at => ({ at, glyph: '*' }))
     : event.type === 'itemsDetected' ? event.positions.map(at => ({ at, glyph: event.glyph })) : []);
-  view.render(observation, reveal.checked ? debugSnapshot : null, detections);
+  if (view === gridView) gridView.render(observation, reveal.checked ? debugSnapshot : null, detections);
+  else view.update(observation, latestEvents);
   const lines = selectedIndex === null
     ? ['Click a cell to inspect it.']
     : [...describeObservedCell(observation, selectedIndex), ...(reveal.checked ? describeDebugCell(debugSnapshot, selectedIndex) : [])];
@@ -157,10 +164,18 @@ function render(): void {
 }
 
 canvas.addEventListener('click', event => {
+  if (view !== gridView) return;
   const observation = observe(session.exportState());
   const bounds = canvas.getBoundingClientRect();
-  const position = view.selectFromClient(event.clientX - bounds.left, event.clientY - bounds.top, observation);
+  const position = gridView.selectFromClient(event.clientX - bounds.left, event.clientY - bounds.top, observation);
   selectedIndex = position ? cellIndex(observation, position) : null;
+  render();
+});
+viewMode.addEventListener('change', () => {
+  view.dispose();
+  view = viewMode.value === '2d' ? gridView : threeView;
+  view.mount(viewHost);
+  selectedIndex = null;
   render();
 });
 reveal.addEventListener('change', render);
@@ -316,9 +331,12 @@ async function restoreLatestAutosave(): Promise<void> {
   }
 }
 let resizeFrame: number | null = null;
-new ResizeObserver(() => {
+new ResizeObserver(entries => {
   if (resizeFrame !== null) cancelAnimationFrame(resizeFrame);
+  const bounds = entries[0]?.contentRect;
+  if (bounds) view.resize(bounds.width, bounds.height);
   resizeFrame = requestAnimationFrame(() => { resizeFrame = null; render(); });
-}).observe(canvas.parentElement ?? canvas);
+}).observe(viewHost);
+view.mount(viewHost);
 render();
 actionQueue = actionQueue.then(restoreLatestAutosave);

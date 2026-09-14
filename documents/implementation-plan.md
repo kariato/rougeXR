@@ -367,13 +367,20 @@ Use the [Quick 3D MMORPG review](quick-3d-mmorpg-review.md) as a selective prese
 | 12.4 | Add visible entity representations, independent skeleton instances, and event-driven animation states. | Animation skip/speed does not affect replay hashes; animation callbacks never initiate gameplay. |
 | 12.5 | Add local room activation, URL-keyed asset caching, shared-resource ownership, and async generation tokens. | Test same filenames at different paths, material arrays, disposal during load, surviving shared instances, and listener teardown. |
 
-- [ ] 12.1
-- [ ] 12.2
+- [x] 12.1
+- [x] 12.2
 - [ ] 12.3
 - [ ] 12.4
 - [ ] 12.5
 
 Gate: identical action sequences yield identical engine results in 2D and 3D. This phase may start after Phase 10 if the user prioritizes spatial prototyping; full-rule work still remains tracked separately.
+
+Phase 12.1–12.2 progress:
+
+- [x] Introduce the shared `GameView` lifecycle and adapt the existing canvas map to it.
+- [x] Make first-person 3D the default while retaining the map as an explicit switchable debugging view.
+- [x] Render primitive floors, walls, and doors from `PlayerObservation` alone; unknown cells generate no scene primitives.
+- [x] Preserve the active session, tick, revision, and replay state across view switches.
 
 ## Phase 13 — XR adapter and device verification
 

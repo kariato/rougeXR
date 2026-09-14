@@ -1,13 +1,34 @@
 import { cellIndex, positionAt } from '../../engine/grid';
 import type { DebugSnapshot, PlayerObservation } from '../../engine/model/observation';
 import type { Position } from '../../engine/model/state';
+import type { PresentationEvent } from '../../engine/model/action';
+import type { GameView } from '../game-view';
 import { calculateLayout, hitTest, type GridLayout } from './layout';
 
-export class CanvasGridView {
+export class CanvasGridView implements GameView {
   private layout: GridLayout | null = null;
   private selected: Position | null = null;
 
   constructor(private readonly canvas: HTMLCanvasElement) {}
+
+  mount(host: HTMLElement): void {
+    this.canvas.hidden = false;
+    if (this.canvas.parentElement !== host) host.append(this.canvas);
+  }
+
+  update(observation: PlayerObservation, _events: PresentationEvent[]): void {
+    this.render(observation, null);
+  }
+
+  resize(_width: number, _height: number): void {
+    // render() reads CSS dimensions so the next observation draw uses the new size.
+  }
+
+  dispose(): void {
+    this.canvas.hidden = true;
+    this.layout = null;
+    this.selected = null;
+  }
 
   render(observation: PlayerObservation, debug: DebugSnapshot | null, detections: Array<{ at: Position; glyph: string }> = []): void {
     const bounds = this.canvas.getBoundingClientRect();
