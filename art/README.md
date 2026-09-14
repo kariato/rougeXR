@@ -1,5 +1,20 @@
 # Blender creature assets
 
+## Bat
+
+Original stylized bat with solid scalloped wing membranes, long ears, fangs, and claws. Generated with Blender 4.5 LTS; no external models or textures.
+
+- Source: `art/blender/creatures/bat.blend`
+- Runtime: `public/assets/creatures/bat.glb`
+- Preview: `art/previews/bat.png`
+- Rig: 10 bones (root, body, head, tail, two wings, two finger controls, two legs). Membrane seam vertices share finger-control weights.
+- Clips: `idle` (gentle hover), `move` (strong wingbeats), `attack` (bite lunge), `hurt` (recoil), `death` (fall and roll).
+- Rest wingspan: approximately 1.38 m; Blender -Y / glTF +Z forward. Clip translation is cosmetic.
+
+Regenerate with `blender --background --python tools/blender/create_bat.py`.
+Open `/model-preview.html?model=bat` on the development server to inspect the animations. Gameplay renderer integration remains pending.
+
+
 ## Rattlesnake
 
 Original stylized rattlesnake with a diamond-patterned, smoothly weighted body, raised head, forked tongue, fangs, and segmented rattle. Generated using Blender 4.5 LTS; no external models or textures.

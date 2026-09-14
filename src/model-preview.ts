@@ -3,7 +3,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 const requestedModel = new URLSearchParams(location.search).get('model');
-const model = requestedModel === 'kestrel' || requestedModel === 'rattlesnake' ? requestedModel : 'hobgoblin';
+const model = requestedModel === 'bat' || requestedModel === 'kestrel' || requestedModel === 'rattlesnake' ? requestedModel : 'hobgoblin';
 const modelSelector = document.querySelector<HTMLSelectElement>('#model')!;
 modelSelector.value = model;
 modelSelector.addEventListener('change', () => { location.search = new URLSearchParams({ model: modelSelector.value }).toString(); });
@@ -16,7 +16,7 @@ document.body.append(renderer.domElement);
 const scene = new THREE.Scene(); scene.background = new THREE.Color(0x111820);
 const camera = new THREE.PerspectiveCamera(42, 1, 0.01, 50); camera.position.set(2, 1.7, 3.4);
 const controls = new OrbitControls(camera, renderer.domElement); controls.target.set(0, 0.72, 0); controls.update();
-if (model === 'kestrel') { camera.position.set(1.25, 1.65, 2.0); controls.target.set(0, 0.8, 0); controls.update(); }
+if (model === 'kestrel' || model === 'bat') { camera.position.set(1.25, 1.65, 2.0); controls.target.set(0, 0.8, 0); controls.update(); }
 if (model === 'rattlesnake') { camera.position.set(1.2, 1.3, 1.9); controls.target.set(0, 0.18, -0.12); controls.update(); }
 scene.add(new THREE.HemisphereLight(0xe6efff, 0x716244, 2.5));
 const key = new THREE.DirectionalLight(0xffe4b3, 3); key.position.set(3, 5, 4); scene.add(key);
