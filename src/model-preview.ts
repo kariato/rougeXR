@@ -3,11 +3,12 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 const requestedModel = new URLSearchParams(location.search).get('model');
-const model = requestedModel === 'bat' || requestedModel === 'kestrel' || requestedModel === 'rattlesnake' || requestedModel === 'snake' ? requestedModel : 'hobgoblin';
+const model = requestedModel === 'bat' || requestedModel === 'ice-monster' || requestedModel === 'kestrel' || requestedModel === 'rattlesnake' || requestedModel === 'snake' ? requestedModel : 'hobgoblin';
 const modelSelector = document.querySelector<HTMLSelectElement>('#model')!;
 modelSelector.value = model;
 modelSelector.addEventListener('change', () => { location.search = new URLSearchParams({ model: modelSelector.value }).toString(); });
-const title = `${model.charAt(0).toUpperCase() + model.slice(1)} · model study`;
+const displayName = model.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+const title = `${displayName} · model study`;
 document.querySelector('h1')!.textContent = title; document.title = title;
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });

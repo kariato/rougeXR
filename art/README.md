@@ -2,6 +2,20 @@
 
 The complete creation, export, registration, and validation workflow is documented in [`docs/MONSTER_ASSET_PIPELINE.md`](../docs/MONSTER_ASSET_PIPELINE.md).
 
+## Ice monster
+
+Original stylized crystalline elemental with a deep-blue core, frost plates, glowing eyes, crown and back spikes, heavy fists, and ice claws. Generated using Blender 4.5 LTS; no external models or textures.
+
+- Source: `art/blender/creatures/ice-monster.blend`
+- Runtime: `public/assets/creatures/ice-monster.glb`
+- Preview: `art/previews/ice-monster.png`
+- Rig: 8 bones (root, core, head, jaw, two arms, two legs).
+- Clips: `idle` (crystalline pulse), `move` (heavy walk), `attack` (freezing lunge), `hurt` (recoil), `death` (forward collapse).
+- Height: approximately 1.6 m; Blender -Y / glTF +Z forward. Animation translation is cosmetic.
+
+Regenerate with `blender --background --python tools/blender/create_ice_monster.py`.
+Preview on the development server at `/model-preview.html?model=ice-monster`. Gameplay renderer integration remains pending.
+
 ## Snake
 
 Original stylized hooded snake with a lean green body, transverse bands, broad threat hood, eye markings, fangs, and forked tongue. Generated using Blender 4.5 LTS; no external models or textures.
