@@ -2,6 +2,20 @@
 
 The complete creation, export, registration, and validation workflow is documented in [`docs/MONSTER_ASSET_PIPELINE.md`](../docs/MONSTER_ASSET_PIPELINE.md).
 
+## Snake
+
+Original stylized hooded snake with a lean green body, transverse bands, broad threat hood, eye markings, fangs, and forked tongue. Generated using Blender 4.5 LTS; no external models or textures.
+
+- Source: `art/blender/creatures/snake.blend`
+- Runtime: `public/assets/creatures/snake.glb`
+- Preview: `art/previews/snake.png`
+- Rig: 17 bones (root, 13 body controls, head, jaw, tongue).
+- Clips: `idle` (sway/tongue), `move` (slither), `attack` (raised bite strike), `hurt` (recoil), `death` (collapse).
+- Facing: Blender -Y / glTF +Z. Animation translation is cosmetic; engine movement remains separate.
+
+Regenerate with `blender --background --python tools/blender/create_snake.py`.
+Preview on the development server at `/model-preview.html?model=snake`. Gameplay renderer integration remains pending.
+
 ## Bat
 
 Original stylized bat with solid scalloped wing membranes, long ears, fangs, and claws. Generated with Blender 4.5 LTS; no external models or textures.
