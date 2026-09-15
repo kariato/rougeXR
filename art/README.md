@@ -24,6 +24,8 @@
 
 `amulet` is an original static visible pickup: source `art/blender/props/amulet.blend`, runtime `public/assets/props/amulet.glb`, preview `art/previews/amulet.png`.
 
+`ring` is an original static visible pickup: source `art/blender/props/ring.blend`, runtime `public/assets/props/ring.glb`, preview `art/previews/ring.png`.
+
 The first completed member is `rubble`:
 
 `pillar` adds a fluted stone column with a plinth and capital, generated from the same script. Source: `art/blender/props/pillar.blend`; runtime: `public/assets/props/pillar.glb`; preview: `art/previews/pillar.png`.

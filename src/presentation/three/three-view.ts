@@ -150,6 +150,7 @@ export class ThreeGameView implements GameView {
         const fallback = createItemVisual(); fallback.position.y = 0.23; holder.add(fallback);
         holder.userData = { cell: { ...entity.at }, eligible: true, occludes: false }; this.world.add(holder);
         if (entity.appearance === '*') void loadPropInto('/assets/props/gold.glb', holder, fallback, this.generation, sceneToken);
+        if (entity.appearance === '=') void loadPropInto('/assets/props/ring.glb', holder, fallback, this.generation, sceneToken);
         if (entity.appearance === ',') void loadPropInto('/assets/props/amulet.glb', holder, fallback, this.generation, sceneToken);
         if (entity.appearance === ']') void loadPropInto('/assets/props/armor.glb', holder, fallback, this.generation, sceneToken);
         if (entity.appearance === ')') void loadPropInto('/assets/props/weapon.glb', holder, fallback, this.generation, sceneToken);
