@@ -1,4 +1,4 @@
-"""Original gold pickup: embossed coins and a small open pouch. Blender 4.5 LTS."""
+"""Procedural pile of bullion bars for the gold pickup. Blender 4.5 LTS."""
 import bpy
 from pathlib import Path
 from mathutils import Vector
@@ -8,24 +8,26 @@ bpy.ops.object.select_all(action='SELECT'); bpy.ops.object.delete(use_global=Fal
 sc=bpy.context.scene; sc.unit_settings.system='METRIC'
 def mat(n,c,metal=0):
  m=bpy.data.materials.new(n); m.diffuse_color=(*c,1); m.use_nodes=True; b=m.node_tree.nodes['Principled BSDF']; b.inputs['Base Color'].default_value=(*c,1); b.inputs['Metallic'].default_value=metal; b.inputs['Roughness'].default_value=.42 if metal else .82; return m
-gold=mat('coin_gold',(.86,.52,.08),.78); edge=mat('coin_engraving',(.47,.26,.025),.7); leather=mat('pouch_leather',(.22,.095,.04))
-def cylinder(n,loc,r,depth,m,vertices=16):
- bpy.ops.mesh.primitive_cylinder_add(vertices=vertices,radius=r,depth=depth,location=loc); o=bpy.context.object; o.name=n; o.data.materials.append(m); return o
-def torus(n,loc,major,minor,m):
- bpy.ops.mesh.primitive_torus_add(major_segments=16,minor_segments=5,location=loc,major_radius=major,minor_radius=minor); o=bpy.context.object; o.name=n; o.data.materials.append(m); return o
-# Floor-center origin; distinct tilted coins create a readable pickup silhouette.
-for i,(x,y,z,a) in enumerate([(-.18,-.08,.025,.12),(-.08,.11,.034,-.17),(.09,-.12,.027,.23),(.21,.07,.031,-.25),(0,0,.069,.04)]):
- o=cylinder(f'coin_{i}',(x,y,z),.09,.016,gold); o.rotation_euler.y=a
- torus(f'coin_rim_{i}',(x,y,z+.009),.079,.003,edge)
- cylinder(f'coin_stamp_{i}',(x,y,z+.009),.025,.0015,edge,8)
-bpy.ops.mesh.primitive_cone_add(vertices=12,radius1=.11,radius2=.15,depth=.14,location=(.16,.19,.085)); pouch=bpy.context.object; pouch.name='pouch'; pouch.data.materials.append(leather)
-torus('pouch_rolled_lip',(.16,.19,.157),.145,.012,leather)
+gold=mat('bullion_top',(.95,.68,.13),.72); side=mat('bullion_side',(.69,.39,.045),.72); mark=mat('bullion_stamp',(.50,.28,.035),.72)
+def bar(n,x,y,z):
+ # Wider bottom and sloped sides create a recognizable gold ingot.
+ bx=.135;by=.065;tx=.111;ty=.049;h=.073
+ verts=[(x+sx*bx,y+sy*by,z) for sx,sy in ((-1,-1),(1,-1),(1,1),(-1,1))]
+ verts += [(x+sx*tx,y+sy*ty,z+h) for sx,sy in ((-1,-1),(1,-1),(1,1),(-1,1))]
+ faces=[(3,2,1,0),(4,5,6,7),(0,1,5,4),(1,2,6,5),(2,3,7,6),(3,0,4,7)]
+ mesh=bpy.data.meshes.new(n+'_mesh');mesh.from_pydata(verts,[],faces);mesh.update();mesh.materials.append(gold);mesh.materials.append(side)
+ for face in mesh.polygons:face.material_index=0 if face.index==1 else 1
+ obj=bpy.data.objects.new(n,mesh);bpy.context.collection.objects.link(obj)
+ bpy.ops.mesh.primitive_cube_add(size=1,location=(x,y,z+h+.001));seal=bpy.context.object;seal.name=n+'_seal';seal.dimensions=(.046,.012,.003);bpy.ops.object.transform_apply(location=False,rotation=False,scale=True);seal.data.materials.append(mark)
+# Three floor bars support two staggered bars in a compact pile.
+for i,x in enumerate((-.28,0,.28)):bar(f'base_bar_{i}',x,0,0)
+for i,x in enumerate((-.14,.14)):bar(f'upper_bar_{i}',x,0,.074)
 bpy.ops.wm.save_as_mainfile(filepath=str(S))
 bpy.ops.object.select_all(action='DESELECT')
 for o in sc.objects:
  if o.type=='MESH': o.select_set(True)
 bpy.ops.export_scene.gltf(filepath=str(E),export_format='GLB',use_selection=True,export_animations=False)
-bpy.ops.object.camera_add(location=(.8,-1.2,.9)); cam=bpy.context.object; cam.rotation_euler=(Vector((0,0,.06))-cam.location).to_track_quat('-Z','Y').to_euler(); cam.data.type='ORTHO'; cam.data.ortho_scale=.7; sc.camera=cam
+bpy.ops.object.camera_add(location=(.85,-1.3,.83)); cam=bpy.context.object; cam.rotation_euler=(Vector((0,0,.07))-cam.location).to_track_quat('-Z','Y').to_euler(); cam.data.type='ORTHO'; cam.data.ortho_scale=1.0; sc.camera=cam
 sc.render.engine='BLENDER_WORKBENCH'; sc.display.shading.light='STUDIO'; sc.display.shading.color_type='MATERIAL'; sc.display.shading.show_shadows=True; sc.display.shading.show_cavity=True; sc.display.shading.background_type='WORLD'; sc.world.color=(.035,.045,.065)
 sc.render.resolution_x=900; sc.render.resolution_y=700; sc.render.resolution_percentage=100; sc.render.image_settings.file_format='PNG'; sc.render.filepath=str(P); bpy.ops.render.render(write_still=True)
 print('CREATED',S,E,P)
