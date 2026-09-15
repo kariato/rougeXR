@@ -2,6 +2,20 @@
 
 The complete creation, export, registration, and validation workflow is documented in [`docs/MONSTER_ASSET_PIPELINE.md`](../docs/MONSTER_ASSET_PIPELINE.md).
 
+## Phantom
+
+Original stylized armored apparition with a beaked metal mask, spiked shoulders, violet soul lights, blade-like fingers, and torn floating cloak. Generated using Blender 4.5 LTS; no external models or textures.
+
+- Source: `art/blender/creatures/phantom.blend`
+- Runtime: `public/assets/creatures/phantom.glb`
+- Preview: `art/previews/phantom.png`
+- Rig: 7 bones (root, core, head, two arms, two cloak tails).
+- Clips: `idle` (hover), `move` (silent drift), `attack` (ambush reach), `hurt` (displaced recoil), `death` (dissipating sink).
+- Hovering height: approximately 0.15 m; Blender -Y / glTF +Z forward.
+
+Regenerate with `blender --background --python tools/blender/create_phantom.py`.
+Preview on the development server at `/model-preview.html?model=phantom`. Gameplay renderer integration remains pending.
+
 ## Wraith
 
 Original stylized spectral apparition with a deep hood and faceless void, soul-lit eyes, long skeletal fingers, floating cloak, and torn ethereal tails. Generated using Blender 4.5 LTS; no external models or textures.
