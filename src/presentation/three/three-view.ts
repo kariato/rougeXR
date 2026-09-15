@@ -171,7 +171,7 @@ export class ThreeGameView implements GameView {
         const holder = new THREE.Group(); holder.position.set(entity.at.x, 0, entity.at.y);
         const fallback = createItemVisual(); fallback.position.y = 0.23; holder.add(fallback);
         holder.userData = { cell: { ...entity.at }, eligible: true, occludes: false }; this.world.add(holder);
-        if (entity.appearance === '*') void loadPropInto('/assets/props/gold.glb?v=2', holder, fallback, this.generation, sceneToken, () => this.ensureAnimation());
+        if (entity.appearance === '*') void loadPropInto('/assets/props/gold.glb?v=3', holder, fallback, this.generation, sceneToken, () => this.ensureAnimation());
         if (entity.appearance === '/') void loadPropInto('/assets/props/stick.glb', holder, fallback, this.generation, sceneToken);
         if (entity.appearance === '=') void loadPropInto('/assets/props/ring.glb', holder, fallback, this.generation, sceneToken);
         if (entity.appearance === ',') void loadPropInto('/assets/props/amulet.glb', holder, fallback, this.generation, sceneToken);
