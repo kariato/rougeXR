@@ -5,7 +5,7 @@ Run: blender --background --python tools/blender/create_room_prop.py -- --asset 
 import bpy,sys,math
 from pathlib import Path
 from mathutils import Vector
-names=('rubble','pillar','urn','crate','mushroom','bones','coinScatter','scroll','food','weapon','armor','amulet','ring','stick')
+names=('rubble','pillar','urn','crate','torch','mushroom','bones','coinScatter','scroll','food','weapon','armor','amulet','ring','stick')
 arg=sys.argv[sys.argv.index('--')+1:] if '--' in sys.argv else []
 if len(arg)!=2 or arg[0]!='--asset' or arg[1] not in names:raise SystemExit('Use -- --asset <'+','.join(names)+'>')
 N=arg[1];R=Path(__file__).resolve().parents[2];S=R/f'art/blender/props/{N}.blend';E=R/f'public/assets/props/{N}.glb';P=R/f'art/previews/{N}.png'
@@ -14,6 +14,7 @@ bpy.ops.object.select_all(action='SELECT');bpy.ops.object.delete(use_global=Fals
 def mat(n,c,metal=0):
  m=bpy.data.materials.new(n);m.diffuse_color=(*c,1);m.use_nodes=True;b=m.node_tree.nodes['Principled BSDF'];b.inputs['Base Color'].default_value=(*c,1);b.inputs['Metallic'].default_value=metal;b.inputs['Roughness'].default_value=.4 if metal else .85;return m
 stone=mat('aged_stone',(.39,.38,.34));light=mat('worn_edge',(.58,.53,.43));dark=mat('deep_crevice',(.13,.12,.11));wood=mat('old_wood',(.37,.18,.07));iron=mat('forged_iron',(.19,.21,.23),.65);gold=mat('decorative_gold',(.79,.49,.08),.78);bone=mat('dry_bone',(.72,.67,.52));green=mat('forest_green',(.16,.42,.25));red=mat('mushroom_red',(.67,.12,.10));cloth=mat('linen',(.63,.50,.32));blue=mat('gem_blue',(.11,.46,.69));purple=mat('gem_violet',(.45,.12,.56))
+flame=mat('glowing_flame',(1.0,.36,.04));flame.node_tree.nodes['Principled BSDF'].inputs['Emission Color'].default_value=(1.0,.22,.015,1);flame.node_tree.nodes['Principled BSDF'].inputs['Emission Strength'].default_value=2.5
 def cube(n,c,s,m):
  bpy.ops.mesh.primitive_cube_add(size=1,location=c);o=bpy.context.object;o.name=n;o.dimensions=s;bpy.ops.object.transform_apply(location=False,rotation=False,scale=True);o.data.materials.append(m);return o
 def ico(n,c,s,m):
@@ -33,11 +34,34 @@ elif N=='urn':
  ico('amphora_body',(0,0,.30),(.19,.17,.29),stone);cyl('neck',(0,0,.60),.10,.12,light);tor('lip',(0,0,.66),.11,.019,light);cyl('foot',(0,0,.045),.12,.09,stone)
  for s in (-1,1):o=tor(f'handle_{s}',(s*.18,0,.48),.105,.023,light);o.rotation_euler.y=math.pi/2
 elif N=='crate':
- cube('crate_body',(0,0,.25),(.46,.42,.50),wood)
- for z in (.08,.24,.40):cube(f'front_plank_{z}',(0,-.215,z),(.49,.027,.12),light)
- for x in (-.17,.17):cube(f'iron_strap_{x}',(x,-.237,.25),(.026,.025,.49),iron)
- for x in (-.19,.19):
-  for z in (.08,.42):ico(f'rivet_{x}_{z}',(x,-.252,z),(.013,.013,.013),gold)
+ # Keep the historical 'crate' asset ID while giving it a clear treasure-chest silhouette.
+ cube('chest_coffer',(0,0,.22),(.54,.39,.37),wood)
+ cube('dark_lid_seam',(0,-.208,.405),(.55,.015,.028),dark)
+ cube('front_brass_rim',(0,-.211,.39),(.56,.027,.035),gold)
+ cube('front_base_rim',(0,-.211,.045),(.56,.027,.033),iron)
+ for x in (-.245,.245):cube(f'corner_guard_{x}',(x,-.218,.22),(.036,.029,.34),iron)
+ # A five-facet barrel lid, highest at the crown, is readable even at gameplay scale.
+ for i in range(5):
+  y=-.172+i*.086;z=.453+.10*math.sin((i+1)*math.pi/6)
+  cube(f'arched_lid_panel_{i}',(0,y,z),(.56,.10,.085),wood)
+  for x in (-.19,.19):cube(f'curved_iron_band_{x}_{i}',(x,y,z+.046),(.034,.097,.016),iron)
+ cube('front_hasplock',(0,-.234,.325),(.115,.029,.165),gold)
+ cube('keyhole',(0,-.253,.326),(.025,.009,.062),dark)
+ ico('lock_rivet',(0,-.258,.392),(.018,.009,.018),iron)
+ for x in (-.205,.205):
+  ico(f'front_rivet_{x}',(x,-.238,.393),(.017,.009,.017),gold)
+ cube('rear_brass_rim',(0,.211,.39),(.56,.027,.035),gold)
+ for x in (-.245,.245):cube(f'rear_corner_guard_{x}',(x,.218,.22),(.036,.029,.34),iron)
+ for side in (-1,1):cube(f'side_brass_lockplate_{side}',(side*.278,0,.30),(.015,.14,.12),gold)
+elif N=='torch':
+ cube('wall_backplate',(0,0,0),(.23,.035,.29),iron)
+ for z in (-.105,.105):ico(f'plate_rivet_{z}',(0,-.024,z),(.018,.008,.018),gold)
+ arm=cyl('forged_wall_arm',(0,-.125,-.065),.026,.22,iron,8);arm.rotation_euler.x=math.pi/2
+ cyl('torch_cup',(0,-.245,.005),.11,.13,iron,10)
+ tor('cup_rim',(0,-.245,.078),.11,.018,gold)
+ ico('flame_core',(0,-.245,.235),(.072,.070,.16),flame)
+ ico('flame_tip',(0,-.245,.357),(.038,.040,.075),flame)
+ ico('ember_base',(0,-.245,.125),(.065,.065,.04),red)
 elif N=='mushroom':
  for i,(x,y,h) in enumerate([(-.18,-.08,.29),(.11,.06,.39),(.21,-.12,.19)]):
   cyl(f'stalk_{i}',(x,y,h*.45),.045,h*.9,cloth);ico(f'cap_{i}',(x,y,h),(.15 if i==1 else .10,.13 if i==1 else .09,.075),red)
@@ -76,7 +100,7 @@ bpy.ops.wm.save_as_mainfile(filepath=str(S));bpy.ops.object.select_all(action='D
 for o in sc.objects:
  if o.type=='MESH':o.select_set(True)
 bpy.ops.export_scene.gltf(filepath=str(E),export_format='GLB',use_selection=True,export_animations=False)
-target_height=.10 if N in ('rubble','bones','coinScatter','scroll','food','ring','stick') else .52 if N=='pillar' else .42 if N in ('weapon','armor','amulet') else .30
-preview_scale=1.65 if N=='pillar' else 1.20 if N in ('weapon','armor','amulet') else 1.05 if N in ('urn','crate') else .8
+target_height=.10 if N in ('rubble','bones','coinScatter','scroll','food','ring','stick') else .52 if N=='pillar' else .42 if N in ('weapon','armor','amulet') else .08 if N=='torch' else .30
+preview_scale=1.65 if N=='pillar' else 1.20 if N in ('weapon','armor','amulet','crate') else 1.05 if N=='urn' else .8
 bpy.ops.object.camera_add(location=(1.0,-1.8,1.35));cam=bpy.context.object;cam.rotation_euler=(Vector((0,0,target_height))-cam.location).to_track_quat('-Z','Y').to_euler();cam.data.type='ORTHO';cam.data.ortho_scale=preview_scale;sc.camera=cam
 sc.render.engine='BLENDER_WORKBENCH';sc.display.shading.light='STUDIO';sc.display.shading.color_type='MATERIAL';sc.display.shading.show_shadows=True;sc.display.shading.show_cavity=True;sc.display.shading.background_type='WORLD';sc.world.color=(.035,.045,.065);sc.render.resolution_x=900;sc.render.resolution_y=700;sc.render.resolution_percentage=100;sc.render.image_settings.file_format='PNG';sc.render.filepath=str(P);bpy.ops.render.render(write_still=True);print('CREATED',S,E,P)

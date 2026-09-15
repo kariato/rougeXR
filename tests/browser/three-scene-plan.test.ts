@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { PlayerObservation } from '../../src/engine/model/observation';
-import { buildPrimitiveCells } from '../../src/presentation/three/scene-plan';
+import { buildPrimitiveCells, selectLitTorches } from '../../src/presentation/three/scene-plan';
 
 describe('desktop 3D scene plan', () => {
   it('builds geometry exclusively from visible and remembered observations', () => {
@@ -24,5 +24,19 @@ describe('desktop 3D scene plan', () => {
     const observation: PlayerObservation = { revision: 0, width: 4, height: 1, playerAt: { x: 0, y: 0 }, cells: [cell, cell, cell, cell], entities: [], decorations: [],
       status: { hp: 1, maxHp: 1, gold: 0, depth: 1, hungerStage: 0 }, inventory: [], pendingDecision: null };
     expect(buildPrimitiveCells(observation, 1).map(value => value.x)).toEqual([0, 1]);
+  });
+
+  it('lights at most four currently visible torches and excludes remembered or reserved cells', () => {
+    const visible = { visibility: 'visible' as const, appearance: { glyph: '-', terrainLabel: 'wallH', featureLabel: null }, visualRegion: null };
+    const observation: PlayerObservation = {
+      revision: 0, width: 8, height: 1, playerAt: { x: 0, y: 0 },
+      cells: [visible, visible, visible, visible, visible, visible,
+        { ...visible, visibility: 'remembered' }, { visibility: 'unknown', appearance: null, visualRegion: null }],
+      entities: [], decorations: Array.from({ length: 7 }, (_, index) => ({ token: `torch-${index + 1}`, at: { x: index + 1, y: 0 },
+        kind: 'torch' as const, rotation: 0 as const, variant: 0, scale: 1, theme: 'dungeon' as const })),
+      status: { hp: 1, maxHp: 1, gold: 0, depth: 1, hungerStage: 0 }, inventory: [], pendingDecision: null,
+    };
+    expect([...selectLitTorches(observation, new Set(['1,0', '2,0', '3,0', '4,0', '5,0', '6,0', '7,0']), new Set(['2,0']))])
+      .toEqual(['torch-1', 'torch-3', 'torch-4', 'torch-5']);
   });
 });

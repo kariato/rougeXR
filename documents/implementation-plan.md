@@ -485,9 +485,10 @@ Phase 14.2 progress:
 
 Phase 14 asset progress:
 
-- [x] Create and register static Blender GLBs for all seven current room decoration kinds and all nine collectible item categories. Decorative coin scatter has no pouch and remains distinct from the collectible gold pickup.
+- [x] Create and register static Blender GLBs for all eight current room decoration kinds and all nine collectible item categories. Decorative coin scatter has no pouch and remains distinct from the collectible gold pickup; the historical `crate` ID now renders a decorative treasure chest.
 - [x] Register all 26 completed creature GLBs for disclosed live monsters, using independent skeleton clones and primitive fallbacks for failures, detection-only views, disguises, and hallucinations.
 - [x] Validate every static prop as a self-contained GLB, inspect fixed-angle previews, and pass the grouped desktop Chromium/Firefox gameplay checks.
+- [x] Add creation-time wall-torch anchors along ordinary-room wall stretches and clear doorway approaches. Only disclosed torch meshes render; only the nearest four currently visible torches add local light, without changing Rogue darkness or action timing.
 - [ ] Consolidate the duplicated creature registration into a typed manifest and drive attack, hurt, and death clips from safe resolved presentation events before closing 14.3.
 
 Phase 14.4 material progress (implemented ahead of 14.3 at the user's request):

@@ -13,10 +13,40 @@ export function createRoomDesign(room: RoomShape, depth: number, forcedTheme?: R
     if (cellHash % densityDivisor(theme) !== 0) continue;
     const kind = kinds[(cellHash >>> 8) % kinds.length]!;
     decorations.push({ id: `decor-${(cellHash >>> 0).toString(16)}-${x}-${y}`, kind, at: { x, y },
-      rotation: ((cellHash >>> 16) & 3) as 0 | 1 | 2 | 3, variant: (cellHash >>> 20) % 3, scale: 0.82 + ((cellHash >>> 24) & 7) * 0.04 });
+      rotation: decorationRotation(room, kind, x, y, cellHash), variant: (cellHash >>> 20) % 3, scale: 0.82 + ((cellHash >>> 24) & 7) * 0.04 });
   }
+  if (room.kind === 'room') decorations.push(...wallTorches(room, seed));
   return { token: visualToken(room, depth), theme, baseTheme: forcedTheme ? room.kind === 'maze' ? 'cave' : chooseTheme(room, depth, seed) : theme,
     condition: conditionFor(depth), decorations };
+}
+
+function decorationRotation(room: RoomShape, kind: DecorationKind, x: number, y: number, hash: number): 0 | 1 | 2 | 3 {
+  if (kind !== 'crate') return ((hash >>> 16) & 3) as 0 | 1 | 2 | 3;
+  const distances = [y - room.origin.y, x - room.origin.x,
+    room.origin.y + room.height - 1 - y, room.origin.x + room.width - 1 - x];
+  return distances.indexOf(Math.min(...distances)) as 0 | 1 | 2 | 3;
+}
+
+/** Rotation 0 faces into the room from its top wall; subsequent sides turn clockwise. */
+function wallTorches(room: RoomShape, seed: number): RoomDesign['decorations'] {
+  const x = room.origin.x, y = room.origin.y;
+  const walls: Array<{ at: { x: number; y: number }; rotation: 0 | 1 | 2 | 3 }> = [];
+  for (const side of [0, 1, 2, 3] as const) {
+    const span = side % 2 === 0 ? room.width : room.height;
+    const first = 1 + hashWords(seed, side) % Math.min(4, span - 2);
+    for (let offset = first; offset < span - 1; offset += 6) {
+      const at = side === 0 ? { x: x + offset, y }
+        : side === 1 ? { x, y: y + offset }
+          : side === 2 ? { x: x + offset, y: y + room.height - 1 }
+            : { x: x + room.width - 1, y: y + offset };
+      walls.push({ at, rotation: side });
+    }
+  }
+  return walls.map(({ at, rotation }, index) => {
+    const value = hashWords(seed, at.x, at.y, rotation);
+    return { id: `torch-${(value >>> 0).toString(16)}-${at.x}-${at.y}`, kind: 'torch' as const, at, rotation,
+      variant: (value >>> 18) % 3, scale: .86 + (value % 5) * .04 };
+  });
 }
 
 export function redesignRoom(room: RoomState, depth: number, theme: RoomTheme): void {
@@ -40,7 +70,7 @@ function decorationKinds(theme: RoomTheme): DecorationKind[] {
   if (theme === 'cave') return ['rubble', 'mushroom', 'bones'];
   if (theme === 'crypt') return ['urn', 'pillar', 'bones'];
   if (theme === 'store') return ['crate', 'rubble'];
-  if (theme === 'treasure') return ['coinScatter', 'pillar', 'urn'];
+  if (theme === 'treasure') return ['coinScatter', 'pillar', 'urn', 'crate'];
   return ['rubble', 'pillar'];
 }
 

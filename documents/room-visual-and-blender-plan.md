@@ -333,6 +333,8 @@ Completion: ordinary rooms and cave/maze areas have clearly different silhouette
 
 ### 14.6 — Procedural decoration system
 
+Chest-and-torch follow-up implemented 2026-09-15: the existing `crate` prop ID now uses a locked, arched treasure-chest GLB and matching primitive fallback, including treasure-room decoration eligibility. Each chest faces inward from its nearest room wall so its lock reads from ordinary play. Ordinary rooms generate stable inward-facing torch anchors along wall spans during room creation, then remove anchors near exits when passages are linked. Torches remain observation-filtered; remembered torches retain a mesh but only currently visible torches illuminate the scene, capped at four nearest local point lights with no shadows. The Blender source, GLB, preview, and self-contained validation are in the room-prop pipeline. These visual lights do not alter source darkness or gameplay RNG. Semantic furniture anchors and full environment-kit geometry remain later 14.6/14.8 work.
+
 - Generate semantic anchors and exclusion volumes.
 - Add deterministic budgets, density zones, and overlap rejection.
 - Add primitive placeholder props for all five theme families.

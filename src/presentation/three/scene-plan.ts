@@ -26,3 +26,18 @@ export function buildPrimitiveCells(observation: PlayerObservation, radius = Num
   }
   return result;
 }
+
+/** Only currently visible wall torches may emit local light; nearest four win. */
+export function selectLitTorches(observation: PlayerObservation, activeCells: ReadonlySet<string>, reserved: ReadonlySet<string>, limit = 4): Set<string> {
+  const candidates = observation.decorations.filter(decoration => {
+    if (decoration.kind !== 'torch') return false;
+    const key = `${decoration.at.x},${decoration.at.y}`;
+    const cell = observation.cells[decoration.at.y * observation.width + decoration.at.x];
+    return activeCells.has(key) && !reserved.has(key) && cell?.visibility === 'visible';
+  });
+  candidates.sort((a, b) => {
+    const distance = (at: typeof a.at): number => Math.abs(at.x - observation.playerAt.x) + Math.abs(at.y - observation.playerAt.y);
+    return distance(a.at) - distance(b.at) || a.token.localeCompare(b.token);
+  });
+  return new Set(candidates.slice(0, limit).map(decoration => decoration.token));
+}

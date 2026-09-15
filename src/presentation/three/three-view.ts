@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { PresentationEvent } from '../../engine/model/action';
 import type { PlayerObservation } from '../../engine/model/observation';
 import type { GameView } from '../game-view';
-import { buildPrimitiveCells } from './scene-plan';
+import { buildPrimitiveCells, selectLitTorches } from './scene-plan';
 import { nearestVisibleHit, smoothToward, type CameraMode } from './camera-model';
 import { createActorVisual, createDecorationVisual, createItemVisual, type ActorVisual } from './entity-visual';
 import { SceneGeneration } from './asset-cache';
@@ -96,7 +96,9 @@ export class ThreeGameView implements GameView {
     const currentRegion = observation.cells[observation.playerAt.y * observation.width + observation.playerAt.x]?.visualRegion;
     const look = ROOM_LOOKS[currentRegion?.theme ?? 'none'];
     this.ambient.color.setHex(look.sky); this.ambient.groundColor.setHex(look.ground);
+    this.ambient.intensity = 1.25;
     this.lamp.color.setHex(look.lamp);
+    this.lamp.intensity = 5;
     this.scene.background = new THREE.Color(look.fog);
     if (this.scene.fog instanceof THREE.FogExp2) this.scene.fog.color.setHex(look.fog);
     const floorGeometry = new THREE.PlaneGeometry(TILE, TILE);
@@ -125,18 +127,29 @@ export class ThreeGameView implements GameView {
     const reserved = new Set([`${observation.playerAt.x},${observation.playerAt.y}`,
       ...observation.entities.map(entity => `${entity.at.x},${entity.at.y}`)]);
     for (let index = 0; index < observation.cells.length; index++) if (observation.cells[index]?.appearance?.featureLabel) reserved.add(`${index % observation.width},${Math.floor(index / observation.width)}`);
+    const litTorches = selectLitTorches(observation, activeCells, reserved);
     for (const decoration of observation.decorations) {
       const key = `${decoration.at.x},${decoration.at.y}`;
       if (!activeCells.has(key) || reserved.has(key)) continue;
       const holder = new THREE.Group(); const fallback = createDecorationVisual(decoration.kind, decoration.theme, decoration.variant);
       holder.position.x = decoration.at.x; holder.position.z = decoration.at.y; holder.rotation.y = decoration.rotation * Math.PI / 2; holder.scale.multiplyScalar(decoration.scale);
-      holder.userData = { cell: { ...decoration.at }, eligible: false, occludes: false }; holder.add(fallback); this.world.add(holder);
+      holder.userData = { cell: { ...decoration.at }, eligible: false, occludes: false };
+      if (decoration.kind === 'torch') {
+        const mount = new THREE.Group(); mount.position.set(0, 1.10, .54); mount.add(fallback); holder.add(mount);
+        if (litTorches.has(decoration.token)) {
+          const light = new THREE.PointLight(0xffa45b, 5, 4.5, 2); light.position.set(0, .22, .22); mount.add(light);
+        }
+        this.world.add(holder);
+        void loadPropInto('/assets/props/torch.glb?v=2', mount, fallback, this.generation, sceneToken, () => this.ensureAnimation());
+        continue;
+      }
+      holder.add(fallback); this.world.add(holder);
       if (decoration.kind === 'rubble') void loadPropInto('/assets/props/rubble.glb', holder, fallback, this.generation, sceneToken);
       if (decoration.kind === 'pillar') void loadPropInto('/assets/props/pillar.glb', holder, fallback, this.generation, sceneToken);
       if (decoration.kind === 'coinScatter') void loadPropInto('/assets/props/coinScatter.glb', holder, fallback, this.generation, sceneToken);
       if (decoration.kind === 'bones') void loadPropInto('/assets/props/bones.glb', holder, fallback, this.generation, sceneToken);
       if (decoration.kind === 'mushroom') void loadPropInto('/assets/props/mushroom.glb', holder, fallback, this.generation, sceneToken);
-      if (decoration.kind === 'crate') void loadPropInto('/assets/props/crate.glb', holder, fallback, this.generation, sceneToken);
+      if (decoration.kind === 'crate') void loadPropInto('/assets/props/crate.glb?v=2', holder, fallback, this.generation, sceneToken, () => this.ensureAnimation());
       if (decoration.kind === 'urn') void loadPropInto('/assets/props/urn.glb', holder, fallback, this.generation, sceneToken);
     }
 

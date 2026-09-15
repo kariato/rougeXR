@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { buildRooms } from '../../src/engine/generation/rooms';
 import { clearDecorationApproaches, createRoomDesign } from '../../src/engine/generation/room-design';
 import { createRandom } from '../../src/engine/random';
+import { createNewGame } from '../../src/engine/new-game';
+import { observe } from '../../src/engine/perception/knowledge';
 
 describe('creation-time room design', () => {
   it('creates deterministic themes and decorations without a gameplay RNG dependency', () => {
@@ -9,7 +11,16 @@ describe('creation-time room design', () => {
     expect(createRoomDesign(room, 12)).toEqual(createRoomDesign(room, 12));
     const design = createRoomDesign(room, 12);
     expect(['dungeon', 'crypt', 'store']).toContain(design.theme);
-    expect(design.decorations.every(entry => entry.at.x > 10 && entry.at.x < 18 && entry.at.y > 4 && entry.at.y < 10)).toBe(true);
+    expect(design.decorations.filter(entry => entry.kind !== 'torch').every(entry => entry.at.x > 10 && entry.at.x < 18 && entry.at.y > 4 && entry.at.y < 10)).toBe(true);
+    const torches = design.decorations.filter(entry => entry.kind === 'torch');
+    expect(torches.length).toBeGreaterThanOrEqual(2);
+    expect(torches.every(entry => entry.at.x === 10 || entry.at.x === 18 || entry.at.y === 4 || entry.at.y === 10)).toBe(true);
+    const inward = [{ x: 0, y: 1 }, { x: 1, y: 0 }, { x: 0, y: -1 }, { x: -1, y: 0 }];
+    expect(torches.every(entry => {
+      const direction = inward[entry.rotation]!;
+      const next = { x: entry.at.x + direction.x, y: entry.at.y + direction.y };
+      return next.x > 10 && next.x < 18 && next.y > 4 && next.y < 10;
+    })).toBe(true);
   });
 
   it('designs mazes as caves while gone slots remain undecorated', () => {
@@ -25,5 +36,15 @@ describe('creation-time room design', () => {
     const decoration = room.design.decorations[0]!; room.exits.push({ x: decoration.at.x + 1, y: decoration.at.y });
     clearDecorationApproaches(layout.rooms);
     expect(room.design.decorations).not.toContainEqual(decoration);
+  });
+
+  it('projects created torches only from disclosed cells', () => {
+    const state = createNewGame(12345);
+    const observation = observe(state);
+    const planned = state.level.rooms.flatMap(room => room.design.decorations).filter(decoration => decoration.kind === 'torch');
+    const disclosed = observation.decorations.filter(decoration => decoration.kind === 'torch');
+    expect(planned.length).toBeGreaterThan(disclosed.length);
+    expect(disclosed.length).toBeGreaterThan(0);
+    expect(disclosed.every(decoration => observation.cells[decoration.at.y * observation.width + decoration.at.x]?.visibility !== 'unknown')).toBe(true);
   });
 });

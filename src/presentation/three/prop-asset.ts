@@ -8,7 +8,7 @@ const cache = new AssetCache<GLTF>(url => new Promise((resolve, reject) => loade
 
 /** Replaces an observed item's primitive only while its scene generation is live. */
 export async function loadPropInto(url: string, holder: THREE.Group, fallback: THREE.Object3D,
-  generation: SceneGeneration, token: number): Promise<void> {
+  generation: SceneGeneration, token: number, onAttached?: () => void): Promise<void> {
   try {
     const lease = await cache.acquire(url, {});
     if (!generation.isCurrent(token)) { lease.release(); return; }
@@ -22,6 +22,7 @@ export async function loadPropInto(url: string, holder: THREE.Group, fallback: T
     holder.remove(fallback);
     disposeMeshes(fallback);
     holder.add(instance);
+    onAttached?.();
   } catch {
     // The observed pickup remains playable as its original primitive.
   }

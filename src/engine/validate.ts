@@ -99,7 +99,7 @@ export function validateWorld(input: unknown): ValidationIssue[] {
       const decorationIds = new Set<string>();
       for (const decoration of room.design?.decorations ?? []) {
         check(typeof decoration.id === 'string' && !decorationIds.has(decoration.id), `room.${room.id}.design`, 'Invalid decoration ID'); decorationIds.add(decoration.id);
-        check(['rubble', 'pillar', 'urn', 'crate', 'mushroom', 'bones', 'coinScatter'].includes(decoration.kind)
+        check(['rubble', 'pillar', 'urn', 'crate', 'mushroom', 'bones', 'coinScatter', 'torch'].includes(decoration.kind)
           && isPlayable(level, decoration.at) && level.tiles[decoration.at.y * level.width + decoration.at.x]?.roomId === room.id
           && integer(decoration.rotation) && decoration.rotation <= 3 && integer(decoration.variant)
           && Number.isFinite(decoration.scale) && decoration.scale > 0, `room.${room.id}.design`, 'Invalid decoration');
