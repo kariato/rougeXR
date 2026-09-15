@@ -290,7 +290,28 @@ Completion: reading observations cannot infer an undiscovered room's presence, e
 
 Implemented 2026-09-14 with creation-time `RoomDesign` metadata. The first implementation stores primitive decoration placements directly with each generated room, uses a cosmetic hash that does not consume Rogue RNG, clears door approaches after passages are connected, and filters all visual metadata through disclosed observation cells. Detailed modular meshes and Blender-authored replacements remain in later slices.
 
-### 14.2 — Deterministic theme catalog
+### 14.2 — Viewport-first game shell and HUD
+
+- Make the first-person canvas the dominant surface: at least 70% of a 1366×768 viewport and the full available height after the compact status bar.
+- Put HP, hunger, depth, equipped weapon, gold, and the most recent message in a restrained overlay that remains readable against light and dark rooms.
+- Add a small center crosshair and context prompt for doors, stairs, items, and adjacent actors using observation data only.
+- Move seed, world type, save/load, replay, inspector, raw events, and reveal controls into keyboard-accessible collapsible debug drawers.
+- Keep touch-sized primary actions available below the viewport at narrow breakpoints; desktop keyboard play must not require page scrolling.
+- Preserve the map, orbit, and tabletop selectors as secondary presentation tools without restarting the session.
+
+Completion: first-person gameplay is visually dominant at desktop and mobile widths, debug tools remain reachable, focus indicators and labels pass accessibility checks, and switching the layout does not change engine state or replay hashes.
+
+### 14.3 — Live animated monster integration
+
+- Replace duplicated viewer allowlists with a typed asset manifest mapping each Rogue monster definition to GLB URL, scale, ground/hover offset, forward axis, animation names, and fallback shape.
+- Load visible monsters through the existing cache and clone skinned models independently; do not load or instantiate monsters absent from `PlayerObservation`.
+- Drive `idle`, `move`, `attack`, `hurt`, and `death` transitions from resolved observation changes and presentation events.
+- Retain the primitive actor until a model is ready or after a load failure. Late results must check the scene-generation token before attachment.
+- Add animation crossfades, conservative bounds, disposal tests, and a debug label for model/fallback state.
+
+Completion: multiple instances animate independently, hidden actors remain private, failed and delayed loads preserve playability, and the same recorded actions produce identical engine hashes with detailed models enabled or disabled.
+
+### 14.4 — Deterministic theme, material, and light catalogs
 
 - Add the versioned theme and asset-manifest schemas.
 - Implement pure weighted theme selection and adjacency fallback.
@@ -299,7 +320,7 @@ Implemented 2026-09-14 with creation-time `RoomDesign` metadata. The first imple
 
 Completion: the same save and observation sequence produces identical theme IDs and decoration seeds in Chromium and Firefox without advancing gameplay RNG.
 
-### 14.3 — Structural environment builder
+### 14.5 — Structural environment builder
 
 - Split the Three.js world into persistent region groups.
 - Emit exposed wall faces, corner types, doorway transitions, floors, and ceilings.
@@ -308,7 +329,7 @@ Completion: the same save and observation sequence produces identical theme IDs 
 
 Completion: ordinary rooms and cave/maze areas have clearly different silhouettes, no seams, and identical traversable space.
 
-### 14.4 — Procedural decoration system
+### 14.6 — Procedural decoration system
 
 - Generate semantic anchors and exclusion volumes.
 - Add deterministic budgets, density zones, and overlap rejection.
@@ -317,7 +338,17 @@ Completion: ordinary rooms and cave/maze areas have clearly different silhouette
 
 Completion: repeated seeds reproduce decoration exactly; 100 generated levels have no blocked interaction lanes or misleading collectible decoration.
 
-### 14.5 — Blender environment pipeline
+### 14.7 — First-person feedback
+
+- Add a subtle weapon or hand presence tied to equipped items, with presentation-only idle, move, attack, and recoil animation.
+- Add restrained head bob, footstep cadence, doorway response, and camera impulse with reduced-motion and XR-safe profiles.
+- Translate resolved combat events into hit flashes, directional damage vignette, contact particles, floating dust, and concise message overlays.
+- Add interaction highlights that cannot be confused with collectible objects, traps, or authoritative targeting state.
+- Define sound-ready cues and mixer groups, but keep audio optional and derived from the same resolved event stream.
+
+Completion: movement and combat have immediate readable feedback, all effects can be disabled without changing gameplay, reduced-motion mode removes camera impulses, and XR never applies artificial head motion.
+
+### 14.8 — Blender environment pipeline and complete kits
 
 - Pin Blender LTS and add source/export folder conventions.
 - Implement headless validation, GLB export, manifests, and preview renders.
@@ -326,23 +357,15 @@ Completion: repeated seeds reproduce decoration exactly; 100 generated levels ha
 
 Completion: a clean checkout can regenerate both kits from `.blend` sources and the browser loads them without changing engine state.
 
-### 14.6 — Remaining themes and atmosphere
+Continue the pipeline with the complete theme set:
 
-- Produce Ruined Crypt, Abandoned Store, Treasure Chamber, and connector kits.
+- Produce Hewn Dungeon, Natural Cave, Ruined Crypt, Abandoned Store, Treasure Chamber, and connector kits.
 - Add decals, bounded local lights, depth-condition variants, and optional sound-ready region metadata.
 - Add quality profiles for desktop, tabletop, and target XR hardware.
 
 Completion: theme changes are immediately recognizable in first person, transitions are coherent, darkness remains readable, and performance stays within the measured budget.
 
-### 14.7 — Blender creature batches
-
-- Replace procedural monster placeholders by silhouette family while retaining fallback actors.
-- Add skeleton-aware cloning and `idle/move/attack/hurt/death` presentation states.
-- Validate independent skeletons, animation bounds, LODs, material arrays, licensing, and late-load teardown.
-
-Completion: every A–Z monster has either an approved specific asset or a documented family fallback; animation speed/skip produces identical engine replay hashes.
-
-### 14.8 — Visual regression and headset acceptance
+### 14.9 — Quality profiles, visual regression, and headset acceptance
 
 - Add fixed-seed screenshots for every theme in first-person and tabletop views.
 - Test hidden-information privacy, deterministic placement, seam cases, disposal, remounting, and context loss.
@@ -353,6 +376,4 @@ Completion: visual baselines are approved, privacy tests pass, no resource growt
 
 ## Recommended production order
 
-Implement 14.1–14.4 entirely with primitives before committing to detailed art. This proves that theme identity, placement, safety exclusions, caching, and replay isolation are correct. Then build one complete vertical slice in Blender: Hewn Dungeon plus Natural Cave, one common prop set, and one humanoid monster family. Test it in first person and XR before producing the other kits.
-
-Do not model 26 monsters or five complete environments in parallel at the start. The first Blender slice should settle scale, shader complexity, rig conventions, export automation, cache ownership, and headset budgets. Once that slice passes, the remaining assets become controlled content production rather than repeated pipeline experimentation.
+Implement the visible game shell first, then connect the creature assets already produced. Follow with one complete material-and-structure vertical slice containing Hewn Dungeon and Natural Cave, one common prop set, and the first-person feedback layer. Test that slice in desktop first person and XR before producing the remaining environment kits. The completed procedural monster library should be integrated through the shared manifest rather than recreated.

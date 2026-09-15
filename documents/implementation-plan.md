@@ -438,22 +438,23 @@ Phase 13.2–13.5 progress:
 - [x] Smoothly scale the observation-only dungeon into tabletop mode and restore unit scale for first-person/orbit presentation.
 - [x] Add the hardware acceptance procedure in [xr-device-checklist.md](xr-device-checklist.md); Phase 13.6 remains open until run on the target headset.
 
-## Phase 14 — Procedural environment variety and production assets
+## Phase 14 — First-person presentation and dungeon art
 
-Outcome: disclosed rooms have deterministic structural themes, safe decoration, and Blender-authored environment and creature assets without affecting Rogue rules or revealing hidden areas.
+Outcome: the browser opens around a large, readable first-person viewport; disclosed rooms have distinctive structure, materials, lighting, and recognizable props; animated monsters and combat feedback make the running game read as a dungeon adventure instead of a geometry debugger. All presentation remains deterministic, observation-safe, and independent of Rogue rules.
 
 The detailed data contracts, theme language, placement rules, Blender conventions, asset budgets, and validation workflow are defined in [room-visual-and-blender-plan.md](room-visual-and-blender-plan.md).
 
 | Step | Small deliverable | Completion check |
 | --- | --- | --- |
 | 14.1 | Add the safe visual-region observation contract. | Unknown cells expose no region/theme data; replay hashes are unchanged. |
-| 14.2 | Add versioned deterministic theme and asset catalogs. | Theme choice matches across Chromium and Firefox without gameplay RNG draws. |
-| 14.3 | Build cached room/cave structure from exposed faces and transitions. | Rooms and caves have distinct silhouettes with unchanged traversability. |
-| 14.4 | Add deterministic semantic decoration anchors and exclusion volumes. | Generated decoration never blocks doors, stairs, traps, objects, actors, or XR lanes. |
-| 14.5 | Add the Blender validation/export pipeline and first dungeon/cave kits. | Clean checkout regenerates validated GLBs and manifests from committed sources. |
-| 14.6 | Add crypt, store, treasure, connector, decal, light, and quality-profile content. | All themes are recognizable and meet measured render budgets. |
-| 14.7 | Replace monster placeholders in Blender-authored silhouette-family batches. | Every monster has a specific asset or documented fallback; rigs remain independent. |
-| 14.8 | Add visual regression, disposal, privacy, desktop, and headset acceptance. | Approved fixed-seed captures and target-device results close the visual milestone. |
+| 14.2 | Recompose the browser around a viewport-first game shell and compact HUD. | At 1366×768 the scene occupies at least 70% of the page; ordinary play needs no page scrolling. |
+| 14.3 | Add one typed asset manifest and connect completed animated monster GLBs to live actors. | A visible monster loads its specific model, transitions between the five animation states, and safely falls back to a primitive. |
+| 14.4 | Add versioned theme, material, and light catalogs. | Cave, dungeon, crypt, store, and treasure rooms are recognizable from fixed-seed captures without gameplay RNG draws. |
+| 14.5 | Build cached room/cave structure from exposed faces and transitions. | Rooms and caves have distinct silhouettes, ceilings, arches, and thresholds with unchanged traversability. |
+| 14.6 | Add deterministic semantic decoration anchors, recognizable props, and exclusion volumes. | Decoration reads as furniture or dungeon dressing and never blocks interaction or XR lanes. |
+| 14.7 | Add first-person movement, interaction, and combat feedback. | Crosshair, prompts, weapon presence, impacts, particles, camera response, and messages reflect resolved events without submitting actions. |
+| 14.8 | Add the Blender validation/export pipeline and complete environment kits. | Clean checkout regenerates validated dungeon, cave, crypt, store, treasure, and connector GLBs and manifests. |
+| 14.9 | Add quality profiles, visual regression, disposal, privacy, desktop, and headset acceptance. | Approved fixed-seed captures and measured performance close the visual milestone. |
 
 - [x] 14.1
 - [ ] 14.2
@@ -463,6 +464,7 @@ The detailed data contracts, theme language, placement rules, Blender convention
 - [ ] 14.6
 - [ ] 14.7
 - [ ] 14.8
+- [ ] 14.9
 
 Gate: presentation variety is deterministic and observation-safe; source gameplay remains identical with detailed assets enabled, disabled, delayed, or replaced by primitives.
 
@@ -473,6 +475,14 @@ Phase 14.1 progress:
 - [x] Store deterministic prop kind, cell, rotation, variant, and scale metadata; clear door approaches after passage construction.
 - [x] Expose themes and props only on already-visible or remembered cells and render primitive themed materials, cave silhouettes, and prop stand-ins.
 - [x] Reserve visible actors, objects, stairs, and revealed traps at render time so decoration remains non-blocking and unambiguous.
+
+Phase 14 implementation order:
+
+1. Ship the viewport-first layout and HUD before adding more scene content, so every later art slice is reviewed at the intended gameplay size.
+2. Connect the completed creature library to live actors before producing more environment assets; this gives scenes scale, motion, and a focal point.
+3. Establish shared materials and lighting, then structural silhouettes, then props. Each layer has fixed-seed before/after captures and can be accepted independently.
+4. Add first-person feedback only from resolved presentation events. Camera motion, particles, weapon animation, and audio-ready cues never drive engine timing.
+5. Finish with Blender environment production, measured quality profiles, regression captures, and target-headset checks.
 
 ## Dependency and milestone summary
 
