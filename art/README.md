@@ -18,6 +18,8 @@
 
 `food` is an original static visible pickup: source `art/blender/props/food.blend`, runtime `public/assets/props/food.glb`, preview `art/previews/food.png`.
 
+`weapon` is an original static visible pickup: source `art/blender/props/weapon.blend`, runtime `public/assets/props/weapon.glb`, preview `art/previews/weapon.png`.
+
 The first completed member is `rubble`:
 
 `pillar` adds a fluted stone column with a plinth and capital, generated from the same script. Source: `art/blender/props/pillar.blend`; runtime: `public/assets/props/pillar.glb`; preview: `art/previews/pillar.png`.
