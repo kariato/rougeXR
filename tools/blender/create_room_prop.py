@@ -15,6 +15,7 @@ def mat(n,c,metal=0):
  m=bpy.data.materials.new(n);m.diffuse_color=(*c,1);m.use_nodes=True;b=m.node_tree.nodes['Principled BSDF'];b.inputs['Base Color'].default_value=(*c,1);b.inputs['Metallic'].default_value=metal;b.inputs['Roughness'].default_value=.4 if metal else .85;return m
 stone=mat('aged_stone',(.39,.38,.34));light=mat('worn_edge',(.58,.53,.43));dark=mat('deep_crevice',(.13,.12,.11));wood=mat('old_wood',(.37,.18,.07));iron=mat('forged_iron',(.19,.21,.23),.65);gold=mat('decorative_gold',(.79,.49,.08),.78);bone=mat('dry_bone',(.72,.67,.52));green=mat('forest_green',(.16,.42,.25));red=mat('mushroom_red',(.67,.12,.10));cloth=mat('linen',(.63,.50,.32));blue=mat('gem_blue',(.11,.46,.69));purple=mat('gem_violet',(.45,.12,.56))
 flame=mat('glowing_flame',(1.0,.36,.04));flame.node_tree.nodes['Principled BSDF'].inputs['Emission Color'].default_value=(1.0,.22,.015,1);flame.node_tree.nodes['Principled BSDF'].inputs['Emission Strength'].default_value=2.5
+apple=mat('apple_skin',(.82,.08,.055));banana_yellow=mat('banana_peel',(.92,.70,.13));fruit_stem=mat('fruit_stem',(.28,.16,.06))
 def cube(n,c,s,m):
  bpy.ops.mesh.primitive_cube_add(size=1,location=c);o=bpy.context.object;o.name=n;o.dimensions=s;bpy.ops.object.transform_apply(location=False,rotation=False,scale=True);o.data.materials.append(m);return o
 def ico(n,c,s,m):
@@ -76,7 +77,26 @@ elif N=='scroll':
  for x in (-.20,.20):o=cyl(f'wood_end_{x}',(x,0,.11),.09,.018,wood);o.rotation_euler.y=math.pi/2
  for x in (-.07,.07):tor(f'seal_band_{x}',(x,0,.11),.085,.012,gold)
 elif N=='food':
- ico('ration_loaf',(0,0,.15),(.25,.17,.13),cloth);cube('wrapper',(.03,.10,.09),(.42,.16,.055),wood);cone('herb_L',(-.1,-.11,.16),(-.19,-.21,.31),.03,green);cone('herb_R',(.1,-.11,.16),(.19,-.21,.30),.03,green)
+ for i,(x,y) in enumerate([(-.16,.08),(.08,.15)]):
+  ico(f'apple_{i}',(x,y,.115),(.105,.10,.105),apple)
+  cyl(f'apple_stem_{i}',(x,y,.226),.009,.055,fruit_stem,7)
+  leaf=ico(f'apple_leaf_{i}',(x+.035,y-.01,.244),(.04,.018,.009),green);leaf.rotation_euler.z=-.3
+ def make_banana(i,x,y,angle):
+  vertices=[];faces=[];rings=9;segments=8
+  for j in range(rings):
+   t=j/(rings-1);cx=(t-.5)*.37;cy=.095*math.sin(math.pi*t);cz=.075+.035*math.sin(math.pi*t)
+   radius=.012+.031*math.sin(math.pi*t)
+   for k in range(segments):
+    a=math.tau*k/segments;vertices.append((cx,cy+radius*math.cos(a),cz+radius*math.sin(a)))
+  faces.append(tuple(reversed(range(segments))))
+  for j in range(rings-1):
+   for k in range(segments):faces.append((j*segments+k,j*segments+(k+1)%segments,(j+1)*segments+(k+1)%segments,(j+1)*segments+k))
+  faces.append(tuple((rings-1)*segments+k for k in range(segments)))
+  mesh=bpy.data.meshes.new(f'banana_{i}_mesh');mesh.from_pydata(vertices,[],faces);mesh.update()
+  fruit=bpy.data.objects.new(f'banana_{i}',mesh);bpy.context.collection.objects.link(fruit);fruit.location=(x,y,0);fruit.rotation_euler.z=angle;mesh.materials.append(banana_yellow)
+  for side in (-1,1):
+   tip=ico(f'banana_{i}_tip_{side}',(x+side*.19*math.cos(angle),y+side*.19*math.sin(angle),.075),(.017,.016,.017),fruit_stem);tip.rotation_euler.z=angle
+ make_banana(0,-.015,-.15,-.12);make_banana(1,.035,-.075,.22)
 elif N=='weapon':
  cyl('mace_handle',(0,0,.35),.034,.61,wood);ico('mace_head',(0,0,.69),(.12,.12,.12),iron)
  for i in range(6):a=i*math.tau/6;cone(f'spike_{i}',(.08*math.sin(a),.08*math.cos(a),.69),(.19*math.sin(a),.19*math.cos(a),.69),.033,iron)

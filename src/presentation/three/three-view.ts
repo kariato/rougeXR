@@ -177,7 +177,7 @@ export class ThreeGameView implements GameView {
         if (entity.appearance === ',') void loadPropInto('/assets/props/amulet.glb', holder, fallback, this.generation, sceneToken);
         if (entity.appearance === ']') void loadPropInto('/assets/props/armor.glb', holder, fallback, this.generation, sceneToken);
         if (entity.appearance === ')') void loadPropInto('/assets/props/weapon.glb', holder, fallback, this.generation, sceneToken);
-        if (entity.appearance === ':') void loadPropInto('/assets/props/food.glb', holder, fallback, this.generation, sceneToken);
+        if (entity.appearance === ':') void loadPropInto('/assets/props/food.glb?v=2', holder, fallback, this.generation, sceneToken, () => this.ensureAnimation());
         if (entity.appearance === '?') void loadPropInto('/assets/props/scroll.glb', holder, fallback, this.generation, sceneToken);
         if (entity.appearance === '!') void loadPropInto('/assets/props/potion.glb', holder, fallback, this.generation, sceneToken);
       }
