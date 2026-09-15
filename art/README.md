@@ -2,6 +2,20 @@
 
 The complete creation, export, registration, and validation workflow is documented in [`docs/MONSTER_ASSET_PIPELINE.md`](../docs/MONSTER_ASSET_PIPELINE.md).
 
+## Wraith
+
+Original stylized spectral apparition with a deep hood and faceless void, soul-lit eyes, long skeletal fingers, floating cloak, and torn ethereal tails. Generated using Blender 4.5 LTS; no external models or textures.
+
+- Source: `art/blender/creatures/wraith.blend`
+- Runtime: `public/assets/creatures/wraith.glb`
+- Preview: `art/previews/wraith.png`
+- Rig: 7 bones (root, core, head, two arms, two cloak tails).
+- Clips: `idle` (hover), `move` (spectral drift), `attack` (life-draining reach), `hurt` (displaced recoil), `death` (dissipating sink).
+- Hovering height: approximately 0.15 m; Blender -Y / glTF +Z forward.
+
+Regenerate with `blender --background --python tools/blender/create_wraith.py`.
+Preview on the development server at `/model-preview.html?model=wraith`. Gameplay renderer integration remains pending.
+
 ## Troll
 
 Original stylized cave brute with a massive moss-green frame, stone-gray face and fists, amber eyes, facial warts, long beard, tusks, and black claws. Generated using Blender 4.5 LTS; no external models or textures.

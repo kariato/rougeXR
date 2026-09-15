@@ -3,7 +3,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 const requestedModel = new URLSearchParams(location.search).get('model');
-const model = requestedModel === 'aquator' || requestedModel === 'bat' || requestedModel === 'centaur' || requestedModel === 'ice-monster' || requestedModel === 'kestrel' || requestedModel === 'leprechaun' || requestedModel === 'nymph' || requestedModel === 'orc' || requestedModel === 'quagga' || requestedModel === 'rattlesnake' || requestedModel === 'snake' || requestedModel === 'troll' || requestedModel === 'venus-flytrap' || requestedModel === 'yeti' || requestedModel === 'zombie' ? requestedModel : 'hobgoblin';
+const model = requestedModel === 'aquator' || requestedModel === 'bat' || requestedModel === 'centaur' || requestedModel === 'ice-monster' || requestedModel === 'kestrel' || requestedModel === 'leprechaun' || requestedModel === 'nymph' || requestedModel === 'orc' || requestedModel === 'quagga' || requestedModel === 'rattlesnake' || requestedModel === 'snake' || requestedModel === 'troll' || requestedModel === 'venus-flytrap' || requestedModel === 'wraith' || requestedModel === 'yeti' || requestedModel === 'zombie' ? requestedModel : 'hobgoblin';
 const modelSelector = document.querySelector<HTMLSelectElement>('#model')!;
 modelSelector.value = model;
 modelSelector.addEventListener('change', () => { location.search = new URLSearchParams({ model: modelSelector.value }).toString(); });
