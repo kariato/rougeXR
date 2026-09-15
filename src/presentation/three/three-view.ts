@@ -16,6 +16,10 @@ import type { ActionRequest } from '../../engine/model/action';
 const TILE = 1;
 type ActorCue = MonsterCue | 'gesture';
 type CameraCue = 'attack' | 'hurt' | 'interact' | 'consume' | 'cast' | 'rest';
+interface CorpseRecord {
+  token: string; at: { x: number; y: number }; assetId: string | null; facing: number;
+  holder: THREE.Group | null; actor: ActorVisual | null; mixer: THREE.AnimationMixer | null; settlingUntil: number;
+}
 
 function createFirstPersonHand(): THREE.Group {
   const hand=new THREE.Group();
@@ -34,6 +38,7 @@ export class ThreeGameView implements GameView {
   private readonly camera = new THREE.PerspectiveCamera(68, 1, 0.05, 120);
   private readonly hand = createFirstPersonHand();
   private readonly world = new THREE.Group();
+  private readonly corpseWorld = new THREE.Group();
   private readonly roomMaterials = new RoomMaterialCatalog();
   private readonly ambient = new THREE.HemisphereLight(0xa9c8e8, 0x18202a, 1.7);
   private readonly lamp = new THREE.PointLight(0xffd7a0, 12, 9, 1.7);
@@ -56,11 +61,13 @@ export class ThreeGameView implements GameView {
   private actorVisuals: ActorVisual[] = [];
   private monsterMixers: THREE.AnimationMixer[] = [];
   private actorFacings = new Map<string, number>();
-  private defeatedVisuals: Array<{ holder: THREE.Group; actor: ActorVisual; mixer: THREE.AnimationMixer | null; expires: number }> = [];
+  private readonly corpses = new Map<string, CorpseRecord>();
   private cameraActions: Array<{ start: number; duration: number; kind: CameraCue }> = [];
   private animationUntil = 0;
   private lastAnimatedRevision = -1;
   private readonly generation = new SceneGeneration();
+  private readonly corpseGeneration = new SceneGeneration();
+  private corpseToken = this.corpseGeneration.next();
   private readonly xrIntent = new DebouncedXrIntent();
   private readonly xrControllers: THREE.Group[] = [];
 
@@ -73,6 +80,7 @@ export class ThreeGameView implements GameView {
     this.scene.background = new THREE.Color(0x05080d);
     this.scene.fog = new THREE.FogExp2(0x05080d, 0.055);
     this.scene.add(this.world);
+    this.world.add(this.corpseWorld);
     this.scene.add(this.ambient);
     this.lamp.position.set(0, 1.3, 0);
     this.camera.add(this.lamp);
@@ -106,12 +114,10 @@ export class ThreeGameView implements GameView {
 
   update(observation: PlayerObservation, _events: PresentationEvent[]): void {
     const sceneToken = this.generation.next();
-    const previousEntities = this.observation?.entities ?? [];
     const freshEvents = observation.revision === this.lastAnimatedRevision ? [] : _events;
     if (observation.revision === 0 || freshEvents.some(event => event.type === 'levelViewReset')) {this.actorFacings.clear();this.cameraActions=[];}
     const actorCues = new Map<string, ActorCue[]>();
     const addCue=(token:string,cue:ActorCue):void=>{const sequence=actorCues.get(token) ?? [];sequence.push(cue);actorCues.set(token,sequence);};
-    const defeated = freshEvents.filter(event => event.type === 'visibleDefeat');
     for (const event of freshEvents) {
       if (event.type === 'visibleMovement') {
         this.actorFacings.set(event.token, Math.atan2(event.to.x-event.from.x,event.to.y-event.from.y));
@@ -130,6 +136,11 @@ export class ThreeGameView implements GameView {
         this.enqueueCameraAction(event.action==='rest' ? 'rest' : ['eat','drink','read'].includes(event.action) ? 'consume'
           : ['throw','zap'].includes(event.action) ? 'cast' : 'interact');
       }
+    }
+    this.rememberDefeats(freshEvents);
+    for (const event of freshEvents) if (event.type === 'visibleDefeat') {
+      const corpse = this.corpses.get(event.token);
+      if (corpse) { corpse.facing = this.actorFacings.get(event.token) ?? corpse.facing; if (corpse.holder) corpse.holder.rotation.y = corpse.facing; }
     }
     this.observation = observation;
     this.clearWorld();
@@ -166,7 +177,8 @@ export class ThreeGameView implements GameView {
     }
 
     const reserved = new Set([`${observation.playerAt.x},${observation.playerAt.y}`,
-      ...observation.entities.map(entity => `${entity.at.x},${entity.at.y}`)]);
+      ...observation.entities.map(entity => `${entity.at.x},${entity.at.y}`),
+      ...[...this.corpses.values()].map(corpse => `${corpse.at.x},${corpse.at.y}`)]);
     for (let index = 0; index < observation.cells.length; index++) if (observation.cells[index]?.appearance?.featureLabel) reserved.add(`${index % observation.width},${Math.floor(index / observation.width)}`);
     const litTorches = selectLitTorches(observation, activeCells, reserved);
     for (const decoration of observation.decorations) {
@@ -224,14 +236,14 @@ export class ThreeGameView implements GameView {
         if (entity.appearance === '!') void loadPropInto('/assets/props/potion.glb', holder, fallback, this.generation, sceneToken);
       }
     }
-    for (const event of defeated) {
-      if (event.token === 'player' || observation.entities.some(entity => entity.token === event.token)) continue;
-      const prior=previousEntities.find(entity => entity.token === event.token);if (!prior) continue;
-      const actor=createActorVisual(0xc65353);const holder=new THREE.Group();holder.position.set(event.at.x,0,event.at.y);holder.rotation.y=this.actorFacings.get(event.token) ?? 0;holder.add(actor.root);this.world.add(holder);this.actorVisuals.push(actor);actor.playDeath();
-      const deathVisual={holder,actor,mixer:null as THREE.AnimationMixer | null,expires:performance.now()+1050};
-      this.defeatedVisuals.push(deathVisual);
-      const assetId=observedMonsterAsset(prior);if (assetId) void loadMonsterInto(assetId,holder,actor.root,this.generation,sceneToken,['death'],mixer=>{deathVisual.mixer=mixer;this.monsterMixers.push(mixer);this.ensureAnimation();});
+    for (const corpse of this.corpses.values()) {
+      const key = `${corpse.at.x},${corpse.at.y}`;
+      const cell = observation.cells[corpse.at.y * observation.width + corpse.at.x];
+      if (!activeCells.has(key) || cell?.visibility !== 'visible') { if (corpse.holder) corpse.holder.visible = false; continue; }
+      if (!corpse.holder) this.attachCorpse(corpse);
+      if (corpse.holder) corpse.holder.visible = true;
     }
+    this.canvas.dataset.visibleCorpses = String([...this.corpses.values()].filter(corpse => corpse.holder?.visible).length);
     if (actorCues.size) { this.animationUntil = performance.now() + 1100; this.ensureAnimation(); }
 
     this.placeCamera();
@@ -245,11 +257,62 @@ export class ThreeGameView implements GameView {
     this.renderer.setSize(this.width, this.height, false);
   }
 
+  /** Retain only appearance disclosed by a visible defeat, even while the map is open. */
+  rememberDefeats(events: PresentationEvent[]): void {
+    if (events.some(event => event.type === 'levelViewReset')) this.clearCorpses();
+    for (const event of events) {
+      if (event.type !== 'visibleDefeat' || event.token === 'player' || this.corpses.has(event.token)) continue;
+      const assetId = event.label && event.appearance ? observedMonsterAsset({ token: event.token, at: event.at, appearance: event.appearance, label: event.label }) : null;
+      this.corpses.set(event.token, { token: event.token, at: { ...event.at }, assetId,
+        facing: this.actorFacings.get(event.token) ?? 0, holder: null, actor: null, mixer: null,
+        settlingUntil: performance.now() + 1100 });
+    }
+  }
+
+  resetPresentation(): void {
+    this.clearCorpses();
+    this.actorFacings.clear(); this.cameraActions = []; this.lastAnimatedRevision = -1;
+    this.canvas.dataset.visibleCorpses = '0';
+  }
+
+  private attachCorpse(corpse: CorpseRecord): void {
+    const holder = new THREE.Group(); holder.position.set(corpse.at.x, 0, corpse.at.y);
+    holder.rotation.y = corpse.facing;
+    holder.userData = { cell: { ...corpse.at }, eligible: false, occludes: false };
+    const actor = createActorVisual(0xc65353);
+    holder.add(actor.root); this.corpseWorld.add(holder);
+    corpse.holder = holder; corpse.actor = actor;
+    actor.playDeath();
+    if (corpse.settlingUntil <= performance.now()) this.finishCorpse(corpse);
+    else this.ensureAnimation();
+    if (corpse.assetId) void loadMonsterInto(corpse.assetId, holder, actor.root,
+      this.corpseGeneration, this.corpseToken, ['death'], mixer => {
+        corpse.mixer = mixer;
+        if (corpse.settlingUntil <= performance.now()) this.finishCorpse(corpse);
+        else this.ensureAnimation();
+      });
+  }
+
+  private finishCorpse(corpse: CorpseRecord): void {
+    corpse.actor?.mixer.update(5);
+    corpse.mixer?.update(5);
+    corpse.settlingUntil = 0;
+  }
+
+  private clearCorpses(): void {
+    this.corpseToken = this.corpseGeneration.next();
+    for (const corpse of this.corpses.values()) {
+      corpse.actor?.mixer.stopAllAction(); corpse.mixer?.stopAllAction();
+      if (corpse.holder) { this.corpseWorld.remove(corpse.holder); disposeObjectTree(corpse.holder); }
+    }
+    this.corpses.clear();
+  }
+
   dispose(): void {
     this.generation.next();
     this.canvas.hidden = true;
     this.clearWorld();
-    this.camera.remove(this.hand);disposeObjectTree(this.hand);
+    for (const corpse of this.corpses.values()) this.finishCorpse(corpse);
     this.roomMaterials.dispose();
     this.canvas.removeEventListener('pointerdown', this.onPointerDown);
     this.canvas.removeEventListener('pointermove', this.onPointerMove);
@@ -304,13 +367,12 @@ export class ThreeGameView implements GameView {
     this.world.scale.setScalar(this.worldScale);
     for (const visual of this.actorVisuals) visual.mixer.update(elapsed);
     for (const mixer of this.monsterMixers) mixer.update(elapsed);
-    for (const defeated of [...this.defeatedVisuals]) if (now >= defeated.expires) {
-      defeated.actor.mixer.stopAllAction();this.actorVisuals.splice(this.actorVisuals.indexOf(defeated.actor),1);
-      if (defeated.mixer) {defeated.mixer.stopAllAction();this.monsterMixers.splice(this.monsterMixers.indexOf(defeated.mixer),1);}
-      this.world.remove(defeated.holder);disposeObjectTree(defeated.holder);this.defeatedVisuals.splice(this.defeatedVisuals.indexOf(defeated),1);
+    for (const corpse of this.corpses.values()) if (corpse.settlingUntil > 0) {
+      if (now >= corpse.settlingUntil) this.finishCorpse(corpse);
+      else { corpse.actor?.mixer.update(elapsed); corpse.mixer?.update(elapsed); }
     }
     this.placeCamera();
-    const moving = this.monsterMixers.length > 0 || this.cameraActions.length>0 || Math.abs(this.yaw - this.targetYaw) > 0.0001 || Math.abs(this.pitch - this.targetPitch) > 0.0001 || Math.abs(this.distance - this.targetDistance) > 0.001 || Math.abs(this.worldScale - this.targetWorldScale) > 0.0001 || now < this.animationUntil;
+    const moving = this.monsterMixers.length > 0 || this.cameraActions.length>0 || [...this.corpses.values()].some(corpse => corpse.settlingUntil > 0) || Math.abs(this.yaw - this.targetYaw) > 0.0001 || Math.abs(this.pitch - this.targetPitch) > 0.0001 || Math.abs(this.distance - this.targetDistance) > 0.001 || Math.abs(this.worldScale - this.targetWorldScale) > 0.0001 || now < this.animationUntil;
     this.frame = moving ? requestAnimationFrame(this.animate) : null;
   };
 
@@ -403,8 +465,8 @@ export class ThreeGameView implements GameView {
     this.actorVisuals = [];
     for (const mixer of this.monsterMixers) mixer.stopAllAction();
     this.monsterMixers = [];
-    this.defeatedVisuals=[];
     for (const child of [...this.world.children]) {
+      if (child === this.corpseWorld) continue;
       this.world.remove(child);
       disposeObjectTree(child);
     }

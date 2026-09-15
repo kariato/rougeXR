@@ -25,7 +25,7 @@ export type PresentationEvent =
   | { type: 'message'; text: string }
   | { type: 'visibleMovement'; token: string; from: Position; to: Position }
   | { type: 'visibleAttack'; attackerToken: string; defenderToken: string; attackerAt: Position; defenderAt: Position; hit: boolean }
-  | { type: 'visibleDefeat'; token: string; at: Position }
+  | { type: 'visibleDefeat'; token: string; at: Position; appearance: string | null; label: string | null }
   | { type: 'visiblePlayerAction'; action: GameAction['type'] }
   | { type: 'inventoryUpdate' }
   | { type: 'levelViewReset' }

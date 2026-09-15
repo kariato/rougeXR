@@ -113,7 +113,7 @@ function render(): void {
   const debugSnapshot = debugFixtureSnapshot(state);
   const detections = latestEvents.flatMap(event => event.type === 'magicDetected' ? event.positions.map(at => ({ at, glyph: '*' }))
     : event.type === 'itemsDetected' ? event.positions.map(at => ({ at, glyph: event.glyph })) : []);
-  if (view === gridView) gridView.render(observation, reveal.checked ? debugSnapshot : null, detections);
+  if (view === gridView) { threeView.rememberDefeats(latestEvents); gridView.render(observation, reveal.checked ? debugSnapshot : null, detections); }
   else view.update(observation, latestEvents);
   hudHp.textContent = `${observation.status.hp}/${observation.status.maxHp}`;
   hudDepth.textContent = String(observation.status.depth);
@@ -268,7 +268,7 @@ newGame.addEventListener('click', () => {
     const state = createSelectedWorld(mode, seed);
     const validation = validateWorld(state);
     if (validation.length) throw new Error(`New world validation failed: ${JSON.stringify(validation)}`);
-    session = new GameSession(state); recorder = new ReplayRecorder(state); selectedIndex = null; latestEvents = []; resetDiagnostics();
+    session = new GameSession(state); threeView.resetPresentation(); recorder = new ReplayRecorder(state); selectedIndex = null; latestEvents = []; resetDiagnostics();
     saveStatus.textContent = `Started ${mode} world with seed ${seed}.`; render();
     await autosave(state);
   }).catch(error => { saveStatus.textContent = error instanceof Error ? error.message : String(error); });
@@ -277,7 +277,7 @@ replayRestart.addEventListener('click', () => {
   pauseReplay();
   actionQueue = actionQueue.then(() => {
     if (!replayPlayer) return;
-    session = replayPlayer.restart(); latestEvents = []; selectedIndex = null; resetDiagnostics();
+    session = replayPlayer.restart(); threeView.resetPresentation(); latestEvents = []; selectedIndex = null; resetDiagnostics();
     replayStatus.textContent = `Replay restarted · 0/${replayPlayer.total()}.`; render();
   });
 });
@@ -323,7 +323,7 @@ loadFile.addEventListener('change', () => {
     const text = await file.text();
     const report = parseReplay(text);
     if (report.ok) {
-      pauseReplay(); replayPlayer = new ReplayPlayer(report.value); session = replayPlayer.session();
+      pauseReplay(); replayPlayer = new ReplayPlayer(report.value); session = replayPlayer.session(); threeView.resetPresentation();
       recorder = new ReplayRecorder(session.exportState()); selectedIndex = null; latestEvents = []; resetDiagnostics(); seedInput.value = String(session.exportState().seed);
       replayStatus.textContent = `Replay loaded · 0/${replayPlayer.total()}. Live input locked.`;
       saveStatus.textContent = 'Replay ready.'; render(); return;
@@ -331,7 +331,7 @@ loadFile.addEventListener('change', () => {
     const parsed = parseSave(text);
     if (!parsed.ok) { saveStatus.textContent = parsed.errors.map(error => `${error.path}: ${error.message}`).join('; '); return; }
     leaveReplayMode(); const candidate = restoreGame(parsed.value.state);
-    session = candidate; recorder = new ReplayRecorder(candidate.exportState()); selectedIndex = null; latestEvents = []; resetDiagnostics(); seedInput.value = String(candidate.exportState().seed);
+    session = candidate; threeView.resetPresentation(); recorder = new ReplayRecorder(candidate.exportState()); selectedIndex = null; latestEvents = []; resetDiagnostics(); seedInput.value = String(candidate.exportState().seed);
     saveStatus.textContent = `Loaded revision ${candidate.exportState().timing.revision}.`; render(); await autosave(candidate.exportState());
   }).catch(error => { saveStatus.textContent = error instanceof Error ? error.message : String(error); })
     .finally(() => { loadFile.value = ''; });
@@ -398,7 +398,7 @@ async function restoreLatestAutosave(): Promise<void> {
     const parsed = parseSave(text);
     if (!parsed.ok) { saveStatus.textContent = `Autosave rejected: ${parsed.errors[0]?.message ?? 'invalid save'}. Started a new game.`; return; }
     const candidate = restoreGame(parsed.value.state);
-    session = candidate; recorder = new ReplayRecorder(candidate.exportState()); selectedIndex = null; latestEvents = []; resetDiagnostics();
+    session = candidate; threeView.resetPresentation(); recorder = new ReplayRecorder(candidate.exportState()); selectedIndex = null; latestEvents = []; resetDiagnostics();
     seedInput.value = String(candidate.exportState().seed);
     saveStatus.textContent = `Restored autosave at revision ${candidate.exportState().timing.revision}.`; render();
   } catch (error) {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createTwoRoomFixture } from '../../src/debug/fixtures';
+import { createKestrelEncounterFixture, createTwoRoomFixture } from '../../src/debug/fixtures';
 import { IS_INVISIBLE } from '../../src/engine/rules/flags';
 import { GameSession } from '../../src/engine/session';
 
@@ -22,7 +22,7 @@ describe('visible combat cues', () => {
     const events = encounter(6);
     expect(events).toContainEqual({ type: 'visibleAttack', attackerToken: 'player', defenderToken: 'monster-e1',
       attackerAt: { x: 5, y: 5 }, defenderAt: { x: 6, y: 5 }, hit: true });
-    expect(events).toContainEqual({ type: 'visibleDefeat', token: 'monster-e1', at: { x: 6, y: 5 } });
+    expect(events).toContainEqual(expect.objectContaining({ type: 'visibleDefeat', token: 'monster-e1', at: { x: 6, y: 5 }, appearance: expect.any(String), label: expect.any(String) }));
   });
 
   it('does not expose a hidden or invisible opponent through animation cues', () => {
@@ -46,6 +46,15 @@ describe('visible combat cues', () => {
       emitRaw({type:'actorDefeated',actorId:'e1',byActorId:'player'});return {resolved:true,consumedSlot:false,reason:null};
     }});
     const events=session.submit({expectedRevision:0,action:{type:'rest'}}).events;
-    expect(events).toContainEqual({type:'visibleDefeat',token:'monster-e1',at:{x:6,y:5}});
+    expect(events).toContainEqual(expect.objectContaining({type:'visibleDefeat',token:'monster-e1',at:{x:6,y:5},appearance:expect.any(String),label:expect.any(String)}));
+  });
+  it('emits a visible defeat for a real Kestrel kill', () => {
+    const session = new GameSession(createKestrelEncounterFixture(12345));
+    let defeat = null as Extract<ReturnType<GameSession['submit']>['events'][number], { type: 'visibleDefeat' }> | null;
+    for (let revision = 0; revision < 12 && !defeat; revision++) {
+      const result = session.submit({ expectedRevision: revision, action: { type: 'move', direction: 'E', pickup: true } });
+      defeat = result.events.find(event => event.type === 'visibleDefeat' && event.token !== 'player') as typeof defeat;
+    }
+    expect(defeat).toEqual(expect.objectContaining({ token: 'monster-e1', appearance: 'K' }));
   });
 });

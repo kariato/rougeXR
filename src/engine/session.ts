@@ -1,5 +1,6 @@
 import type { ActionRequest, ActionResolution, GameAction, PresentationEvent, RawEvent, RawEventInput, TraceEntry } from './model/action';
 import type { ScheduledEntry, WorldState } from './model/state';
+import type { ObservedEntity } from './model/observation';
 import { runDaemons, runFuses } from './scheduler';
 import { validateWorld } from './validate';
 import { resolveMove } from './rules/movement';
@@ -63,33 +64,46 @@ export class GameSession {
     if (request.expectedRevision !== this.state.timing.revision) throw new RangeError('Stale action request');
     if (this.state.timing.cycle.phase === 'terminal') throw new RangeError('Game is terminal');
     const draft = detached(this.state); const events: PresentationEvent[] = []; const raw: RawEvent[] = []; const trace: TraceEntry[] = [];
+    const initiallyDisclosed = new Map(observe(draft).entities.map(entity => [entity.token, entity]));
     const startTick = draft.timing.tick;
     try {
       draft.timing.actionSequence++;
-      const combatPositions = new Map<string, { x: number; y: number }>();
+      const combatPositions = new Map<string, { x: number; y: number }>([...initiallyDisclosed.values()]
+        .filter(entity => entity.token.startsWith('monster-')).map(entity => [entity.token.slice(8), { ...entity.at }]));
+      const combatAppearances = new Map<string, ObservedEntity>([...initiallyDisclosed.values()]
+        .filter(entity => entity.token.startsWith('monster-')).map(entity => [entity.token.slice(8), entity]));
       const emitRaw = (input: RawEventInput): void => {
         const event = { ...input, ordinal: raw.length, actionSequence: draft.timing.actionSequence } as RawEvent;
         raw.push(event); const safe = projectEvent(draft, event); if (safe) events.push(safe);
+        if (safe?.type === 'visibleMovement' && safe.token.startsWith('monster-')) combatPositions.set(safe.token.slice(8), { ...safe.to });
         if (event.type === 'attackResolved') {
           const attackerEntity = draft.entities[event.attackerId];const defenderEntity = draft.entities[event.defenderId];
-          const attacker = event.attackerId === 'player' ? draft.player.at : attackerEntity?.kind === 'monster' ? attackerEntity.at : null;
-          const defender = event.defenderId === 'player' ? draft.player.at : defenderEntity?.kind === 'monster' ? defenderEntity.at : null;
-          const disclosed = new Set(observe(draft).entities.map(entity => entity.token));
+          const attacker = event.attackerId === 'player' ? draft.player.at : attackerEntity?.kind === 'monster' ? attackerEntity.at : combatPositions.get(event.attackerId);
+          const defender = event.defenderId === 'player' ? draft.player.at : defenderEntity?.kind === 'monster' ? defenderEntity.at : combatPositions.get(event.defenderId);
+          const disclosed = new Map(observe(draft).entities.map(entity => [entity.token,entity]));
+          for (const [token, entity] of initiallyDisclosed) if (!disclosed.has(token)) disclosed.set(token, entity);
           if (attacker && defender && isPositionVisible(draft, attacker) && isPositionVisible(draft, defender)
             && (event.attackerId === 'player' || disclosed.has(`monster-${event.attackerId}`))
             && (event.defenderId === 'player' || disclosed.has(`monster-${event.defenderId}`))) {
             combatPositions.set(event.attackerId, { ...attacker });combatPositions.set(event.defenderId, { ...defender });
+            for (const id of [event.attackerId,event.defenderId]) {const visible=disclosed.get(`monster-${id}`);if (visible) combatAppearances.set(id,visible);}
             events.push({ type: 'visibleAttack', attackerToken: event.attackerId === 'player' ? 'player' : `monster-${event.attackerId}`,
               defenderToken: event.defenderId === 'player' ? 'player' : `monster-${event.defenderId}`,
               attackerAt: { ...attacker }, defenderAt: { ...defender }, hit: event.hit });
           }
         } else if (event.type === 'hpChanged' && event.actorId !== 'player') {
           const entity=draft.entities[event.actorId];
-          if (entity?.kind==='monster' && isPositionVisible(draft,entity.at)
-            && observe(draft).entities.some(visible=>visible.token===`monster-${event.actorId}`)) combatPositions.set(event.actorId,{...entity.at});
+          const visible=observe(draft).entities.find(candidate=>candidate.token===`monster-${event.actorId}`)
+            ?? initiallyDisclosed.get(`monster-${event.actorId}`);
+          const at = entity?.kind === 'monster' ? entity.at : combatPositions.get(event.actorId);
+          if (at && isPositionVisible(draft,at) && visible) {
+            combatPositions.set(event.actorId,{...at});combatAppearances.set(event.actorId,visible);
+          }
         } else if (event.type === 'actorDefeated') {
           const at = event.actorId === 'player' ? draft.player.at : combatPositions.get(event.actorId);
-          if (at && isPositionVisible(draft, at)) events.push({ type: 'visibleDefeat', token: event.actorId === 'player' ? 'player' : `monster-${event.actorId}`, at: { ...at } });
+          const appearance=combatAppearances.get(event.actorId);
+          if (at && isPositionVisible(draft, at)) events.push({ type: 'visibleDefeat', token: event.actorId === 'player' ? 'player' : `monster-${event.actorId}`,
+            at: { ...at }, appearance: appearance?.appearance ?? null, label: appearance?.label ?? null });
         }
       };
       const actionEventIndex = events.length;
