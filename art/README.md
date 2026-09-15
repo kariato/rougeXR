@@ -2,6 +2,20 @@
 
 The complete creation, export, registration, and validation workflow is documented in [`docs/MONSTER_ASSET_PIPELINE.md`](../docs/MONSTER_ASSET_PIPELINE.md).
 
+## Aquator
+
+Original stylized amphibious armor-ruster with teal scales, pale belly plates, dorsal fin crest, webbed claws, and rust-colored corrosive palms. Generated using Blender 4.5 LTS; no external models or textures.
+
+- Source: `art/blender/creatures/aquator.blend`
+- Runtime: `public/assets/creatures/aquator.glb`
+- Preview: `art/previews/aquator.png`
+- Rig: 8 bones (root, core, head, jaw, two arms, two legs).
+- Clips: `idle` (watchful breathing), `move` (heavy wade), `attack` (two-handed corrosive touch), `hurt` (recoil), `death` (forward collapse).
+- Height: approximately 1.5 m; Blender -Y / glTF +Z forward.
+
+Regenerate with `blender --background --python tools/blender/create_aquator.py`.
+Preview on the development server at `/model-preview.html?model=aquator`. Gameplay renderer integration remains pending.
+
 ## Quagga
 
 Original stylized extinct equid with striped cream forequarters fading into a chestnut rump, upright mane, dark muzzle, tail, and four articulated legs. Generated using Blender 4.5 LTS; no external models or textures.
