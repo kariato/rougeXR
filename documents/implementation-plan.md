@@ -447,7 +447,7 @@ The detailed data contracts, theme language, placement rules, Blender convention
 | Step | Small deliverable | Completion check |
 | --- | --- | --- |
 | 14.1 | Add the safe visual-region observation contract. | Unknown cells expose no region/theme data; replay hashes are unchanged. |
-| 14.2 | Recompose the browser around a viewport-first game shell and compact HUD. | At 1366×768 the scene occupies at least 70% of the page; ordinary play needs no page scrolling. |
+| 14.2 | Recompose the browser around a viewport-first game shell and compact HUD; follow the [implementation plan](phase-14-2-viewport-hud-plan.md). | At 1366×768 the scene occupies at least 70% of the page; ordinary play needs no page scrolling. |
 | 14.3 | Add one typed asset manifest and connect completed animated monster GLBs to live actors. | A visible monster loads its specific model, transitions between the five animation states, and safely falls back to a primitive. |
 | 14.4 | Add versioned theme, material, and light catalogs. | Cave, dungeon, crypt, store, and treasure rooms are recognizable from fixed-seed captures without gameplay RNG draws. |
 | 14.5 | Build cached room/cave structure from exposed faces and transitions. | Rooms and caves have distinct silhouettes, ceilings, arches, and thresholds with unchanged traversability. |
