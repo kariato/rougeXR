@@ -134,6 +134,10 @@ elif N=='armor':
  for s in (-1,1):ico(f'shoulder_{s}',(s*.24,0,.62),(.14,.13,.12),iron);cube(f'belt_{s}',(s*.15,-.14,.23),(.23,.035,.055),wood)
  for row in range(4):
   for col in range(5):ico(f'mail_ring_{row}_{col}',((col-2)*.075,-.154,.32+row*.09),(.018,.007,.018),light)
+ # Preserve the established armor shape, but lay its front face upward on the floor.
+ for piece in sc.objects:
+  if piece.type!='MESH':continue
+  x,y,z=piece.location;piece.location=(x,z-.40,.18-y);piece.rotation_euler.x-=math.pi/2
 elif N=='amulet':
  o=tor('chain',(0,0,.52),.25,.012,gold);o.rotation_euler.x=math.pi/2
  ico('central_gem',(0,-.02,.28),(.10,.04,.13),blue);tor('gem_setting',(0,-.015,.28),.10,.016,gold)
@@ -148,7 +152,7 @@ bpy.ops.wm.save_as_mainfile(filepath=str(S));bpy.ops.object.select_all(action='D
 for o in sc.objects:
  if o.type=='MESH':o.select_set(True)
 bpy.ops.export_scene.gltf(filepath=str(E),export_format='GLB',use_selection=True,export_animations=False)
-target_height=.10 if N in ('rubble','bones','coinScatter','scroll','food','ring','stick') else .52 if N=='pillar' else .42 if N in ('weapon','armor','amulet') else .08 if N=='torch' else .30
+target_height=.10 if N in ('rubble','bones','coinScatter','scroll','food','ring','stick') else .52 if N=='pillar' else .42 if N in ('weapon','amulet') else .15 if N=='armor' else .08 if N=='torch' else .30
 preview_scale=1.65 if N=='pillar' else 1.35 if N=='bones' else 1.20 if N in ('weapon','armor','amulet','crate') else 1.05 if N=='urn' else .8
 bpy.ops.object.camera_add(location=(1.0,-1.8,1.35));cam=bpy.context.object;cam.rotation_euler=(Vector((0,0,target_height))-cam.location).to_track_quat('-Z','Y').to_euler();cam.data.type='ORTHO';cam.data.ortho_scale=preview_scale;sc.camera=cam
 sc.render.engine='BLENDER_WORKBENCH';sc.display.shading.light='STUDIO';sc.display.shading.color_type='MATERIAL';sc.display.shading.show_shadows=True;sc.display.shading.show_cavity=True;sc.display.shading.background_type='WORLD';sc.world.color=(.035,.045,.065);sc.render.resolution_x=900;sc.render.resolution_y=700;sc.render.resolution_percentage=100;sc.render.image_settings.file_format='PNG';sc.render.filepath=str(P);bpy.ops.render.render(write_still=True);print('CREATED',S,E,P)
