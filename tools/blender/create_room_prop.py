@@ -65,8 +65,9 @@ elif N=='torch':
  ico('ember_base',(0,-.245,.125),(.065,.065,.04),red)
 elif N=='mushroom':
  for i,(x,y,h) in enumerate([(-.18,-.08,.29),(.11,.06,.39),(.21,-.12,.19)]):
-  cyl(f'stalk_{i}',(x,y,h*.45),.045,h*.9,cloth);ico(f'cap_{i}',(x,y,h),(.15 if i==1 else .10,.13 if i==1 else .09,.075),red)
-  for j in range(3):ico(f'spot_{i}_{j}',(x+(j-1)*.04,y-.04,h+.048),(.012,.012,.007),cloth)
+  cap_x=.225 if i==1 else .165;cap_y=.195 if i==1 else .145
+  cyl(f'stalk_{i}',(x,y,h*.45),.045,h*.9,cloth);ico(f'cap_{i}',(x,y,h),(cap_x,cap_y,.07),red)
+  for j in range(3):ico(f'spot_{i}_{j}',(x+(j-1)*cap_x*.45,y-.035,h+.048),(.017,.015,.008),cloth)
 elif N=='bones':
  def skeletal_bone(n,a,b,r=.014):
   direction=Vector(b)-Vector(a);o=cyl(n,(Vector(a)+Vector(b))/2,r,direction.length,bone,8);o.rotation_euler=direction.to_track_quat('Z','Y').to_euler();return o
@@ -153,6 +154,6 @@ for o in sc.objects:
  if o.type=='MESH':o.select_set(True)
 bpy.ops.export_scene.gltf(filepath=str(E),export_format='GLB',use_selection=True,export_animations=False)
 target_height=.10 if N in ('rubble','bones','coinScatter','scroll','food','ring','stick') else .52 if N=='pillar' else .42 if N in ('weapon','amulet') else .15 if N=='armor' else .08 if N=='torch' else .30
-preview_scale=1.65 if N=='pillar' else 1.35 if N=='bones' else 1.20 if N in ('weapon','armor','amulet','crate') else 1.05 if N=='urn' else .8
+preview_scale=1.65 if N=='pillar' else 1.35 if N=='bones' else 1.20 if N in ('weapon','armor','amulet','crate') else 1.10 if N=='mushroom' else 1.05 if N=='urn' else .8
 bpy.ops.object.camera_add(location=(1.0,-1.8,1.35));cam=bpy.context.object;cam.rotation_euler=(Vector((0,0,target_height))-cam.location).to_track_quat('-Z','Y').to_euler();cam.data.type='ORTHO';cam.data.ortho_scale=preview_scale;sc.camera=cam
 sc.render.engine='BLENDER_WORKBENCH';sc.display.shading.light='STUDIO';sc.display.shading.color_type='MATERIAL';sc.display.shading.show_shadows=True;sc.display.shading.show_cavity=True;sc.display.shading.background_type='WORLD';sc.world.color=(.035,.045,.065);sc.render.resolution_x=900;sc.render.resolution_y=700;sc.render.resolution_percentage=100;sc.render.image_settings.file_format='PNG';sc.render.filepath=str(P);bpy.ops.render.render(write_still=True);print('CREATED',S,E,P)

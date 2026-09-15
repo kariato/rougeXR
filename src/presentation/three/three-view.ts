@@ -148,7 +148,7 @@ export class ThreeGameView implements GameView {
       if (decoration.kind === 'pillar') void loadPropInto('/assets/props/pillar.glb', holder, fallback, this.generation, sceneToken);
       if (decoration.kind === 'coinScatter') void loadPropInto('/assets/props/coinScatter.glb', holder, fallback, this.generation, sceneToken);
       if (decoration.kind === 'bones') void loadPropInto('/assets/props/bones.glb?v=2', holder, fallback, this.generation, sceneToken, () => this.ensureAnimation());
-      if (decoration.kind === 'mushroom') void loadPropInto('/assets/props/mushroom.glb', holder, fallback, this.generation, sceneToken);
+      if (decoration.kind === 'mushroom') void loadPropInto('/assets/props/mushroom.glb?v=2', holder, fallback, this.generation, sceneToken, () => this.ensureAnimation());
       if (decoration.kind === 'crate') void loadPropInto('/assets/props/crate.glb?v=2', holder, fallback, this.generation, sceneToken, () => this.ensureAnimation());
       if (decoration.kind === 'urn') void loadPropInto('/assets/props/urn.glb', holder, fallback, this.generation, sceneToken);
     }
