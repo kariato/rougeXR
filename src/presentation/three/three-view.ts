@@ -124,6 +124,7 @@ export class ThreeGameView implements GameView {
       holder.userData = { cell: { ...decoration.at }, eligible: false, occludes: false }; holder.add(fallback); this.world.add(holder);
       if (decoration.kind === 'rubble') void loadPropInto('/assets/props/rubble.glb', holder, fallback, this.generation, sceneToken);
       if (decoration.kind === 'pillar') void loadPropInto('/assets/props/pillar.glb', holder, fallback, this.generation, sceneToken);
+      if (decoration.kind === 'bones') void loadPropInto('/assets/props/bones.glb', holder, fallback, this.generation, sceneToken);
       if (decoration.kind === 'mushroom') void loadPropInto('/assets/props/mushroom.glb', holder, fallback, this.generation, sceneToken);
       if (decoration.kind === 'crate') void loadPropInto('/assets/props/crate.glb', holder, fallback, this.generation, sceneToken);
       if (decoration.kind === 'urn') void loadPropInto('/assets/props/urn.glb', holder, fallback, this.generation, sceneToken);

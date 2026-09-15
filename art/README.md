@@ -10,6 +10,8 @@
 
 `mushroom` is an original static room decoration: source `art/blender/props/mushroom.blend`, runtime `public/assets/props/mushroom.glb`, preview `art/previews/mushroom.png`.
 
+`bones` is an original static room decoration: source `art/blender/props/bones.blend`, runtime `public/assets/props/bones.glb`, preview `art/previews/bones.png`.
+
 The first completed member is `rubble`:
 
 `pillar` adds a fluted stone column with a plinth and capital, generated from the same script. Source: `art/blender/props/pillar.blend`; runtime: `public/assets/props/pillar.glb`; preview: `art/previews/pillar.png`.
