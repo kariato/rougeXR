@@ -13,7 +13,7 @@ Each monster is authored as a Python generator rather than modeled manually. Run
 | Runtime model | `public/assets/creatures/<monster>.glb` | Self-contained model loaded by Three.js in the browser |
 | Preview image | `art/previews/<monster>.png` | Quick visual review of the rest pose and silhouette |
 
-The completed studies are aquator, bat, centaur, hobgoblin, ice monster, kestrel, leprechaun, orc, quagga, rattlesnake, snake, and zombie. They are available in the standalone browser model viewer. The gameplay renderer does not yet select these GLBs for monster entities.
+The completed studies are aquator, bat, centaur, hobgoblin, ice monster, kestrel, leprechaun, nymph, orc, quagga, rattlesnake, snake, and zombie. They are available in the standalone browser model viewer. The gameplay renderer does not yet select these GLBs for monster entities.
 
 ## Toolchain
 

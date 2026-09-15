@@ -2,6 +2,20 @@
 
 The complete creation, export, registration, and validation workflow is documented in [`docs/MONSTER_ASSET_PIPELINE.md`](../docs/MONSTER_ASSET_PIPELINE.md).
 
+## Nymph
+
+Original stylized woodland thief with a layered leaf dress, willow hair, pointed ears, green eyes, and a stolen gold charm. Generated using Blender 4.5 LTS; no external models or textures.
+
+- Source: `art/blender/creatures/nymph.blend`
+- Runtime: `public/assets/creatures/nymph.glb`
+- Preview: `art/previews/nymph.png`
+- Rig: 7 bones (root, spine, head, two arms, two legs).
+- Clips: `idle` (watchful sway), `move` (quick retreat), `attack` (charm-hand steal), `hurt` (recoil), `death` (side fall).
+- Height: approximately 1.7 m; Blender -Y / glTF +Z forward.
+
+Regenerate with `blender --background --python tools/blender/create_nymph.py`.
+Preview on the development server at `/model-preview.html?model=nymph`. Gameplay renderer integration remains pending.
+
 ## Aquator
 
 Original stylized amphibious armor-ruster with teal scales, pale belly plates, dorsal fin crest, webbed claws, and rust-colored corrosive palms. Generated using Blender 4.5 LTS; no external models or textures.
