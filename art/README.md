@@ -1,4 +1,4 @@
-# Blender creature assets
+# Blender creature and room assets
 
 ## Procedural room prop kit
 
@@ -28,7 +28,7 @@
 
 `stick` is an original static visible pickup: source `art/blender/props/stick.blend`, runtime `public/assets/props/stick.glb`, preview `art/previews/stick.png`.
 
-The first completed member is `rubble`:
+Rubble and pillar are the two basic masonry props:
 
 `pillar` adds a fluted stone column with a plinth and capital, generated from the same script. Source: `art/blender/props/pillar.blend`; runtime: `public/assets/props/pillar.glb`; preview: `art/previews/pillar.png`.
 
@@ -76,7 +76,7 @@ Original stylized ancient red dragon with crimson scales, gold belly, broad symm
 - Wingspan: approximately 2.4 m; Blender -Y / glTF +Z forward.
 
 Regenerate with `blender --background --python tools/blender/create_dragon.py`.
-Preview on the development server at `/model-preview.html?model=dragon`. Gameplay renderer integration remains pending.
+Preview on the development server at `/model-preview.html?model=dragon`. The model is registered for live gameplay; combat clip transitions remain planned.
 
 ## Jabberwock
 
@@ -90,7 +90,7 @@ Original stylized uncanny dragonkin with green scales, long snout and neck, over
 - Height: approximately 1.65 m; Blender -Y / glTF +Z forward.
 
 Regenerate with `blender --background --python tools/blender/create_jabberwock.py`.
-Preview on the development server at `/model-preview.html?model=jabberwock`. Gameplay renderer integration remains pending.
+Preview on the development server at `/model-preview.html?model=jabberwock`. The model is registered for live gameplay; combat clip transitions remain planned.
 
 ## Griffin
 
@@ -104,7 +104,7 @@ Original stylized eagle-lion griffin with golden forequarters, tawny hindquarter
 - Height: approximately 1.6 m; Blender -Y / glTF +Z forward.
 
 Regenerate with `blender --background --python tools/blender/create_griffin.py`.
-Preview on the development server at `/model-preview.html?model=griffin`. Gameplay renderer integration remains pending.
+Preview on the development server at `/model-preview.html?model=griffin`. The model is registered for live gameplay; combat clip transitions remain planned.
 
 ## Vampire
 
@@ -118,7 +118,7 @@ Original stylized aristocratic vampire with pale skin, red eyes, fangs, black fo
 - Height: approximately 1.7 m; Blender -Y / glTF +Z forward.
 
 Regenerate with `blender --background --python tools/blender/create_vampire.py`.
-Preview on the development server at `/model-preview.html?model=vampire`. Gameplay renderer integration remains pending.
+Preview on the development server at `/model-preview.html?model=vampire`. The model is registered for live gameplay; combat clip transitions remain planned.
 
 ## Emu
 
@@ -132,7 +132,7 @@ Original stylized flightless bird with a shaggy feather coat, long blue-gray nec
 - Height: approximately 2.05 m; Blender -Y / glTF +Z forward.
 
 Regenerate with `blender --background --python tools/blender/create_emu.py`.
-Preview on the development server at `/model-preview.html?model=emu`. Gameplay renderer integration remains pending.
+Preview on the development server at `/model-preview.html?model=emu`. The model is registered for live gameplay; combat clip transitions remain planned.
 
 ## Medusa
 
@@ -146,7 +146,7 @@ Original stylized gorgon with green stone skin, serpent dress, pointed ears, gol
 - Height: approximately 1.7 m; Blender -Y / glTF +Z forward.
 
 Regenerate with `blender --background --python tools/blender/create_medusa.py`.
-Preview on the development server at `/model-preview.html?model=medusa`. Gameplay renderer integration remains pending.
+Preview on the development server at `/model-preview.html?model=medusa`. The model is registered for live gameplay; combat clip transitions remain planned.
 
 ## Black unicorn
 
@@ -160,7 +160,7 @@ Original stylized ominous unicorn with near-black hide, violet sheen and runes, 
 - Height: approximately 1.65 m at the horn; Blender -Y / glTF +Z forward.
 
 Regenerate with `blender --background --python tools/blender/create_black_unicorn.py`.
-Preview on the development server at `/model-preview.html?model=black-unicorn`. Gameplay renderer integration remains pending.
+Preview on the development server at `/model-preview.html?model=black-unicorn`. The model is registered for live gameplay; combat clip transitions remain planned.
 
 ## Xeroc
 
@@ -174,7 +174,7 @@ Original stylized object mimic disguised as a riveted treasure chest, revealing 
 - Width: approximately 0.9 m; Blender -Y / glTF +Z forward.
 
 Regenerate with `blender --background --python tools/blender/create_xeroc.py`.
-Preview on the development server at `/model-preview.html?model=xeroc`. Gameplay renderer integration remains pending.
+Preview on the development server at `/model-preview.html?model=xeroc`. The model is registered for live gameplay; combat clip transitions remain planned.
 
 ## Phantom
 
@@ -188,7 +188,7 @@ Original stylized armored apparition with a beaked metal mask, spiked shoulders,
 - Hovering height: approximately 0.15 m; Blender -Y / glTF +Z forward.
 
 Regenerate with `blender --background --python tools/blender/create_phantom.py`.
-Preview on the development server at `/model-preview.html?model=phantom`. Gameplay renderer integration remains pending.
+Preview on the development server at `/model-preview.html?model=phantom`. The model is registered for live gameplay; combat clip transitions remain planned.
 
 ## Wraith
 
@@ -202,7 +202,7 @@ Original stylized spectral apparition with a deep hood and faceless void, soul-l
 - Hovering height: approximately 0.15 m; Blender -Y / glTF +Z forward.
 
 Regenerate with `blender --background --python tools/blender/create_wraith.py`.
-Preview on the development server at `/model-preview.html?model=wraith`. Gameplay renderer integration remains pending.
+Preview on the development server at `/model-preview.html?model=wraith`. The model is registered for live gameplay; combat clip transitions remain planned.
 
 ## Troll
 
@@ -216,7 +216,7 @@ Original stylized cave brute with a massive moss-green frame, stone-gray face an
 - Height: approximately 1.85 m; Blender -Y / glTF +Z forward.
 
 Regenerate with `blender --background --python tools/blender/create_troll.py`.
-Preview on the development server at `/model-preview.html?model=troll`. Gameplay renderer integration remains pending.
+Preview on the development server at `/model-preview.html?model=troll`. The model is registered for live gameplay; combat clip transitions remain planned.
 
 ## Venus flytrap
 
@@ -230,7 +230,7 @@ Original stylized carnivorous plant with a rooted leaf rosette, tall flexible st
 - Height: approximately 1.2 m; Blender -Y / glTF +Z forward.
 
 Regenerate with `blender --background --python tools/blender/create_venus_flytrap.py`.
-Preview on the development server at `/model-preview.html?model=venus-flytrap`. Gameplay renderer integration remains pending.
+Preview on the development server at `/model-preview.html?model=venus-flytrap`. The model is registered for live gameplay; combat clip transitions remain planned.
 
 ## Yeti
 
@@ -244,7 +244,7 @@ Original stylized alpine primate with a massive snow-fur silhouette, blue face a
 - Height: approximately 1.85 m; Blender -Y / glTF +Z forward.
 
 Regenerate with `blender --background --python tools/blender/create_yeti.py`.
-Preview on the development server at `/model-preview.html?model=yeti`. Gameplay renderer integration remains pending.
+Preview on the development server at `/model-preview.html?model=yeti`. The model is registered for live gameplay; combat clip transitions remain planned.
 
 ## Nymph
 
@@ -258,7 +258,7 @@ Original stylized woodland thief with a layered leaf dress, willow hair, pointed
 - Height: approximately 1.7 m; Blender -Y / glTF +Z forward.
 
 Regenerate with `blender --background --python tools/blender/create_nymph.py`.
-Preview on the development server at `/model-preview.html?model=nymph`. Gameplay renderer integration remains pending.
+Preview on the development server at `/model-preview.html?model=nymph`. The model is registered for live gameplay; combat clip transitions remain planned.
 
 ## Aquator
 
@@ -272,7 +272,7 @@ Original stylized amphibious armor-ruster with teal scales, pale belly plates, d
 - Height: approximately 1.5 m; Blender -Y / glTF +Z forward.
 
 Regenerate with `blender --background --python tools/blender/create_aquator.py`.
-Preview on the development server at `/model-preview.html?model=aquator`. Gameplay renderer integration remains pending.
+Preview on the development server at `/model-preview.html?model=aquator`. The model is registered for live gameplay; combat clip transitions remain planned.
 
 ## Quagga
 
@@ -286,7 +286,7 @@ Original stylized extinct equid with striped cream forequarters fading into a ch
 - Height: approximately 1.6 m at the ears; Blender -Y / glTF +Z forward.
 
 Regenerate with `blender --background --python tools/blender/create_quagga.py`.
-Preview on the development server at `/model-preview.html?model=quagga`. Gameplay renderer integration remains pending.
+Preview on the development server at `/model-preview.html?model=quagga`. The model is registered for live gameplay; combat clip transitions remain planned.
 
 ## Centaur
 
@@ -300,7 +300,7 @@ Original stylized chestnut centaur with four articulated horse legs, armored hum
 - Height: approximately 1.95 m including the crest; Blender -Y / glTF +Z forward.
 
 Regenerate with `blender --background --python tools/blender/create_centaur.py`.
-Preview on the development server at `/model-preview.html?model=centaur`. Gameplay renderer integration remains pending.
+Preview on the development server at `/model-preview.html?model=centaur`. The model is registered for live gameplay; combat clip transitions remain planned.
 
 ## Leprechaun
 
@@ -314,7 +314,7 @@ Original stylized small rogue with a green coat, tall buckled hat, copper beard,
 - Height: approximately 1.3 m including the hat; Blender -Y / glTF +Z forward.
 
 Regenerate with `blender --background --python tools/blender/create_leprechaun.py`.
-Preview on the development server at `/model-preview.html?model=leprechaun`. Gameplay renderer integration remains pending.
+Preview on the development server at `/model-preview.html?model=leprechaun`. The model is registered for live gameplay; combat clip transitions remain planned.
 
 ## Zombie
 
@@ -328,7 +328,7 @@ Original stylized shambling corpse with asymmetric decay, a missing eye, exposed
 - Height: approximately 1.65 m; Blender -Y / glTF +Z forward. Animation translation is cosmetic.
 
 Regenerate with `blender --background --python tools/blender/create_zombie.py`.
-Preview on the development server at `/model-preview.html?model=zombie`. Gameplay renderer integration remains pending.
+Preview on the development server at `/model-preview.html?model=zombie`. The model is registered for live gameplay; combat clip transitions remain planned.
 
 ## Orc
 
@@ -342,7 +342,7 @@ Original stylized armored raider with olive skin, iron helmet and chest plate, r
 - Height: approximately 1.75 m; Blender -Y / glTF +Z forward. Animation translation is cosmetic.
 
 Regenerate with `blender --background --python tools/blender/create_orc.py`.
-Preview on the development server at `/model-preview.html?model=orc`. Gameplay renderer integration remains pending.
+Preview on the development server at `/model-preview.html?model=orc`. The model is registered for live gameplay; combat clip transitions remain planned.
 
 ## Ice monster
 
@@ -356,7 +356,7 @@ Original stylized crystalline elemental with a deep-blue core, frost plates, glo
 - Height: approximately 1.6 m; Blender -Y / glTF +Z forward. Animation translation is cosmetic.
 
 Regenerate with `blender --background --python tools/blender/create_ice_monster.py`.
-Preview on the development server at `/model-preview.html?model=ice-monster`. Gameplay renderer integration remains pending.
+Preview on the development server at `/model-preview.html?model=ice-monster`. The model is registered for live gameplay; combat clip transitions remain planned.
 
 ## Snake
 
@@ -370,7 +370,7 @@ Original stylized hooded snake with a lean green body, transverse bands, broad t
 - Facing: Blender -Y / glTF +Z. Animation translation is cosmetic; engine movement remains separate.
 
 Regenerate with `blender --background --python tools/blender/create_snake.py`.
-Preview on the development server at `/model-preview.html?model=snake`. Gameplay renderer integration remains pending.
+Preview on the development server at `/model-preview.html?model=snake`. The model is registered for live gameplay; combat clip transitions remain planned.
 
 ## Bat
 
@@ -384,7 +384,7 @@ Original stylized bat with solid scalloped wing membranes, long ears, fangs, and
 - Rest wingspan: approximately 1.38 m; Blender -Y / glTF +Z forward. Clip translation is cosmetic.
 
 Regenerate with `blender --background --python tools/blender/create_bat.py`.
-Open `/model-preview.html?model=bat` on the development server to inspect the animations. Gameplay renderer integration remains pending.
+Open `/model-preview.html?model=bat` on the development server to inspect the animations. The model is registered for live gameplay; combat clip transitions remain planned.
 
 
 ## Rattlesnake

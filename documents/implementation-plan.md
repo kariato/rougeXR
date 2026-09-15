@@ -476,6 +476,13 @@ Phase 14.1 progress:
 - [x] Expose themes and props only on already-visible or remembered cells and render primitive themed materials, cave silhouettes, and prop stand-ins.
 - [x] Reserve visible actors, objects, stairs, and revealed traps at render time so decoration remains non-blocking and unambiguous.
 
+Phase 14 asset progress:
+
+- [x] Create and register static Blender GLBs for all seven current room decoration kinds and all nine collectible item categories. Decorative coin scatter has no pouch and remains distinct from the collectible gold pickup.
+- [x] Register all 26 completed creature GLBs for disclosed live monsters, using independent skeleton clones and primitive fallbacks for failures, detection-only views, disguises, and hallucinations.
+- [x] Validate every static prop as a self-contained GLB, inspect fixed-angle previews, and pass the grouped desktop Chromium/Firefox gameplay checks.
+- [ ] Consolidate the duplicated creature registration into a typed manifest and drive attack, hurt, and death clips from safe resolved presentation events before closing 14.3.
+
 Phase 14 implementation order:
 
 1. Ship the viewport-first layout and HUD before adding more scene content, so every later art slice is reviewed at the intended gameplay size.
