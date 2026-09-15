@@ -4,6 +4,8 @@
 
 `tools/blender/create_room_prop.py` creates one original static GLB, editable Blender source, and preview per prop. Run it with `-- --asset <kind>`. The kit covers rubble, pillar, urn, crate, mushroom, bones, decorative coin scatter, scroll, food, weapon, armor, amulet, ring, and stick. These are presentation-only; the room plan and collectible entities remain in the Rogue engine.
 
+`urn` is an original static room decoration: source `art/blender/props/urn.blend`, runtime `public/assets/props/urn.glb`, preview `art/previews/urn.png`.
+
 The first completed member is `rubble`:
 
 `pillar` adds a fluted stone column with a plinth and capital, generated from the same script. Source: `art/blender/props/pillar.blend`; runtime: `public/assets/props/pillar.glb`; preview: `art/previews/pillar.png`.
