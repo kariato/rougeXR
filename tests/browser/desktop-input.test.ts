@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { actionForKeyboardEvent } from '../../src/input/desktop';
+import { actionForKeyboardEvent, viewTurnForKeyboardEvent } from '../../src/input/desktop';
 
 const keyboard = (key: string, options: { repeat?: boolean; target?: object | null } = {}) => ({
   key, repeat: options.repeat ?? false, target: (options.target ?? null) as EventTarget | null, preventDefault: vi.fn(),
@@ -20,5 +20,15 @@ describe('desktop input', () => {
     expect(actionForKeyboardEvent(keyboard('x'))).toBeNull();
     expect(actionForKeyboardEvent(keyboard('w', { target: { tagName: 'INPUT' } }))).toBeNull();
     expect(actionForKeyboardEvent(keyboard(' ', { target: { tagName: 'BUTTON' } }))).toBeNull();
+  });
+  it('turns the camera left or right without creating a game action', () => {
+    expect(viewTurnForKeyboardEvent(keyboard('['), 45)).toBe(-45);
+    expect(viewTurnForKeyboardEvent(keyboard(']'), 45)).toBe(45);
+    expect(viewTurnForKeyboardEvent(keyboard(']'), 90)).toBe(90);
+    expect(actionForKeyboardEvent(keyboard('['))).toBeNull();
+    expect(actionForKeyboardEvent(keyboard(']'))).toBeNull();
+    expect(viewTurnForKeyboardEvent(keyboard(']', { repeat: true }), 45)).toBeNull();
+    expect(viewTurnForKeyboardEvent(keyboard('[', { target: { tagName: 'SELECT' } }), 45)).toBeNull();
+    expect(viewTurnForKeyboardEvent(keyboard(']'), 10)).toBeNull();
   });
 });

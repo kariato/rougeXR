@@ -7,7 +7,7 @@ import { CanvasGridView } from '../presentation/grid/canvas-view';
 import type { GameView } from '../presentation/game-view';
 import { ThreeGameView } from '../presentation/three/three-view';
 import { XrSessionController, type XrSystemLike } from '../presentation/xr/session-controller';
-import { bindDesktopInput } from '../input/desktop';
+import { bindDesktopInput, bindViewTurnInput } from '../input/desktop';
 import type { PresentationEvent } from '../engine/model/action';
 import type { GameAction } from '../engine/model/action';
 import { parseSave, restoreGame, serializeSave } from '../persistence/save';
@@ -33,6 +33,9 @@ const hudWeapon = required<HTMLElement>('#hud-weapon');
 const hudMessage = required<HTMLElement>('#hud-message');
 const crosshair = required<HTMLElement>('#crosshair');
 const contextPrompt = required<HTMLElement>('#context-prompt');
+const turnLeft = required<HTMLButtonElement>('#turn-left');
+const turnRight = required<HTMLButtonElement>('#turn-right');
+const turnAngle = required<HTMLSelectElement>('#turn-angle');
 const viewMode = required<HTMLSelectElement>('#view-mode');
 const cameraMode = required<HTMLSelectElement>('#camera-mode');
 const xrToggle = required<HTMLButtonElement>('#xr-toggle');
@@ -207,7 +210,18 @@ function render(): void {
   replayPause.disabled = !replayMode || !replayPlaying;
   replaySpeed.disabled = !replayMode;
   cameraMode.disabled = view === gridView;
+  turnLeft.disabled = turnRight.disabled = view === gridView || cameraMode.value !== 'firstPerson';
 }
+
+function turnCamera(degrees: number): boolean {
+  if (view !== threeView || cameraMode.value !== 'firstPerson' || xrController.status() === 'active') return false;
+  threeView.rotatePov(degrees);
+  return true;
+}
+
+turnLeft.addEventListener('click', () => turnCamera(-Number(turnAngle.value)));
+turnRight.addEventListener('click', () => turnCamera(Number(turnAngle.value)));
+bindViewTurnInput(window, () => Number(turnAngle.value), turnCamera);
 
 canvas.addEventListener('click', event => {
   if (view !== gridView) return;

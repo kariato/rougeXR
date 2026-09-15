@@ -67,10 +67,10 @@
           <span class="crosshair" id="crosshair" aria-hidden="true"></span>
           <div class="context-prompt" id="context-prompt"></div>
           <div class="message" id="hud-message" aria-live="polite"></div>
-          <div class="actions" aria-label="Primary actions"><button id="rest" type="button">Rest</button><button id="search" type="button">Search</button><button id="pickup" type="button">Pick up</button><button id="descend" type="button">Descend</button><button id="ascend" type="button">Ascend</button></div>
+          <div class="actions" aria-label="Primary actions"><button id="turn-left" type="button" aria-label="Turn POV left">⟲</button><button id="turn-right" type="button" aria-label="Turn POV right">⟳</button><button id="rest" type="button">Rest</button><button id="search" type="button">Search</button><button id="pickup" type="button">Pick up</button><button id="descend" type="button">Descend</button><button id="ascend" type="button">Ascend</button></div>
         </section>
         <aside id="tools-panel" aria-label="Game tools" hidden>
-          <section><h2>Setup</h2><div class="tools-controls"><select id="world-mode" aria-label="World type"><option value="generated">Generated</option><option value="kestrel">Kestrel fixture</option><option value="rooms">Two-room fixture</option></select><input id="seed" type="number" min="0" max="4294967295" value="12345" aria-label="Seed"></div></section>
+          <section><h2>Setup</h2><div class="tools-controls"><select id="world-mode" aria-label="World type"><option value="generated">Generated</option><option value="kestrel">Kestrel fixture</option><option value="rooms">Two-room fixture</option></select><input id="seed" type="number" min="0" max="4294967295" value="12345" aria-label="Seed"><label for="turn-angle">POV turn</label><select id="turn-angle"><option value="15">15°</option><option value="30">30°</option><option value="45" selected>45°</option><option value="90">90°</option></select></div></section>
           <section><h2>Inventory</h2><div id="inventory"></div></section>
           <section><h2>Save and diagnose</h2><div class="tools-controls"><button id="save" type="button">Save JSON</button><button id="load" type="button">Load JSON / Replay</button><button id="export-report" type="button">Export bug report</button><input id="load-file" type="file" accept="application/json,.json" hidden></div><p id="save-status">Ready for manual save.</p><p id="xr-status" aria-live="polite">Checking XR…</p></section>
           <section><h2>Replay</h2><div class="tools-controls"><button id="replay-restart" type="button" disabled>Restart</button><button id="replay-step" type="button" disabled>Step</button><button id="replay-play" type="button" disabled>Play</button><button id="replay-pause" type="button" disabled>Pause</button><select id="replay-speed" aria-label="Replay speed" disabled><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option></select></div><p id="replay-status">Live input enabled.</p><pre id="replay-details">No divergence.</pre></section>
@@ -78,7 +78,7 @@
           <section><h2>Events</h2><select id="event-filter" aria-label="Event filter"><option value="all">All events</option><option value="messages">Messages</option><option value="movement">Movement</option><option value="combat">Combat</option><option value="inventory">Inventory</option><option value="world">World</option></select><pre id="messages"></pre></section>
           <section><h2>Cycle trace</h2><pre id="phase-trace"></pre></section>
           <section><h2>Authoritative reveal</h2><div class="debug-badge">DEBUG REVEAL <pre id="raw-events"></pre></div><label><input id="reveal" type="checkbox"> Reveal authoritative state</label></section>
-          <p>Move with arrows, WASD, HJKL, or diagonal QEZC/YUBN. Comma picks up; F searches; Period or Space rests; &gt; descends; &lt; ascends with the Amulet.</p>
+          <p>Turn the first-person POV with [ and ] (left and right) by the selected angle; this does not spend a game turn. Move with arrows, WASD, HJKL, or diagonal QEZC/YUBN. Comma picks up; F searches; Period or Space rests; &gt; descends; &lt; ascends with the Amulet.</p>
         </aside>
       </div>
     </main>

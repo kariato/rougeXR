@@ -481,6 +481,7 @@ Phase 14.2 progress:
 - [x] Replace the permanent inspector column and crowded command header with a full-height first-person viewport, compact toolbar, primary action strip, and collapsible tools panel.
 - [x] Display HP, depth, gold, hunger, equipped weapon, latest resolved message, and disclosed-cell prompts from `PlayerObservation` and presentation events; hide the crosshair outside first person.
 - [x] Preserve view switching, keyboard gameplay, replay, save/load, reveal, and inventory controls; verify desktop viewport area, phone width and actions, panel focus, and Chromium/Firefox browser play.
+- [x] Add a later keyboard POV-turn follow-up: `[` and `]` plus touch buttons rotate only the first-person camera by a selectable 15°, 30°, 45°, or 90° step. The default 45° matches Rogue's eight movement directions; no engine action, tick, or replay entry is created.
 
 Phase 14 asset progress:
 

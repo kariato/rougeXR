@@ -209,6 +209,13 @@ export class ThreeGameView implements GameView {
     this.ensureAnimation();
   }
 
+  /** Rotate the first-person camera without changing player position or engine time. */
+  rotatePov(degrees: number): void {
+    if (this.mode !== 'firstPerson' || !Number.isFinite(degrees)) return;
+    this.targetYaw -= degrees * Math.PI / 180;
+    this.ensureAnimation();
+  }
+
   async setXrSession(session: XrSessionLike | null): Promise<void> {
     this.renderer.xr.enabled = session !== null;
     await this.renderer.xr.setSession(session as XRSession | null);

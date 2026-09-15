@@ -12,7 +12,7 @@ export interface KeyboardInput {
 }
 
 export function actionForKeyboardEvent(event: KeyboardInput): GameAction | null {
-  if (event.repeat || isEditable(event.target)) return null;
+  if (event.repeat || isEditableTarget(event.target)) return null;
   const direction = MOVEMENT_KEYS[event.key];
   if (direction) return { type: 'move', direction, pickup: true };
   if (event.key === '.' || event.key === ' ') return { type: 'rest' };
@@ -21,6 +21,23 @@ export function actionForKeyboardEvent(event: KeyboardInput): GameAction | null 
   if (event.key === '>') return { type: 'descend' };
   if (event.key === '<') return { type: 'ascend' };
   return null;
+}
+
+/** Camera-only input; the engine never receives a turn action. */
+export function viewTurnForKeyboardEvent(event: KeyboardInput, stepDegrees: number): number | null {
+  if (event.repeat || isEditableTarget(event.target) || ![15, 30, 45, 90].includes(stepDegrees)) return null;
+  if (event.key === '[') return -stepDegrees;
+  if (event.key === ']') return stepDegrees;
+  return null;
+}
+
+export function bindViewTurnInput(target: Window, stepDegrees: () => number, turn: (degrees: number) => boolean): () => void {
+  const onKeyDown = (event: KeyboardEvent): void => {
+    const degrees = viewTurnForKeyboardEvent(event, stepDegrees());
+    if (degrees !== null && turn(degrees)) event.preventDefault();
+  };
+  target.addEventListener('keydown', onKeyDown);
+  return () => target.removeEventListener('keydown', onKeyDown);
 }
 
 export function bindDesktopInput(target: Window, submit: (action: GameAction) => void): () => void {
@@ -33,7 +50,7 @@ export function bindDesktopInput(target: Window, submit: (action: GameAction) =>
   return () => target.removeEventListener('keydown', onKeyDown);
 }
 
-function isEditable(target: EventTarget | null): boolean {
+export function isEditableTarget(target: EventTarget | null): boolean {
   if (!target || typeof target !== 'object') return false;
   const element = target as { isContentEditable?: boolean; tagName?: string };
   return element.isContentEditable === true || ['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'].includes(element.tagName ?? '');
