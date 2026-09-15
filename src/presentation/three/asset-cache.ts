@@ -24,8 +24,10 @@ export class AssetCache<T, O extends object = Record<string, never>> {
       created.promise = created.promise.then(value => { created.status = 'ready'; created.value = value; return value; }, error => { created.status = 'failed'; created.error = error; throw error; });
       this.entries.set(key, created); entry = created;
     }
-    const value = await entry.promise;
     entry.refs++;
+    let value: T;
+    try { value = await entry.promise; }
+    catch (error) { entry.refs--; throw error; }
     let released = false;
     return { value, release: () => {
       if (released) return; released = true; entry!.refs--;

@@ -29,4 +29,14 @@ describe('3D asset lifecycle', () => {
     generation.next(); await Promise.resolve(); finish({ id: 'late' }); await loading;
     expect(attach).not.toHaveBeenCalled(); expect(dispose).toHaveBeenCalledOnce();
   });
+
+  it('keeps a template alive for two acquisitions waiting on the same load', async () => {
+    let finish!: (value: { id: string }) => void;
+    const dispose = vi.fn(); const cache = new AssetCache(() => new Promise<{ id: string }>(resolve => { finish = resolve; }), dispose);
+    const first = cache.acquire('/shared.glb', {}); const second = cache.acquire('/shared.glb', {});
+    await Promise.resolve(); finish({ id: 'shared' });
+    const a = await first; const b = await second;
+    a.release(); expect(dispose).not.toHaveBeenCalled();
+    expect(b.value.id).toBe('shared'); b.release(); expect(dispose).toHaveBeenCalledOnce();
+  });
 });
