@@ -2,6 +2,20 @@
 
 The complete creation, export, registration, and validation workflow is documented in [`docs/MONSTER_ASSET_PIPELINE.md`](../docs/MONSTER_ASSET_PIPELINE.md).
 
+## Dragon
+
+Original stylized ancient red dragon with crimson scales, gold belly, broad symmetrical wings, swept horns, dorsal spines, fangs, claws, and a long armored tail. Generated using Blender 4.5 LTS; no external models or textures.
+
+- Source: `art/blender/creatures/dragon.blend`
+- Runtime: `public/assets/creatures/dragon.glb`
+- Preview: `art/previews/dragon.png`
+- Rig: 8 bones (root, body, neck, head, four legs).
+- Clips: `idle` (watchful breathing), `move` (heavy bound), `attack` (fire-breath posture), `hurt` (recoil), `death` (side fall).
+- Wingspan: approximately 2.4 m; Blender -Y / glTF +Z forward.
+
+Regenerate with `blender --background --python tools/blender/create_dragon.py`.
+Preview on the development server at `/model-preview.html?model=dragon`. Gameplay renderer integration remains pending.
+
 ## Jabberwock
 
 Original stylized uncanny dragonkin with green scales, long snout and neck, oversized fangs, sweeping whiskers, horns, dorsal spines, and asymmetric violet wings. Generated using Blender 4.5 LTS; no external models or textures.
