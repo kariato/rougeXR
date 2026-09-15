@@ -2,6 +2,20 @@
 
 The complete creation, export, registration, and validation workflow is documented in [`docs/MONSTER_ASSET_PIPELINE.md`](../docs/MONSTER_ASSET_PIPELINE.md).
 
+## Troll
+
+Original stylized cave brute with a massive moss-green frame, stone-gray face and fists, amber eyes, facial warts, long beard, tusks, and black claws. Generated using Blender 4.5 LTS; no external models or textures.
+
+- Source: `art/blender/creatures/troll.blend`
+- Runtime: `public/assets/creatures/troll.glb`
+- Preview: `art/previews/troll.png`
+- Rig: 8 bones (root, core, head, jaw, two arms, two legs).
+- Clips: `idle` (breathing), `move` (heavy stride), `attack` (two-handed maul and bite), `hurt` (recoil), `death` (forward collapse).
+- Height: approximately 1.85 m; Blender -Y / glTF +Z forward.
+
+Regenerate with `blender --background --python tools/blender/create_troll.py`.
+Preview on the development server at `/model-preview.html?model=troll`. Gameplay renderer integration remains pending.
+
 ## Venus flytrap
 
 Original stylized carnivorous plant with a rooted leaf rosette, tall flexible stem, veined trap, red mouth lobes, interlocking teeth, and two animated vines. Generated using Blender 4.5 LTS; no external models or textures.
