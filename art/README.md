@@ -6,6 +6,8 @@
 
 The first completed member is `rubble`:
 
+`pillar` adds a fluted stone column with a plinth and capital, generated from the same script. Source: `art/blender/props/pillar.blend`; runtime: `public/assets/props/pillar.glb`; preview: `art/previews/pillar.png`.
+
 - Source: `art/blender/props/rubble.blend`
 - Runtime: `public/assets/props/rubble.glb`
 - Preview: `art/previews/rubble.png`

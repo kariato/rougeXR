@@ -123,6 +123,7 @@ export class ThreeGameView implements GameView {
       holder.position.x = decoration.at.x; holder.position.z = decoration.at.y; holder.rotation.y = decoration.rotation * Math.PI / 2; holder.scale.multiplyScalar(decoration.scale);
       holder.userData = { cell: { ...decoration.at }, eligible: false, occludes: false }; holder.add(fallback); this.world.add(holder);
       if (decoration.kind === 'rubble') void loadPropInto('/assets/props/rubble.glb', holder, fallback, this.generation, sceneToken);
+      if (decoration.kind === 'pillar') void loadPropInto('/assets/props/pillar.glb', holder, fallback, this.generation, sceneToken);
     }
 
     const movementTokens = new Set(observation.revision === this.lastAnimatedRevision ? []
