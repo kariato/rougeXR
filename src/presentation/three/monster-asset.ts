@@ -32,6 +32,7 @@ export function observedMonsterAsset(entity: ObservedEntity): string | null {
   if (entity.label === 'T' || entity.label === 'monster.troll') return 'troll';
   if (entity.label === 'U' || entity.label === 'monster.black-unicorn') return 'black-unicorn';
   if (entity.label === 'V' || entity.label === 'monster.vampire') return 'vampire';
+  if (entity.label === 'W' || entity.label === 'monster.wraith') return 'wraith';
   return null;
 }
 
