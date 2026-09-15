@@ -2,6 +2,20 @@
 
 The complete creation, export, registration, and validation workflow is documented in [`docs/MONSTER_ASSET_PIPELINE.md`](../docs/MONSTER_ASSET_PIPELINE.md).
 
+## Black unicorn
+
+Original stylized ominous unicorn with near-black hide, violet sheen and runes, upright mane, glowing eyes, and a long pale-violet horn. Generated using Blender 4.5 LTS; no external models or textures.
+
+- Source: `art/blender/creatures/black-unicorn.blend`
+- Runtime: `public/assets/creatures/black-unicorn.glb`
+- Preview: `art/previews/black-unicorn.png`
+- Rig: 8 bones (root, body, neck, head, four legs).
+- Clips: `idle` (head watch), `move` (diagonal-pair trot), `attack` (horn charge), `hurt` (recoil), `death` (side fall).
+- Height: approximately 1.65 m at the horn; Blender -Y / glTF +Z forward.
+
+Regenerate with `blender --background --python tools/blender/create_black_unicorn.py`.
+Preview on the development server at `/model-preview.html?model=black-unicorn`. Gameplay renderer integration remains pending.
+
 ## Xeroc
 
 Original stylized object mimic disguised as a riveted treasure chest, revealing predatory eyes, interlocking teeth, long tongue, and hidden feet. Generated using Blender 4.5 LTS; no external models or textures.
