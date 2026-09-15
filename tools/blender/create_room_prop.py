@@ -68,8 +68,36 @@ elif N=='mushroom':
   cyl(f'stalk_{i}',(x,y,h*.45),.045,h*.9,cloth);ico(f'cap_{i}',(x,y,h),(.15 if i==1 else .10,.13 if i==1 else .09,.075),red)
   for j in range(3):ico(f'spot_{i}_{j}',(x+(j-1)*.04,y-.04,h+.048),(.012,.012,.007),cloth)
 elif N=='bones':
- ico('skull',(-.12,.04,.11),(.12,.10,.11),bone);ico('socket_L',(-.17,-.049,.13),(.027,.01,.025),dark);ico('socket_R',(-.08,-.049,.13),(.027,.01,.025),dark)
- for i in range(5):o=cyl(f'long_bone_{i}',(.08+i*.035,-.1+i*.055,.055),.023,.32,bone,7);o.rotation_euler.y=math.pi/2+i*.12
+ def skeletal_bone(n,a,b,r=.014):
+  direction=Vector(b)-Vector(a);o=cyl(n,(Vector(a)+Vector(b))/2,r,direction.length,bone,8);o.rotation_euler=direction.to_track_quat('Z','Y').to_euler();return o
+ # A fallen body lies flat across the cell, with the skull facing the player.
+ ico('cranium',(0,-.36,.12),(.11,.095,.095),bone)
+ ico('left_eye',(-.043,-.439,.13),(.025,.012,.025),dark);ico('right_eye',(.043,-.439,.13),(.025,.012,.025),dark)
+ ico('nose_cavity',(0,-.451,.095),(.013,.009,.016),dark)
+ ico('jaw',(0,-.408,.045),(.078,.035,.025),bone)
+ for i in range(5):cube(f'tooth_{i}',((i-2)*.025,-.442,.042),(.014,.009,.017),light)
+ skeletal_bone('neck',(0,-.27,.078),(0,-.21,.076),.018)
+ for i in range(7):ico(f'vertebra_{i}',(0,-.18+i*.053,.065),(.024,.024,.026),bone)
+ skeletal_bone('sternum',(0,-.17,.075),(0,.05,.075),.018)
+ for i in range(4):
+  y=-.145+i*.058
+  for side in (-1,1):
+   skeletal_bone(f'rib_{i}_{side}_inner',(0,y,.075),(side*(.07+i*.007),y+.018,.065),.011)
+   skeletal_bone(f'rib_{i}_{side}_outer',(side*(.07+i*.007),y+.018,.065),(side*(.13-i*.006),y+.05,.056),.011)
+ for side in (-1,1):
+  skeletal_bone(f'collar_{side}',(0,-.22,.076),(side*.16,-.19,.063),.016)
+  ico(f'shoulder_{side}',(side*.17,-.18,.066),(.028,.027,.025),bone)
+  skeletal_bone(f'upper_arm_{side}',(side*.17,-.18,.066),(side*.33,-.025,.049),.017)
+  ico(f'elbow_{side}',(side*.33,-.025,.049),(.023,.023,.019),bone)
+  skeletal_bone(f'forearm_{side}',(side*.33,-.025,.049),(side*.39,.13,.036),.013)
+  ico(f'hand_{side}',(side*.40,.145,.035),(.035,.026,.014),bone)
+  skeletal_bone(f'hip_{side}',(0,.155,.060),(side*.095,.22,.052),.022)
+  ico(f'hip_joint_{side}',(side*.095,.22,.052),(.032,.028,.024),bone)
+  skeletal_bone(f'femur_{side}',(side*.095,.22,.052),(side*.16,.37,.042),.020)
+  ico(f'kneecap_{side}',(side*.16,.37,.042),(.025,.024,.019),bone)
+  skeletal_bone(f'shin_{side}',(side*.16,.37,.042),(side*.20,.49,.034),.014)
+  ico(f'foot_{side}',(side*.21,.50,.030),(.047,.029,.014),bone)
+ skeletal_bone('pelvis_bridge',(-.095,.22,.052),(.095,.22,.052),.018)
 elif N=='coinScatter':
  for i,(x,y,z) in enumerate([(-.22,-.09,.018),(-.12,.12,.018),(.02,-.14,.018),(.16,.04,.018),(.24,-.14,.018),(0,.08,.049),(.04,.12,.080)]):cyl(f'decorative_coin_{i}',(x,y,z),.07,.015,gold,14);tor(f'coin_rim_{i}',(x,y,z+.009),.061,.003,wood)
 elif N=='scroll':
@@ -121,6 +149,6 @@ for o in sc.objects:
  if o.type=='MESH':o.select_set(True)
 bpy.ops.export_scene.gltf(filepath=str(E),export_format='GLB',use_selection=True,export_animations=False)
 target_height=.10 if N in ('rubble','bones','coinScatter','scroll','food','ring','stick') else .52 if N=='pillar' else .42 if N in ('weapon','armor','amulet') else .08 if N=='torch' else .30
-preview_scale=1.65 if N=='pillar' else 1.20 if N in ('weapon','armor','amulet','crate') else 1.05 if N=='urn' else .8
+preview_scale=1.65 if N=='pillar' else 1.35 if N=='bones' else 1.20 if N in ('weapon','armor','amulet','crate') else 1.05 if N=='urn' else .8
 bpy.ops.object.camera_add(location=(1.0,-1.8,1.35));cam=bpy.context.object;cam.rotation_euler=(Vector((0,0,target_height))-cam.location).to_track_quat('-Z','Y').to_euler();cam.data.type='ORTHO';cam.data.ortho_scale=preview_scale;sc.camera=cam
 sc.render.engine='BLENDER_WORKBENCH';sc.display.shading.light='STUDIO';sc.display.shading.color_type='MATERIAL';sc.display.shading.show_shadows=True;sc.display.shading.show_cavity=True;sc.display.shading.background_type='WORLD';sc.world.color=(.035,.045,.065);sc.render.resolution_x=900;sc.render.resolution_y=700;sc.render.resolution_percentage=100;sc.render.image_settings.file_format='PNG';sc.render.filepath=str(P);bpy.ops.render.render(write_still=True);print('CREATED',S,E,P)
