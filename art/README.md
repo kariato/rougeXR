@@ -2,6 +2,20 @@
 
 The complete creation, export, registration, and validation workflow is documented in [`docs/MONSTER_ASSET_PIPELINE.md`](../docs/MONSTER_ASSET_PIPELINE.md).
 
+## Xeroc
+
+Original stylized object mimic disguised as a riveted treasure chest, revealing predatory eyes, interlocking teeth, long tongue, and hidden feet. Generated using Blender 4.5 LTS; no external models or textures.
+
+- Source: `art/blender/creatures/xeroc.blend`
+- Runtime: `public/assets/creatures/xeroc.glb`
+- Preview: `art/previews/xeroc.png`
+- Rig: 6 bones (root, chest base, lid, tongue, two legs).
+- Clips: `idle` (barely moving disguise), `move` (hopping scuttle), `attack` (lid snap and tongue strike), `hurt` (recoil), `death` (open side fall).
+- Width: approximately 0.9 m; Blender -Y / glTF +Z forward.
+
+Regenerate with `blender --background --python tools/blender/create_xeroc.py`.
+Preview on the development server at `/model-preview.html?model=xeroc`. Gameplay renderer integration remains pending.
+
 ## Phantom
 
 Original stylized armored apparition with a beaked metal mask, spiked shoulders, violet soul lights, blade-like fingers, and torn floating cloak. Generated using Blender 4.5 LTS; no external models or textures.
