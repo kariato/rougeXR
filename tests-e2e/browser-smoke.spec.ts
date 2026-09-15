@@ -5,6 +5,7 @@ test('starts without WebXR and protects focused controls from gameplay input', a
   const errors: Error[] = []; page.on('pageerror', error => errors.push(error));
   await page.addInitScript(() => Object.defineProperty(Navigator.prototype, 'xr', { configurable: true, get: () => undefined }));
   await page.goto('/');
+  await page.locator('#tools-toggle').click();
   await expect(page.locator('#dungeon-3d')).toBeVisible();
   expect(await page.evaluate(() => (navigator as Navigator & { xr?: unknown }).xr === undefined)).toBe(true);
   await expect(page.locator('#xr-toggle')).toBeDisabled();
@@ -20,6 +21,7 @@ test('starts without WebXR and protects focused controls from gameplay input', a
 
 test('supports generated inventory plus manual save, load, and report export', async ({ page }) => {
   await page.goto('/');
+  await page.locator('#tools-toggle').click();
   await page.locator('#seed').fill('5150'); await page.locator('#new-game').click();
   await expect(page.locator('#inventory')).toContainText('food.ration');
 
@@ -39,6 +41,7 @@ test('supports generated inventory plus manual save, load, and report export', a
 
 test('keeps CSS-pixel hit testing correct after resize at devicePixelRatio 2', async ({ page }) => {
   await page.goto('/');
+  await page.locator('#tools-toggle').click();
   await page.locator('#view-mode').selectOption('2d');
   await page.locator('#world-mode').selectOption('rooms'); await page.locator('#new-game').click();
   expect(await page.evaluate(() => devicePixelRatio)).toBe(2);
@@ -63,6 +66,7 @@ test('keeps CSS-pixel hit testing correct after resize at devicePixelRatio 2', a
 
 test('switches between first-person and map views without changing the game session', async ({ page }) => {
   await page.goto('/');
+  await page.locator('#tools-toggle').click();
   await page.locator('#seed').fill('9090'); await page.locator('#new-game').click();
   await page.locator('h1').click();
   await page.keyboard.press('.');

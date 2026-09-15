@@ -23,6 +23,16 @@ if (issues.length) throw new Error(`Initial world validation failed: ${JSON.stri
 
 const canvas = required<HTMLCanvasElement>('#dungeon');
 const viewHost = required<HTMLElement>('#view-host');
+const toolsToggle = required<HTMLButtonElement>('#tools-toggle');
+const toolsPanel = required<HTMLElement>('#tools-panel');
+const hudHp = required<HTMLElement>('#hud-hp');
+const hudDepth = required<HTMLElement>('#hud-depth');
+const hudGold = required<HTMLElement>('#hud-gold');
+const hudHunger = required<HTMLElement>('#hud-hunger');
+const hudWeapon = required<HTMLElement>('#hud-weapon');
+const hudMessage = required<HTMLElement>('#hud-message');
+const crosshair = required<HTMLElement>('#crosshair');
+const contextPrompt = required<HTMLElement>('#context-prompt');
 const viewMode = required<HTMLSelectElement>('#view-mode');
 const cameraMode = required<HTMLSelectElement>('#camera-mode');
 const xrToggle = required<HTMLButtonElement>('#xr-toggle');
@@ -72,6 +82,21 @@ let replayPlaying = false;
 let replayTimer: number | null = null;
 let replaySchedule = 0;
 let latestActionTiming = 'No action measured.';
+let lastHudMessage = '';
+
+function setToolsOpen(open: boolean): void {
+  toolsPanel.hidden = !open;
+  toolsToggle.setAttribute('aria-expanded', String(open));
+  if (!open && toolsPanel.contains(document.activeElement)) toolsToggle.focus();
+}
+
+toolsToggle.addEventListener('click', () => setToolsOpen(toolsPanel.hidden === true));
+window.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && !toolsPanel.hidden && xrController.status() !== 'active') {
+    setToolsOpen(false);
+    event.preventDefault();
+  }
+});
 
 function required<T extends Element>(selector: string): T {
   const element = document.querySelector<T>(selector);
@@ -87,6 +112,20 @@ function render(): void {
     : event.type === 'itemsDetected' ? event.positions.map(at => ({ at, glyph: event.glyph })) : []);
   if (view === gridView) gridView.render(observation, reveal.checked ? debugSnapshot : null, detections);
   else view.update(observation, latestEvents);
+  hudHp.textContent = `${observation.status.hp}/${observation.status.maxHp}`;
+  hudDepth.textContent = String(observation.status.depth);
+  hudGold.textContent = String(observation.status.gold);
+  hudHunger.textContent = ['Fed', 'Hungry', 'Weak', 'Faint'][observation.status.hungerStage] ?? 'Unknown';
+  const weapon = observation.inventory.find(item => item.equippedSlot === 'weapon');
+  hudWeapon.textContent = weapon ? weapon.label : 'Unarmed';
+  const newestMessage = latestEvents.filter(event => event.type === 'message').at(-1);
+  if (newestMessage?.type === 'message') lastHudMessage = newestMessage.text;
+  hudMessage.textContent = lastHudMessage;
+  crosshair.hidden = view === gridView || cameraMode.value !== 'firstPerson';
+  const currentCell = observation.cells[cellIndex(observation, observation.playerAt)];
+  const currentFeature = currentCell?.visibility === 'visible' ? currentCell.appearance?.featureLabel : null;
+  const currentItem = observation.entities.find(entity => entity.at.x === observation.playerAt.x && entity.at.y === observation.playerAt.y);
+  contextPrompt.textContent = currentItem ? `Pick up ${currentItem.label}` : currentFeature === 'stairs' ? 'Stairs here' : '';
   const lines = selectedIndex === null
     ? ['Click a cell to inspect it.']
     : [...describeObservedCell(observation, selectedIndex), ...(reveal.checked ? describeDebugCell(debugSnapshot, selectedIndex) : [])];
@@ -321,7 +360,7 @@ function pauseReplay(): void {
 function leaveReplayMode(): void {
   pauseReplay(); replayPlayer = null; replayStatus.textContent = 'Live input enabled.';
 }
-function resetDiagnostics(): void { latestActionTiming = 'No action measured.'; replayDetails.textContent = 'No divergence.'; }
+function resetDiagnostics(): void { latestActionTiming = 'No action measured.'; replayDetails.textContent = 'No divergence.'; lastHudMessage = ''; }
 function describeAction(action: GameAction): string {
   if (action.type === 'move') return `move ${action.direction}`;
   if ('itemId' in action) return `${action.type} ${action.itemId}`;

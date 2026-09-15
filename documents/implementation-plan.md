@@ -457,7 +457,7 @@ The detailed data contracts, theme language, placement rules, Blender convention
 | 14.9 | Add quality profiles, visual regression, disposal, privacy, desktop, and headset acceptance. | Approved fixed-seed captures and measured performance close the visual milestone. |
 
 - [x] 14.1
-- [ ] 14.2
+- [x] 14.2
 - [ ] 14.3
 - [ ] 14.4
 - [ ] 14.5
@@ -475,6 +475,12 @@ Phase 14.1 progress:
 - [x] Store deterministic prop kind, cell, rotation, variant, and scale metadata; clear door approaches after passage construction.
 - [x] Expose themes and props only on already-visible or remembered cells and render primitive themed materials, cave silhouettes, and prop stand-ins.
 - [x] Reserve visible actors, objects, stairs, and revealed traps at render time so decoration remains non-blocking and unambiguous.
+
+Phase 14.2 progress:
+
+- [x] Replace the permanent inspector column and crowded command header with a full-height first-person viewport, compact toolbar, primary action strip, and collapsible tools panel.
+- [x] Display HP, depth, gold, hunger, equipped weapon, latest resolved message, and disclosed-cell prompts from `PlayerObservation` and presentation events; hide the crosshair outside first person.
+- [x] Preserve view switching, keyboard gameplay, replay, save/load, reveal, and inventory controls; verify desktop viewport area, phone width and actions, panel focus, and Chromium/Firefox browser play.
 
 Phase 14 asset progress:
 
