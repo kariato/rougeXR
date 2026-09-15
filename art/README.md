@@ -2,6 +2,20 @@
 
 The complete creation, export, registration, and validation workflow is documented in [`docs/MONSTER_ASSET_PIPELINE.md`](../docs/MONSTER_ASSET_PIPELINE.md).
 
+## Yeti
+
+Original stylized alpine primate with a massive snow-fur silhouette, blue face and hands, icy eyes, long chin fur, teeth, and black claws. Generated using Blender 4.5 LTS; no external models or textures.
+
+- Source: `art/blender/creatures/yeti.blend`
+- Runtime: `public/assets/creatures/yeti.glb`
+- Preview: `art/previews/yeti.png`
+- Rig: 8 bones (root, core, head, jaw, two arms, two legs).
+- Clips: `idle` (breathing), `move` (knuckle-heavy stride), `attack` (two-handed maul and bite), `hurt` (recoil), `death` (forward collapse).
+- Height: approximately 1.85 m; Blender -Y / glTF +Z forward.
+
+Regenerate with `blender --background --python tools/blender/create_yeti.py`.
+Preview on the development server at `/model-preview.html?model=yeti`. Gameplay renderer integration remains pending.
+
 ## Nymph
 
 Original stylized woodland thief with a layered leaf dress, willow hair, pointed ears, green eyes, and a stolen gold charm. Generated using Blender 4.5 LTS; no external models or textures.
