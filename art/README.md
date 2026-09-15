@@ -1,5 +1,17 @@
 # Blender creature assets
 
+## Procedural room prop kit
+
+`tools/blender/create_room_prop.py` creates one original static GLB, editable Blender source, and preview per prop. Run it with `-- --asset <kind>`. The kit covers rubble, pillar, urn, crate, mushroom, bones, decorative coin scatter, scroll, food, weapon, armor, amulet, ring, and stick. These are presentation-only; the room plan and collectible entities remain in the Rogue engine.
+
+The first completed member is `rubble`:
+
+- Source: `art/blender/props/rubble.blend`
+- Runtime: `public/assets/props/rubble.glb`
+- Preview: `art/previews/rubble.png`
+
+Regenerate with `blender --background --python tools/blender/create_room_prop.py -- --asset rubble`. A primitive fallback stays visible during loading or failure.
+
 ## Potion pickup
 
 An original glass bottle with purple liquid, cork, brass bands, and wax seal for any observed potion. Its color is cosmetic and never identifies the hidden potion effect.

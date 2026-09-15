@@ -119,9 +119,10 @@ export class ThreeGameView implements GameView {
     for (const decoration of observation.decorations) {
       const key = `${decoration.at.x},${decoration.at.y}`;
       if (!activeCells.has(key) || reserved.has(key)) continue;
-      const visual = createDecorationVisual(decoration.kind, decoration.theme, decoration.variant);
-      visual.position.x = decoration.at.x; visual.position.z = decoration.at.y; visual.rotation.y = decoration.rotation * Math.PI / 2; visual.scale.multiplyScalar(decoration.scale);
-      visual.userData = { cell: { ...decoration.at }, eligible: false, occludes: false }; this.world.add(visual);
+      const holder = new THREE.Group(); const fallback = createDecorationVisual(decoration.kind, decoration.theme, decoration.variant);
+      holder.position.x = decoration.at.x; holder.position.z = decoration.at.y; holder.rotation.y = decoration.rotation * Math.PI / 2; holder.scale.multiplyScalar(decoration.scale);
+      holder.userData = { cell: { ...decoration.at }, eligible: false, occludes: false }; holder.add(fallback); this.world.add(holder);
+      if (decoration.kind === 'rubble') void loadPropInto('/assets/props/rubble.glb', holder, fallback, this.generation, sceneToken);
     }
 
     const movementTokens = new Set(observation.revision === this.lastAnimatedRevision ? []
