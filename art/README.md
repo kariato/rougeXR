@@ -14,6 +14,8 @@
 
 `coinScatter` is an original static room decoration: source `art/blender/props/coinScatter.blend`, runtime `public/assets/props/coinScatter.glb`, preview `art/previews/coinScatter.png`.
 
+`scroll` is an original static visible pickup: source `art/blender/props/scroll.blend`, runtime `public/assets/props/scroll.glb`, preview `art/previews/scroll.png`.
+
 The first completed member is `rubble`:
 
 `pillar` adds a fluted stone column with a plinth and capital, generated from the same script. Source: `art/blender/props/pillar.blend`; runtime: `public/assets/props/pillar.glb`; preview: `art/previews/pillar.png`.
