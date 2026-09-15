@@ -2,6 +2,20 @@
 
 The complete creation, export, registration, and validation workflow is documented in [`docs/MONSTER_ASSET_PIPELINE.md`](../docs/MONSTER_ASSET_PIPELINE.md).
 
+## Quagga
+
+Original stylized extinct equid with striped cream forequarters fading into a chestnut rump, upright mane, dark muzzle, tail, and four articulated legs. Generated using Blender 4.5 LTS; no external models or textures.
+
+- Source: `art/blender/creatures/quagga.blend`
+- Runtime: `public/assets/creatures/quagga.glb`
+- Preview: `art/previews/quagga.png`
+- Rig: 8 bones (root, body, neck, head, four legs).
+- Clips: `idle` (head watch), `move` (diagonal-pair trot), `attack` (double rear kick), `hurt` (recoil), `death` (side fall).
+- Height: approximately 1.6 m at the ears; Blender -Y / glTF +Z forward.
+
+Regenerate with `blender --background --python tools/blender/create_quagga.py`.
+Preview on the development server at `/model-preview.html?model=quagga`. Gameplay renderer integration remains pending.
+
 ## Centaur
 
 Original stylized chestnut centaur with four articulated horse legs, armored human torso, bronze helmet and breastplate, tail, and spear. Generated using Blender 4.5 LTS; no external models or textures.
