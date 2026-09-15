@@ -12,6 +12,7 @@ const cache = new AssetCache<GLTF>(url => new Promise((resolve, reject) => loade
 export function observedMonsterAsset(entity: ObservedEntity): string | null {
   if (entity.label === 'B' || entity.label === 'monster.bat') return 'bat';
   if (entity.label === 'K' || entity.label === 'monster.kestrel') return 'kestrel';
+  if (entity.label === 'A' || entity.label === 'monster.aquator') return 'aquator';
   return null;
 }
 
