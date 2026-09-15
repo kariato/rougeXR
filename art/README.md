@@ -2,6 +2,20 @@
 
 The complete creation, export, registration, and validation workflow is documented in [`docs/MONSTER_ASSET_PIPELINE.md`](../docs/MONSTER_ASSET_PIPELINE.md).
 
+## Vampire
+
+Original stylized aristocratic vampire with pale skin, red eyes, fangs, black formal coat, crimson cravat, and a swept split cape. Generated using Blender 4.5 LTS; no external models or textures.
+
+- Source: `art/blender/creatures/vampire.blend`
+- Runtime: `public/assets/creatures/vampire.glb`
+- Preview: `art/previews/vampire.png`
+- Rig: 8 bones (root, spine, head, jaw, two arms, two legs).
+- Clips: `idle` (watchful sway), `move` (predatory stride), `attack` (bite and grasp), `hurt` (recoil), `death` (fall).
+- Height: approximately 1.7 m; Blender -Y / glTF +Z forward.
+
+Regenerate with `blender --background --python tools/blender/create_vampire.py`.
+Preview on the development server at `/model-preview.html?model=vampire`. Gameplay renderer integration remains pending.
+
 ## Emu
 
 Original stylized flightless bird with a shaggy feather coat, long blue-gray neck and legs, alert amber eyes, small wings, and three-clawed feet. Generated using Blender 4.5 LTS; no external models or textures.
