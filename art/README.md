@@ -20,6 +20,8 @@
 
 `weapon` is an original static visible pickup: source `art/blender/props/weapon.blend`, runtime `public/assets/props/weapon.glb`, preview `art/previews/weapon.png`.
 
+`armor` is an original static visible pickup: source `art/blender/props/armor.blend`, runtime `public/assets/props/armor.glb`, preview `art/previews/armor.png`.
+
 The first completed member is `rubble`:
 
 `pillar` adds a fluted stone column with a plinth and capital, generated from the same script. Source: `art/blender/props/pillar.blend`; runtime: `public/assets/props/pillar.glb`; preview: `art/previews/pillar.png`.
