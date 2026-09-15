@@ -10,6 +10,7 @@ const cache = new AssetCache<GLTF>(url => new Promise((resolve, reject) => loade
 
 /** Disguised, detected and hallucinated creatures never select a specific model. */
 export function observedMonsterAsset(entity: ObservedEntity): string | null {
+  if (entity.label === 'B' || entity.label === 'monster.bat') return 'bat';
   if (entity.label === 'K' || entity.label === 'monster.kestrel') return 'kestrel';
   return null;
 }
