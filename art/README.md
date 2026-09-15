@@ -2,6 +2,20 @@
 
 The complete creation, export, registration, and validation workflow is documented in [`docs/MONSTER_ASSET_PIPELINE.md`](../docs/MONSTER_ASSET_PIPELINE.md).
 
+## Griffin
+
+Original stylized eagle-lion griffin with golden forequarters, tawny hindquarters, broad wings, hooked beak, feathered neck, and long talons. Generated using Blender 4.5 LTS; no external models or textures.
+
+- Source: `art/blender/creatures/griffin.blend`
+- Runtime: `public/assets/creatures/griffin.glb`
+- Preview: `art/previews/griffin.png`
+- Rig: 8 bones (root, body, neck, head, four legs).
+- Clips: `idle` (head watch), `move` (predatory bound), `attack` (beak lunge and talon rake), `hurt` (recoil), `death` (side fall).
+- Height: approximately 1.6 m; Blender -Y / glTF +Z forward.
+
+Regenerate with `blender --background --python tools/blender/create_griffin.py`.
+Preview on the development server at `/model-preview.html?model=griffin`. Gameplay renderer integration remains pending.
+
 ## Vampire
 
 Original stylized aristocratic vampire with pale skin, red eyes, fangs, black formal coat, crimson cravat, and a swept split cape. Generated using Blender 4.5 LTS; no external models or textures.
