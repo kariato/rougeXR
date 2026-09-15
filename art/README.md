@@ -8,6 +8,8 @@
 
 `crate` is an original static room decoration: source `art/blender/props/crate.blend`, runtime `public/assets/props/crate.glb`, preview `art/previews/crate.png`.
 
+`mushroom` is an original static room decoration: source `art/blender/props/mushroom.blend`, runtime `public/assets/props/mushroom.glb`, preview `art/previews/mushroom.png`.
+
 The first completed member is `rubble`:
 
 `pillar` adds a fluted stone column with a plinth and capital, generated from the same script. Source: `art/blender/props/pillar.blend`; runtime: `public/assets/props/pillar.glb`; preview: `art/previews/pillar.png`.
