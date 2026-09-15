@@ -13,7 +13,7 @@ Each monster is authored as a Python generator rather than modeled manually. Run
 | Runtime model | `public/assets/creatures/<monster>.glb` | Self-contained model loaded by Three.js in the browser |
 | Preview image | `art/previews/<monster>.png` | Quick visual review of the rest pose and silhouette |
 
-The complete 26-monster roster consists of aquator, bat, black unicorn, centaur, dragon, emu, griffin, hobgoblin, ice monster, jabberwock, kestrel, leprechaun, medusa, nymph, orc, phantom, quagga, rattlesnake, snake, troll, venus flytrap, vampire, wraith, xeroc, yeti, and zombie. They are available in the standalone browser model viewer and registered for disclosed monsters in the live first-person renderer. A primitive fallback remains during loading, failures, disguises, detection-only observations, and hallucination. Live idle and move clips play; resolved-event combat transitions remain part of Phase 14.3.
+The complete 26-monster roster consists of aquator, bat, black unicorn, centaur, dragon, emu, griffin, hobgoblin, ice monster, jabberwock, kestrel, leprechaun, medusa, nymph, orc, phantom, quagga, rattlesnake, snake, troll, venus flytrap, vampire, wraith, xeroc, yeti, and zombie. They are available in the standalone browser model viewer and registered for disclosed monsters in the live first-person renderer. A primitive fallback remains during loading, failures, disguises, detection-only observations, and hallucination. Live models now face their last visible movement or opponent during a resolved attack. Move, attack, hurt, and death clips run from presentation cues in event order; death retains a short visual before removal. The source turn and cell rules are unchanged.
 
 ## Toolchain
 

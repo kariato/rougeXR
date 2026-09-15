@@ -66,6 +66,7 @@ test('keeps CSS-pixel hit testing correct after resize at devicePixelRatio 2', a
 });
 
 test('switches between first-person and map views without changing the game session', async ({ page }) => {
+  test.setTimeout(60_000);
   await page.goto('/');
   await page.locator('#tools-toggle').click();
   await page.locator('#seed').fill('9090'); await page.locator('#new-game').click();

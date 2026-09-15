@@ -6,6 +6,11 @@ export interface ActorVisual {
   skeleton: THREE.Skeleton;
   mixer: THREE.AnimationMixer;
   playMove(): void;
+  playAttack(): void;
+  playHurt(): void;
+  playDeath(): void;
+  playGesture(): void;
+  playSequence(cues: Array<'move' | 'attack' | 'hurt' | 'death' | 'gesture'>): void;
 }
 
 /** Creates a self-contained procedural actor; no skeleton or mixer is shared between instances. */
@@ -28,7 +33,21 @@ export function createActorVisual(color: number): ActorVisual {
   const skeleton = new THREE.Skeleton([lower, upper]); mesh.bind(skeleton); animated.add(mesh);
   const mixer = new THREE.AnimationMixer(animated);
   const moveClip = new THREE.AnimationClip('move', 0.24, [new THREE.NumberKeyframeTrack('.position[y]', [0, 0.12, 0.24], [0, 0.16, 0])]);
-  return { root, skeleton, mixer, playMove: () => { const action = mixer.clipAction(moveClip); action.reset(); action.setLoop(THREE.LoopOnce, 1); action.clampWhenFinished = true; action.play(); } };
+  const attackClip = new THREE.AnimationClip('attack', .38, [new THREE.NumberKeyframeTrack('.position[z]', [0,.12,.22,.38], [0,.08,.21,0])]);
+  const hurtClip = new THREE.AnimationClip('hurt', .32, [new THREE.NumberKeyframeTrack('.rotation[z]', [0,.12,.32], [0,-.28,0])]);
+  const deathClip = new THREE.AnimationClip('death', .7, [new THREE.NumberKeyframeTrack('.rotation[x]', [0,.7], [0,Math.PI/2])]);
+  const gestureClip = new THREE.AnimationClip('gesture', .38, [new THREE.NumberKeyframeTrack('.position[z]', [0,.19,.38], [0,.16,0])]);
+  const clips = { move: moveClip, attack: attackClip, hurt: hurtClip, death: deathClip, gesture: gestureClip };
+  const playSequence = (cues: Array<keyof typeof clips>): void => {
+    mixer.stopAllAction();let index=0;
+    const next=():void=>{
+      const cue=cues[index++];if (!cue) return;
+      const action=mixer.clipAction(clips[cue]);action.reset();action.setLoop(THREE.LoopOnce,1);action.clampWhenFinished=cue==='death';action.play();
+    };
+    const finished=():void=>{if (index>=cues.length) mixer.removeEventListener('finished',finished);else next();};
+    mixer.addEventListener('finished',finished);next();
+  };
+  return { root, skeleton, mixer, playMove: () => playSequence(['move']), playAttack: () => playSequence(['attack']), playHurt: () => playSequence(['hurt']), playDeath: () => playSequence(['death']), playGesture: () => playSequence(['gesture']), playSequence };
 }
 
 export function createItemVisual(): THREE.Mesh {

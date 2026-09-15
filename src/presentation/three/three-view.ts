@@ -7,13 +7,24 @@ import { nearestVisibleHit, smoothToward, type CameraMode } from './camera-model
 import { createActorVisual, createDecorationVisual, createItemVisual, type ActorVisual } from './entity-visual';
 import { SceneGeneration } from './asset-cache';
 import { loadPropInto } from './prop-asset';
-import { loadMonsterInto, observedMonsterAsset } from './monster-asset';
+import { loadMonsterInto, observedMonsterAsset, type MonsterCue } from './monster-asset';
 import { ROOM_LOOKS, RoomMaterialCatalog } from './room-materials';
 import type { XrSessionLike } from '../xr/session-controller';
 import { DebouncedXrIntent, directionFromForward } from '../xr/input';
 import type { ActionRequest } from '../../engine/model/action';
 
 const TILE = 1;
+type ActorCue = MonsterCue | 'gesture';
+type CameraCue = 'attack' | 'hurt' | 'interact' | 'consume' | 'cast' | 'rest';
+
+function createFirstPersonHand(): THREE.Group {
+  const hand=new THREE.Group();
+  const leather=new THREE.MeshStandardMaterial({color:0x765641,roughness:.9,depthTest:false});
+  const sleeve=new THREE.MeshStandardMaterial({color:0x303945,roughness:.95,depthTest:false});
+  const fist=new THREE.Mesh(new THREE.IcosahedronGeometry(.105,1),leather);fist.position.set(0,.045,-.035);
+  const forearm=new THREE.Mesh(new THREE.CylinderGeometry(.065,.085,.27,8),sleeve);forearm.rotation.x=Math.PI/2;forearm.position.set(0,-.04,.13);
+  hand.add(forearm,fist);hand.renderOrder=10;return hand;
+}
 
 /** Primitive first-person desktop view built solely from the safe player observation. */
 export class ThreeGameView implements GameView {
@@ -21,6 +32,7 @@ export class ThreeGameView implements GameView {
   private readonly renderer: THREE.WebGLRenderer;
   private readonly scene = new THREE.Scene();
   private readonly camera = new THREE.PerspectiveCamera(68, 1, 0.05, 120);
+  private readonly hand = createFirstPersonHand();
   private readonly world = new THREE.Group();
   private readonly roomMaterials = new RoomMaterialCatalog();
   private readonly ambient = new THREE.HemisphereLight(0xa9c8e8, 0x18202a, 1.7);
@@ -43,6 +55,9 @@ export class ThreeGameView implements GameView {
   private lastFrame = 0;
   private actorVisuals: ActorVisual[] = [];
   private monsterMixers: THREE.AnimationMixer[] = [];
+  private actorFacings = new Map<string, number>();
+  private defeatedVisuals: Array<{ holder: THREE.Group; actor: ActorVisual; mixer: THREE.AnimationMixer | null; expires: number }> = [];
+  private cameraActions: Array<{ start: number; duration: number; kind: CameraCue }> = [];
   private animationUntil = 0;
   private lastAnimatedRevision = -1;
   private readonly generation = new SceneGeneration();
@@ -61,6 +76,7 @@ export class ThreeGameView implements GameView {
     this.scene.add(this.ambient);
     this.lamp.position.set(0, 1.3, 0);
     this.camera.add(this.lamp);
+    this.camera.add(this.hand);
     this.scene.add(this.camera);
     for (let index = 0; index < 2; index++) {
       const controller = this.renderer.xr.getController(index);
@@ -90,6 +106,31 @@ export class ThreeGameView implements GameView {
 
   update(observation: PlayerObservation, _events: PresentationEvent[]): void {
     const sceneToken = this.generation.next();
+    const previousEntities = this.observation?.entities ?? [];
+    const freshEvents = observation.revision === this.lastAnimatedRevision ? [] : _events;
+    if (observation.revision === 0 || freshEvents.some(event => event.type === 'levelViewReset')) {this.actorFacings.clear();this.cameraActions=[];}
+    const actorCues = new Map<string, ActorCue[]>();
+    const addCue=(token:string,cue:ActorCue):void=>{const sequence=actorCues.get(token) ?? [];sequence.push(cue);actorCues.set(token,sequence);};
+    const defeated = freshEvents.filter(event => event.type === 'visibleDefeat');
+    for (const event of freshEvents) {
+      if (event.type === 'visibleMovement') {
+        this.actorFacings.set(event.token, Math.atan2(event.to.x-event.from.x,event.to.y-event.from.y));
+        addCue(event.token,'move');
+      } else if (event.type === 'visibleAttack') {
+        const towardDefender = Math.atan2(event.defenderAt.x-event.attackerAt.x,event.defenderAt.y-event.attackerAt.y);
+        this.actorFacings.set(event.attackerToken,towardDefender);
+        this.actorFacings.set(event.defenderToken,Math.atan2(event.attackerAt.x-event.defenderAt.x,event.attackerAt.y-event.defenderAt.y));
+        addCue(event.attackerToken,'attack');
+        if (event.hit) addCue(event.defenderToken,'hurt');
+        if (event.attackerToken === 'player') { this.targetYaw=towardDefender;this.enqueueCameraAction('attack'); }
+        else if (event.defenderToken === 'player' && event.hit) this.enqueueCameraAction('hurt');
+      } else if (event.type === 'visibleDefeat') addCue(event.token,'death');
+      else if (event.type === 'visiblePlayerAction') {
+        addCue('player','gesture');
+        this.enqueueCameraAction(event.action==='rest' ? 'rest' : ['eat','drink','read'].includes(event.action) ? 'consume'
+          : ['throw','zap'].includes(event.action) ? 'cast' : 'interact');
+      }
+    }
     this.observation = observation;
     this.clearWorld();
     this.roomMaterials.beginFrame();
@@ -153,20 +194,21 @@ export class ThreeGameView implements GameView {
       if (decoration.kind === 'urn') void loadPropInto('/assets/props/urn.glb', holder, fallback, this.generation, sceneToken);
     }
 
-    const movementTokens = new Set(observation.revision === this.lastAnimatedRevision ? []
-      : _events.filter(event => event.type === 'visibleMovement').map(event => event.token));
     this.lastAnimatedRevision = observation.revision;
     const playerVisual = createActorVisual(0x43c7e8); playerVisual.root.position.set(observation.playerAt.x, 0, observation.playerAt.y);
+    playerVisual.root.rotation.y=this.actorFacings.get('player') ?? this.yaw;
     playerVisual.root.visible = this.mode !== 'firstPerson'; this.world.add(playerVisual.root); this.actorVisuals.push(playerVisual);
-    if (movementTokens.has('player')) playerVisual.playMove();
+    if (actorCues.has('player')) playerVisual.playSequence(actorCues.get('player')!);
     for (const entity of observation.entities) {
       if (entity.token.startsWith('monster-')) {
         const actor = createActorVisual(0xc65353); const holder = new THREE.Group(); holder.position.set(entity.at.x, 0, entity.at.y);
+        holder.rotation.y=this.actorFacings.get(entity.token) ?? 0;
         holder.userData = { cell: { ...entity.at }, eligible: true, occludes: false }; holder.add(actor.root); this.world.add(holder); this.actorVisuals.push(actor);
-        if (movementTokens.has(entity.token)) actor.playMove();
+        const cues=actorCues.get(entity.token) ?? [];
+        if (cues.length) actor.playSequence(cues);
         const assetId = observedMonsterAsset(entity);
         if (assetId) void loadMonsterInto(assetId, holder, actor.root, this.generation, sceneToken,
-          movementTokens.has(entity.token), mixer => { this.monsterMixers.push(mixer); this.ensureAnimation(); });
+          cues.filter((cue):cue is MonsterCue=>cue!=='gesture'), mixer => { this.monsterMixers.push(mixer); this.ensureAnimation(); });
       } else {
         const holder = new THREE.Group(); holder.position.set(entity.at.x, 0, entity.at.y);
         const fallback = createItemVisual(); fallback.position.y = 0.23; holder.add(fallback);
@@ -182,7 +224,15 @@ export class ThreeGameView implements GameView {
         if (entity.appearance === '!') void loadPropInto('/assets/props/potion.glb', holder, fallback, this.generation, sceneToken);
       }
     }
-    if (movementTokens.size) { this.animationUntil = performance.now() + 280; this.ensureAnimation(); }
+    for (const event of defeated) {
+      if (event.token === 'player' || observation.entities.some(entity => entity.token === event.token)) continue;
+      const prior=previousEntities.find(entity => entity.token === event.token);if (!prior) continue;
+      const actor=createActorVisual(0xc65353);const holder=new THREE.Group();holder.position.set(event.at.x,0,event.at.y);holder.rotation.y=this.actorFacings.get(event.token) ?? 0;holder.add(actor.root);this.world.add(holder);this.actorVisuals.push(actor);actor.playDeath();
+      const deathVisual={holder,actor,mixer:null as THREE.AnimationMixer | null,expires:performance.now()+1050};
+      this.defeatedVisuals.push(deathVisual);
+      const assetId=observedMonsterAsset(prior);if (assetId) void loadMonsterInto(assetId,holder,actor.root,this.generation,sceneToken,['death'],mixer=>{deathVisual.mixer=mixer;this.monsterMixers.push(mixer);this.ensureAnimation();});
+    }
+    if (actorCues.size) { this.animationUntil = performance.now() + 1100; this.ensureAnimation(); }
 
     this.placeCamera();
   }
@@ -199,6 +249,7 @@ export class ThreeGameView implements GameView {
     this.generation.next();
     this.canvas.hidden = true;
     this.clearWorld();
+    this.camera.remove(this.hand);disposeObjectTree(this.hand);
     this.roomMaterials.dispose();
     this.canvas.removeEventListener('pointerdown', this.onPointerDown);
     this.canvas.removeEventListener('pointermove', this.onPointerMove);
@@ -215,6 +266,7 @@ export class ThreeGameView implements GameView {
 
   setMode(mode: CameraMode): void {
     this.mode = mode;
+    this.hand.visible = mode === 'firstPerson';
     if (this.actorVisuals[0]) this.actorVisuals[0].root.visible = mode !== 'firstPerson';
     this.targetPitch = mode === 'tabletop' ? -0.9 : mode === 'orbit' ? -0.2 : 0;
     this.targetDistance = mode === 'tabletop' ? 7 : 8;
@@ -227,6 +279,11 @@ export class ThreeGameView implements GameView {
     if (this.mode !== 'firstPerson' || !Number.isFinite(degrees)) return;
     this.targetYaw -= degrees * Math.PI / 180;
     this.ensureAnimation();
+  }
+
+  private enqueueCameraAction(kind: CameraCue): void {
+    const last=this.cameraActions.at(-1);const now=performance.now();
+    this.cameraActions.push({start:last ? Math.max(now,last.start+last.duration) : now,duration:kind==='hurt' ? 320 : 380,kind});
   }
 
   async setXrSession(session: XrSessionLike | null): Promise<void> {
@@ -247,8 +304,13 @@ export class ThreeGameView implements GameView {
     this.world.scale.setScalar(this.worldScale);
     for (const visual of this.actorVisuals) visual.mixer.update(elapsed);
     for (const mixer of this.monsterMixers) mixer.update(elapsed);
+    for (const defeated of [...this.defeatedVisuals]) if (now >= defeated.expires) {
+      defeated.actor.mixer.stopAllAction();this.actorVisuals.splice(this.actorVisuals.indexOf(defeated.actor),1);
+      if (defeated.mixer) {defeated.mixer.stopAllAction();this.monsterMixers.splice(this.monsterMixers.indexOf(defeated.mixer),1);}
+      this.world.remove(defeated.holder);disposeObjectTree(defeated.holder);this.defeatedVisuals.splice(this.defeatedVisuals.indexOf(defeated),1);
+    }
     this.placeCamera();
-    const moving = this.monsterMixers.length > 0 || Math.abs(this.yaw - this.targetYaw) > 0.0001 || Math.abs(this.pitch - this.targetPitch) > 0.0001 || Math.abs(this.distance - this.targetDistance) > 0.001 || Math.abs(this.worldScale - this.targetWorldScale) > 0.0001 || now < this.animationUntil;
+    const moving = this.monsterMixers.length > 0 || this.cameraActions.length>0 || Math.abs(this.yaw - this.targetYaw) > 0.0001 || Math.abs(this.pitch - this.targetPitch) > 0.0001 || Math.abs(this.distance - this.targetDistance) > 0.001 || Math.abs(this.worldScale - this.targetWorldScale) > 0.0001 || now < this.animationUntil;
     this.frame = moving ? requestAnimationFrame(this.animate) : null;
   };
 
@@ -257,7 +319,15 @@ export class ThreeGameView implements GameView {
     if (!observation) return;
     const player = observation.playerAt;
     if (this.mode === 'firstPerson') {
-      this.camera.position.set(player.x, 0.72, player.y);
+      while (this.cameraActions[0] && performance.now()>=this.cameraActions[0].start+this.cameraActions[0].duration) this.cameraActions.shift();
+      const action=this.cameraActions[0];const progress=action ? (performance.now()-action.start)/action.duration : 1;
+      const pulse=action && progress>=0 && progress<1 ? Math.sin(Math.PI*progress) : 0;
+      const bob=pulse*(action?.kind==='hurt' ? -.11 : action?.kind==='rest' ? .015 : action?.kind==='interact' ? -.025 : -.06);
+      this.hand.position.set(.36-pulse*(action?.kind==='consume' ? .15 : 0),-.34+pulse*(action?.kind==='consume' ? .12 : 0),
+        -.63-pulse*(action?.kind==='attack' ? .28 : action?.kind==='cast' ? .25 : action?.kind==='interact' ? .16 : action?.kind==='consume' ? -.17 : 0));
+      this.hand.rotation.x=pulse*(action?.kind==='attack' ? -.95 : action?.kind==='cast' ? -.7 : action?.kind==='interact' ? -.42 : action?.kind==='consume' ? .4 : action?.kind==='hurt' ? .2 : 0);
+      this.hand.rotation.y=pulse*(action?.kind==='attack' || action?.kind==='cast' ? -.35 : 0);
+      this.camera.position.set(player.x, 0.72+bob, player.y);
       const horizontal = Math.cos(this.pitch);
       this.camera.lookAt(player.x + Math.sin(this.yaw) * horizontal, 0.72 + Math.sin(this.pitch), player.y + Math.cos(this.yaw) * horizontal);
     } else {
@@ -333,6 +403,7 @@ export class ThreeGameView implements GameView {
     this.actorVisuals = [];
     for (const mixer of this.monsterMixers) mixer.stopAllAction();
     this.monsterMixers = [];
+    this.defeatedVisuals=[];
     for (const child of [...this.world.children]) {
       this.world.remove(child);
       disposeObjectTree(child);

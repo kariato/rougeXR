@@ -4,7 +4,7 @@ import { runDaemons, runFuses } from './scheduler';
 import { validateWorld } from './validate';
 import { resolveMove } from './rules/movement';
 import { resolveSearch } from './rules/search';
-import { isPositionVisible, updateKnowledge } from './perception/knowledge';
+import { isPositionVisible, observe, updateKnowledge } from './perception/knowledge';
 import { runMonsters } from './rules/combat';
 import { collectAtPlayer, collectItem, dropItem, equipItem, nameItem, unequipItem } from './rules/inventory';
 import { eatItem } from './rules/inventory';
@@ -25,6 +25,9 @@ export interface SessionOptions { actionHandler?: ActionHandler; effects?: Recor
 export class EngineFault extends Error {}
 
 const detached = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
+const VISUAL_PLAYER_ACTIONS = new Set<GameAction['type']>([
+  'rest','search','pickup','drop','equip','unequip','eat','drink','read','throw','zap','descend','ascend',
+]);
 
 export class GameSession {
   private state: WorldState;
@@ -63,11 +66,36 @@ export class GameSession {
     const startTick = draft.timing.tick;
     try {
       draft.timing.actionSequence++;
+      const combatPositions = new Map<string, { x: number; y: number }>();
       const emitRaw = (input: RawEventInput): void => {
         const event = { ...input, ordinal: raw.length, actionSequence: draft.timing.actionSequence } as RawEvent;
         raw.push(event); const safe = projectEvent(draft, event); if (safe) events.push(safe);
+        if (event.type === 'attackResolved') {
+          const attackerEntity = draft.entities[event.attackerId];const defenderEntity = draft.entities[event.defenderId];
+          const attacker = event.attackerId === 'player' ? draft.player.at : attackerEntity?.kind === 'monster' ? attackerEntity.at : null;
+          const defender = event.defenderId === 'player' ? draft.player.at : defenderEntity?.kind === 'monster' ? defenderEntity.at : null;
+          const disclosed = new Set(observe(draft).entities.map(entity => entity.token));
+          if (attacker && defender && isPositionVisible(draft, attacker) && isPositionVisible(draft, defender)
+            && (event.attackerId === 'player' || disclosed.has(`monster-${event.attackerId}`))
+            && (event.defenderId === 'player' || disclosed.has(`monster-${event.defenderId}`))) {
+            combatPositions.set(event.attackerId, { ...attacker });combatPositions.set(event.defenderId, { ...defender });
+            events.push({ type: 'visibleAttack', attackerToken: event.attackerId === 'player' ? 'player' : `monster-${event.attackerId}`,
+              defenderToken: event.defenderId === 'player' ? 'player' : `monster-${event.defenderId}`,
+              attackerAt: { ...attacker }, defenderAt: { ...defender }, hit: event.hit });
+          }
+        } else if (event.type === 'hpChanged' && event.actorId !== 'player') {
+          const entity=draft.entities[event.actorId];
+          if (entity?.kind==='monster' && isPositionVisible(draft,entity.at)
+            && observe(draft).entities.some(visible=>visible.token===`monster-${event.actorId}`)) combatPositions.set(event.actorId,{...entity.at});
+        } else if (event.type === 'actorDefeated') {
+          const at = event.actorId === 'player' ? draft.player.at : combatPositions.get(event.actorId);
+          if (at && isPositionVisible(draft, at)) events.push({ type: 'visibleDefeat', token: event.actorId === 'player' ? 'player' : `monster-${event.actorId}`, at: { ...at } });
+        }
       };
+      const actionEventIndex = events.length;
       const result = this.actionHandler(request.action, { state: draft, emit: event => events.push(event), emitRaw });
+      if (result.resolved && VISUAL_PLAYER_ACTIONS.has(request.action.type))
+        events.splice(actionEventIndex, 0, { type: 'visiblePlayerAction', action: request.action.type });
       trace.push({ kind: 'action', detail: `${request.action.type}:${result.resolved ? 'resolved' : 'rejected'}`, tick: draft.timing.tick });
       if (result.deferredPickup) {
         const pickup = collectItem(draft, result.deferredPickup, emitRaw);

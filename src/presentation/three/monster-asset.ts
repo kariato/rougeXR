@@ -39,11 +39,13 @@ export function observedMonsterAsset(entity: ObservedEntity): string | null {
   return null;
 }
 
+export type MonsterCue = 'move' | 'attack' | 'hurt' | 'death';
+
 export async function loadMonsterInto(id: string, holder: THREE.Group, fallback: THREE.Object3D,
-  generation: SceneGeneration, token: number, moving: boolean, onMixer: (mixer: THREE.AnimationMixer) => void): Promise<void> {
+  generation: SceneGeneration, token: number, cues: MonsterCue[], onMixer: (mixer: THREE.AnimationMixer) => void): Promise<void> {
   try {
     const lease = await cache.acquire(`/assets/creatures/${id}.glb`, {});
-    if (!generation.isCurrent(token)) { lease.release(); return; }
+    if (!generation.isCurrent(token) || !holder.parent) { lease.release(); return; }
     const instance = cloneSkeleton(lease.value.scene);
     instance.traverse(object => {
       if (!(object instanceof THREE.Mesh)) return;
@@ -52,11 +54,17 @@ export async function loadMonsterInto(id: string, holder: THREE.Group, fallback:
     });
     const mixer = new THREE.AnimationMixer(instance);
     const idle = lease.value.animations.find(clip => clip.name === 'idle');
-    const move = lease.value.animations.find(clip => clip.name === 'move');
-    if (idle) mixer.clipAction(idle).play();
-    if (moving && move) {
-      const action = mixer.clipAction(move); action.reset(); action.setLoop(THREE.LoopOnce, 1); action.play();
-    }
+    const sequence=cues.map(cue=>lease.value.animations.find(clip=>clip.name===cue))
+      .filter((clip):clip is THREE.AnimationClip=>clip!==undefined);
+    let index=0;
+    const next=():void=>{
+      const clip=sequence[index++];if (!clip) {if (idle) mixer.clipAction(idle).reset().play();return;}
+      const action=mixer.clipAction(clip);action.reset();action.setLoop(THREE.LoopOnce,1);action.clampWhenFinished=clip.name==='death';action.play();
+    };
+    if (sequence.length) {
+      const finished=():void=>{if (index>=sequence.length) {mixer.removeEventListener('finished',finished);if (sequence.at(-1)?.name!=='death') next();} else next();};
+      mixer.addEventListener('finished',finished);next();
+    } else if (idle) mixer.clipAction(idle).play();
     lease.release();
     holder.remove(fallback); disposeMeshes(fallback); holder.add(instance); onMixer(mixer);
   } catch {

@@ -10,7 +10,8 @@ function categoryOf(event: PresentationEvent | RawEvent): Exclude<EventFilter, '
   switch (event.type) {
     case 'message': case 'sourceMessage': return 'messages';
     case 'visibleMovement': case 'actorMoved': return 'movement';
-    case 'attackResolved': case 'hpChanged': case 'actorDefeated': return 'combat';
+    case 'visibleAttack': case 'visibleDefeat': case 'attackResolved': case 'hpChanged': case 'actorDefeated': return 'combat';
+    case 'visiblePlayerAction': return 'movement';
     case 'inventoryUpdate': case 'itemCollected': case 'itemDropped': case 'equipmentChanged': case 'itemConsumed': case 'itemChargesChanged': case 'identityLearned': return 'inventory';
     case 'levelViewReset': case 'levelChanged': case 'featureRevealed': case 'magicDetected': case 'itemsDetected': return 'world';
   }
