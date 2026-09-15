@@ -2,6 +2,20 @@
 
 The complete creation, export, registration, and validation workflow is documented in [`docs/MONSTER_ASSET_PIPELINE.md`](../docs/MONSTER_ASSET_PIPELINE.md).
 
+## Medusa
+
+Original stylized gorgon with green stone skin, serpent dress, pointed ears, gold petrifying eyes, snake-hair locks and heads, and a gaze-focus gem. Generated using Blender 4.5 LTS; no external models or textures.
+
+- Source: `art/blender/creatures/medusa.blend`
+- Runtime: `public/assets/creatures/medusa.glb`
+- Preview: `art/previews/medusa.png`
+- Rig: 7 bones (root, spine, head, two arms, two legs).
+- Clips: `idle` (watchful sway), `move` (pursuit), `attack` (petrifying gaze), `hurt` (recoil), `death` (side fall).
+- Height: approximately 1.7 m; Blender -Y / glTF +Z forward.
+
+Regenerate with `blender --background --python tools/blender/create_medusa.py`.
+Preview on the development server at `/model-preview.html?model=medusa`. Gameplay renderer integration remains pending.
+
 ## Black unicorn
 
 Original stylized ominous unicorn with near-black hide, violet sheen and runes, upright mane, glowing eyes, and a long pale-violet horn. Generated using Blender 4.5 LTS; no external models or textures.
