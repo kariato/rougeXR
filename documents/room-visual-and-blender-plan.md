@@ -313,6 +313,8 @@ Completion: multiple instances animate independently, hidden actors remain priva
 
 ### 14.4 — Deterministic theme, material, and light catalogs
 
+Implemented material slice 2026-09-15: `room-materials.ts` defines a versioned, typed palette for all five room families and four stable procedural variants per floor/wall surface. The Three.js renderer reads disclosed `visualRegion` data, applies the appropriate textured material, and retints its existing hemisphere and player lamp when the player enters a themed region. Texture and frame-material caches are disposed on view teardown; an unavailable 2D canvas uses flat-material fallback. Distinct browser pixel signatures and live dungeon/store captures verify the theme language. The creature asset manifest remains in 14.3; structural geometry and authored environment maps remain in 14.5 and 14.8.
+
 - Add the versioned theme and asset-manifest schemas.
 - Implement pure weighted theme selection and adjacency fallback.
 - Add Hewn Dungeon and Natural Cave definitions using existing primitive materials.

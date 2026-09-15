@@ -459,7 +459,7 @@ The detailed data contracts, theme language, placement rules, Blender convention
 - [x] 14.1
 - [x] 14.2
 - [ ] 14.3
-- [ ] 14.4
+- [x] 14.4
 - [ ] 14.5
 - [ ] 14.6
 - [ ] 14.7
@@ -488,6 +488,13 @@ Phase 14 asset progress:
 - [x] Register all 26 completed creature GLBs for disclosed live monsters, using independent skeleton clones and primitive fallbacks for failures, detection-only views, disguises, and hallucinations.
 - [x] Validate every static prop as a self-contained GLB, inspect fixed-angle previews, and pass the grouped desktop Chromium/Firefox gameplay checks.
 - [ ] Consolidate the duplicated creature registration into a typed manifest and drive attack, hurt, and death clips from safe resolved presentation events before closing 14.3.
+
+Phase 14.4 material progress (implemented ahead of 14.3 at the user's request):
+
+- [x] Add a versioned, typed five-family surface and lighting catalog. Dungeon flagstones, cave rock strata, crypt masonry, store planks, and treasure inlaid stone have distinct procedural floor and wall patterns.
+- [x] Choose four stable per-cell texture variants from disclosed theme and coordinates, with no gameplay RNG draw; keep dark and remembered surfaces dimmer without changing observation data.
+- [x] Cache procedural textures and frame materials, dispose them on view teardown, and fall back to a flat material if the browser lacks a 2D canvas context.
+- [x] Tint the existing bounded hemisphere and player lamp from the player's disclosed region instead of adding unlimited room lights. Browser checks distinguish all five texture families, and live first-person inspection compares the store and dungeon treatments.
 
 Phase 14 implementation order:
 

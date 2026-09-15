@@ -8,6 +8,7 @@ import { createActorVisual, createDecorationVisual, createItemVisual, type Actor
 import { SceneGeneration } from './asset-cache';
 import { loadPropInto } from './prop-asset';
 import { loadMonsterInto, observedMonsterAsset } from './monster-asset';
+import { ROOM_LOOKS, RoomMaterialCatalog } from './room-materials';
 import type { XrSessionLike } from '../xr/session-controller';
 import { DebouncedXrIntent, directionFromForward } from '../xr/input';
 import type { ActionRequest } from '../../engine/model/action';
@@ -21,6 +22,9 @@ export class ThreeGameView implements GameView {
   private readonly scene = new THREE.Scene();
   private readonly camera = new THREE.PerspectiveCamera(68, 1, 0.05, 120);
   private readonly world = new THREE.Group();
+  private readonly roomMaterials = new RoomMaterialCatalog();
+  private readonly ambient = new THREE.HemisphereLight(0xa9c8e8, 0x18202a, 1.7);
+  private readonly lamp = new THREE.PointLight(0xffd7a0, 12, 9, 1.7);
   private width = 1;
   private height = 1;
   private mode: CameraMode = 'firstPerson';
@@ -54,10 +58,9 @@ export class ThreeGameView implements GameView {
     this.scene.background = new THREE.Color(0x05080d);
     this.scene.fog = new THREE.FogExp2(0x05080d, 0.055);
     this.scene.add(this.world);
-    this.scene.add(new THREE.HemisphereLight(0xa9c8e8, 0x18202a, 1.7));
-    const lamp = new THREE.PointLight(0xffd7a0, 12, 9, 1.7);
-    lamp.position.set(0, 1.3, 0);
-    this.camera.add(lamp);
+    this.scene.add(this.ambient);
+    this.lamp.position.set(0, 1.3, 0);
+    this.camera.add(this.lamp);
     this.scene.add(this.camera);
     for (let index = 0; index < 2; index++) {
       const controller = this.renderer.xr.getController(index);
@@ -89,6 +92,13 @@ export class ThreeGameView implements GameView {
     const sceneToken = this.generation.next();
     this.observation = observation;
     this.clearWorld();
+    this.roomMaterials.beginFrame();
+    const currentRegion = observation.cells[observation.playerAt.y * observation.width + observation.playerAt.x]?.visualRegion;
+    const look = ROOM_LOOKS[currentRegion?.theme ?? 'none'];
+    this.ambient.color.setHex(look.sky); this.ambient.groundColor.setHex(look.ground);
+    this.lamp.color.setHex(look.lamp);
+    this.scene.background = new THREE.Color(look.fog);
+    if (this.scene.fog instanceof THREE.FogExp2) this.scene.fog.color.setHex(look.fog);
     const floorGeometry = new THREE.PlaneGeometry(TILE, TILE);
     floorGeometry.rotateX(-Math.PI / 2);
     const wallGeometry = new THREE.BoxGeometry(TILE, 1.8, TILE);
@@ -97,14 +107,13 @@ export class ThreeGameView implements GameView {
     const primitiveCells = buildPrimitiveCells(observation, this.mode === 'tabletop' ? Number.POSITIVE_INFINITY : 14);
     const activeCells = new Set(primitiveCells.map(cell => `${cell.x},${cell.z}`));
     for (const cell of primitiveCells) {
-      const palette = themePalette(cell.theme, cell.condition, cell.visibility === 'remembered', cell.dark);
       if (cell.kind === 'wall') {
         const geometry = cell.theme === 'cave' ? new THREE.DodecahedronGeometry(0.68, 0) : wallGeometry;
-        const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: palette.wall, roughness: 0.92 }));
+        const mesh = new THREE.Mesh(geometry, this.roomMaterials.material(cell.theme, 'wall', cell.condition, cell.visibility === 'remembered', cell.dark, cell.x, cell.z));
         if (cell.theme === 'cave') mesh.scale.set(0.9, 1.35 + cell.condition * 0.08, 0.9);
         mesh.position.set(cell.x, 0.9, cell.z); mesh.userData = { cell: { x: cell.x, y: cell.z }, eligible: false, occludes: true }; this.world.add(mesh);
       } else {
-        const floor = new THREE.Mesh(floorGeometry, new THREE.MeshStandardMaterial({ color: palette.floor, roughness: 0.98 }));
+        const floor = new THREE.Mesh(floorGeometry, this.roomMaterials.material(cell.theme, 'floor', cell.condition, cell.visibility === 'remembered', cell.dark, cell.x, cell.z));
         floor.position.set(cell.x, 0, cell.z); floor.userData = { cell: { x: cell.x, y: cell.z }, eligible: true, occludes: false }; this.world.add(floor);
         if (cell.kind === 'door') {
           const door = new THREE.Mesh(new THREE.BoxGeometry(0.82, 1.65, 0.16), doorMaterial);
@@ -177,6 +186,7 @@ export class ThreeGameView implements GameView {
     this.generation.next();
     this.canvas.hidden = true;
     this.clearWorld();
+    this.roomMaterials.dispose();
     this.canvas.removeEventListener('pointerdown', this.onPointerDown);
     this.canvas.removeEventListener('pointermove', this.onPointerMove);
     this.canvas.removeEventListener('pointerup', this.onPointerUp);
@@ -323,18 +333,4 @@ export function disposeObjectTree(root: THREE.Object3D): void {
     const materials = Array.isArray(descendant.material) ? descendant.material : [descendant.material];
     for (const material of materials) material.dispose();
   });
-}
-
-function themePalette(theme: NonNullable<PlayerObservation['cells'][number]['visualRegion']>['theme'], condition: number, remembered: boolean, dark: boolean): { floor: number; wall: number } {
-  const palettes = {
-    dungeon: [0x3d4650, 0x74777a], cave: [0x263c35, 0x46594d], crypt: [0x403b43, 0x79717d],
-    store: [0x4b382c, 0x745943], treasure: [0x514225, 0x94743b], none: [0x252b33, 0x46505b],
-  } as const;
-  let [floor, wall] = palettes[theme];
-  const factor = (remembered ? 0.56 : 1) * (dark ? 0.72 : 1) * (1 - Math.min(2, condition) * 0.05);
-  const dim = (color: number): number => {
-    const r = Math.round(((color >>> 16) & 255) * factor); const g = Math.round(((color >>> 8) & 255) * factor); const b = Math.round((color & 255) * factor);
-    return (r << 16) | (g << 8) | b;
-  };
-  return { floor: dim(floor), wall: dim(wall) };
 }

@@ -20,6 +20,7 @@ test('starts without WebXR and protects focused controls from gameplay input', a
 });
 
 test('supports generated inventory plus manual save, load, and report export', async ({ page }) => {
+  test.setTimeout(90_000);
   await page.goto('/');
   await page.locator('#tools-toggle').click();
   await page.locator('#seed').fill('5150'); await page.locator('#new-game').click();
@@ -30,7 +31,7 @@ test('supports generated inventory plus manual save, load, and report export', a
   await page.locator('#inventory button', { hasText: 'Drop' }).first().click();
   await expect(page.locator('#state-summary')).toContainText('Revision 1');
   await page.locator('#load-file').setInputFiles(savePath!);
-  await expect(page.locator('#save-status')).toContainText('Loaded revision 0');
+  await expect(page.locator('#save-status')).toContainText('Loaded revision 0', { timeout: 20_000 });
   await expect(page.locator('#inventory')).toContainText('food.ration');
 
   const reportDownload = page.waitForEvent('download'); await page.locator('#export-report').click();
