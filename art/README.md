@@ -2,6 +2,20 @@
 
 The complete creation, export, registration, and validation workflow is documented in [`docs/MONSTER_ASSET_PIPELINE.md`](../docs/MONSTER_ASSET_PIPELINE.md).
 
+## Venus flytrap
+
+Original stylized carnivorous plant with a rooted leaf rosette, tall flexible stem, veined trap, red mouth lobes, interlocking teeth, and two animated vines. Generated using Blender 4.5 LTS; no external models or textures.
+
+- Source: `art/blender/creatures/venus-flytrap.blend`
+- Runtime: `public/assets/creatures/venus-flytrap.glb`
+- Preview: `art/previews/venus-flytrap.png`
+- Rig: 7 bones (root, stem, head, upper and lower mouth, two vines).
+- Clips: `idle` (trap breathing), `move` (rooted sway), `attack` (snap bite), `hurt` (stem recoil), `death` (wilt).
+- Height: approximately 1.2 m; Blender -Y / glTF +Z forward.
+
+Regenerate with `blender --background --python tools/blender/create_venus_flytrap.py`.
+Preview on the development server at `/model-preview.html?model=venus-flytrap`. Gameplay renderer integration remains pending.
+
 ## Yeti
 
 Original stylized alpine primate with a massive snow-fur silhouette, blue face and hands, icy eyes, long chin fur, teeth, and black claws. Generated using Blender 4.5 LTS; no external models or textures.
