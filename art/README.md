@@ -2,6 +2,20 @@
 
 The complete creation, export, registration, and validation workflow is documented in [`docs/MONSTER_ASSET_PIPELINE.md`](../docs/MONSTER_ASSET_PIPELINE.md).
 
+## Jabberwock
+
+Original stylized uncanny dragonkin with green scales, long snout and neck, oversized fangs, sweeping whiskers, horns, dorsal spines, and asymmetric violet wings. Generated using Blender 4.5 LTS; no external models or textures.
+
+- Source: `art/blender/creatures/jabberwock.blend`
+- Runtime: `public/assets/creatures/jabberwock.glb`
+- Preview: `art/previews/jabberwock.png`
+- Rig: 8 bones (root, body, neck, head, four legs).
+- Clips: `idle` (head watch), `move` (lurching bound), `attack` (jaw lunge and claw rake), `hurt` (recoil), `death` (side fall).
+- Height: approximately 1.65 m; Blender -Y / glTF +Z forward.
+
+Regenerate with `blender --background --python tools/blender/create_jabberwock.py`.
+Preview on the development server at `/model-preview.html?model=jabberwock`. Gameplay renderer integration remains pending.
+
 ## Griffin
 
 Original stylized eagle-lion griffin with golden forequarters, tawny hindquarters, broad wings, hooked beak, feathered neck, and long talons. Generated using Blender 4.5 LTS; no external models or textures.
