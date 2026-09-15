@@ -6,6 +6,7 @@ import { buildPrimitiveCells } from './scene-plan';
 import { nearestVisibleHit, smoothToward, type CameraMode } from './camera-model';
 import { createActorVisual, createDecorationVisual, createItemVisual, type ActorVisual } from './entity-visual';
 import { SceneGeneration } from './asset-cache';
+import { loadPropInto } from './prop-asset';
 import type { XrSessionLike } from '../xr/session-controller';
 import { DebouncedXrIntent, directionFromForward } from '../xr/input';
 import type { ActionRequest } from '../../engine/model/action';
@@ -83,7 +84,7 @@ export class ThreeGameView implements GameView {
   }
 
   update(observation: PlayerObservation, _events: PresentationEvent[]): void {
-    this.generation.next();
+    const sceneToken = this.generation.next();
     this.observation = observation;
     this.clearWorld();
     const floorGeometry = new THREE.PlaneGeometry(TILE, TILE);
@@ -133,8 +134,10 @@ export class ThreeGameView implements GameView {
         actor.root.userData = { cell: { ...entity.at }, eligible: true, occludes: false }; this.world.add(actor.root); this.actorVisuals.push(actor);
         if (movementTokens.has(entity.token)) actor.playMove();
       } else {
-        const item = createItemVisual(); item.position.set(entity.at.x, 0.23, entity.at.y);
-        item.userData = { cell: { ...entity.at }, eligible: true, occludes: false }; this.world.add(item);
+        const holder = new THREE.Group(); holder.position.set(entity.at.x, 0, entity.at.y);
+        const fallback = createItemVisual(); fallback.position.y = 0.23; holder.add(fallback);
+        holder.userData = { cell: { ...entity.at }, eligible: true, occludes: false }; this.world.add(holder);
+        if (entity.appearance === '*') void loadPropInto('/assets/props/gold.glb', holder, fallback, this.generation, sceneToken);
       }
     }
     if (movementTokens.size) { this.animationUntil = performance.now() + 280; this.ensureAnimation(); }
@@ -239,12 +242,11 @@ export class ThreeGameView implements GameView {
     const bounds = this.canvas.getBoundingClientRect();
     const pointer = new THREE.Vector2((event.clientX - bounds.left) / bounds.width * 2 - 1, -((event.clientY - bounds.top) / bounds.height) * 2 + 1);
     const ray = new THREE.Raycaster(); ray.setFromCamera(pointer, this.camera);
-    const selected = nearestVisibleHit(ray.intersectObjects(this.world.children).map(hit => ({
-      distance: hit.distance,
-      eligible: hit.object.userData.eligible === true,
-      occludes: hit.object.userData.occludes === true,
-      value: hit.object.userData.cell as { x: number; y: number },
-    })));
+    const selected = nearestVisibleHit(ray.intersectObjects(this.world.children, true).map(hit => {
+      const data = inheritedUserData(hit.object);
+      return { distance: hit.distance, eligible: data.eligible === true, occludes: data.occludes === true,
+        value: data.cell as { x: number; y: number } };
+    }));
     if (selected) this.canvas.dispatchEvent(new CustomEvent('rougexr-select-cell', { detail: selected }));
   };
   private readonly clearCapturedInput = (): void => {

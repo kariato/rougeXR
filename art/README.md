@@ -1,5 +1,17 @@
 # Blender creature assets
 
+## Gold pickup
+
+An original pouch and five embossed, tilted coins for an observed gold item. Decorative treasure-room coin scatter remains visually separate and cannot be collected.
+
+- Generator: `tools/blender/create_gold.py`
+- Source: `art/blender/props/gold.blend`
+- Runtime: `public/assets/props/gold.glb`
+- Preview: `art/previews/gold.png`
+- Floor-centered static GLB; no animation clips.
+
+Regenerate with `blender --background --python tools/blender/create_gold.py`. The first-person renderer uses this asset for visible gold pickups and keeps a primitive fallback until loading succeeds.
+
 The complete creation, export, registration, and validation workflow is documented in [`docs/MONSTER_ASSET_PIPELINE.md`](../docs/MONSTER_ASSET_PIPELINE.md).
 
 ## Dragon
