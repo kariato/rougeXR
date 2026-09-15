@@ -1,5 +1,17 @@
 # Blender creature assets
 
+## Potion pickup
+
+An original glass bottle with purple liquid, cork, brass bands, and wax seal for any observed potion. Its color is cosmetic and never identifies the hidden potion effect.
+
+- Generator: `tools/blender/create_potion.py`
+- Source: `art/blender/props/potion.blend`
+- Runtime: `public/assets/props/potion.glb`
+- Preview: `art/previews/potion.png`
+- Floor-centered static GLB; no animation clips.
+
+Regenerate with `blender --background --python tools/blender/create_potion.py`. The first-person renderer uses this for disclosed potion pickups with a primitive fallback.
+
 ## Gold pickup
 
 An original pouch and five embossed, tilted coins for an observed gold item. Decorative treasure-room coin scatter remains visually separate and cannot be collected.

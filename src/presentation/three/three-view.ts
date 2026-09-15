@@ -138,6 +138,7 @@ export class ThreeGameView implements GameView {
         const fallback = createItemVisual(); fallback.position.y = 0.23; holder.add(fallback);
         holder.userData = { cell: { ...entity.at }, eligible: true, occludes: false }; this.world.add(holder);
         if (entity.appearance === '*') void loadPropInto('/assets/props/gold.glb', holder, fallback, this.generation, sceneToken);
+        if (entity.appearance === '!') void loadPropInto('/assets/props/potion.glb', holder, fallback, this.generation, sceneToken);
       }
     }
     if (movementTokens.size) { this.animationUntil = performance.now() + 280; this.ensureAnimation(); }
