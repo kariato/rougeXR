@@ -7,6 +7,7 @@ import { nearestVisibleHit, smoothToward, type CameraMode } from './camera-model
 import { createActorVisual, createDecorationVisual, createItemVisual, type ActorVisual } from './entity-visual';
 import { SceneGeneration } from './asset-cache';
 import { loadPropInto } from './prop-asset';
+import { loadMonsterInto, observedMonsterAsset } from './monster-asset';
 import type { XrSessionLike } from '../xr/session-controller';
 import { DebouncedXrIntent, directionFromForward } from '../xr/input';
 import type { ActionRequest } from '../../engine/model/action';
@@ -37,6 +38,7 @@ export class ThreeGameView implements GameView {
   private frame: number | null = null;
   private lastFrame = 0;
   private actorVisuals: ActorVisual[] = [];
+  private monsterMixers: THREE.AnimationMixer[] = [];
   private animationUntil = 0;
   private lastAnimatedRevision = -1;
   private readonly generation = new SceneGeneration();
@@ -130,9 +132,12 @@ export class ThreeGameView implements GameView {
     if (movementTokens.has('player')) playerVisual.playMove();
     for (const entity of observation.entities) {
       if (entity.token.startsWith('monster-')) {
-        const actor = createActorVisual(0xc65353); actor.root.position.set(entity.at.x, 0, entity.at.y);
-        actor.root.userData = { cell: { ...entity.at }, eligible: true, occludes: false }; this.world.add(actor.root); this.actorVisuals.push(actor);
+        const actor = createActorVisual(0xc65353); const holder = new THREE.Group(); holder.position.set(entity.at.x, 0, entity.at.y);
+        holder.userData = { cell: { ...entity.at }, eligible: true, occludes: false }; holder.add(actor.root); this.world.add(holder); this.actorVisuals.push(actor);
         if (movementTokens.has(entity.token)) actor.playMove();
+        const assetId = observedMonsterAsset(entity);
+        if (assetId) void loadMonsterInto(assetId, holder, actor.root, this.generation, sceneToken,
+          movementTokens.has(entity.token), mixer => { this.monsterMixers.push(mixer); this.ensureAnimation(); });
       } else {
         const holder = new THREE.Group(); holder.position.set(entity.at.x, 0, entity.at.y);
         const fallback = createItemVisual(); fallback.position.y = 0.23; holder.add(fallback);
@@ -197,8 +202,9 @@ export class ThreeGameView implements GameView {
     this.worldScale = smoothToward(this.worldScale, this.targetWorldScale, 12, elapsed);
     this.world.scale.setScalar(this.worldScale);
     for (const visual of this.actorVisuals) visual.mixer.update(elapsed);
+    for (const mixer of this.monsterMixers) mixer.update(elapsed);
     this.placeCamera();
-    const moving = Math.abs(this.yaw - this.targetYaw) > 0.0001 || Math.abs(this.pitch - this.targetPitch) > 0.0001 || Math.abs(this.distance - this.targetDistance) > 0.001 || Math.abs(this.worldScale - this.targetWorldScale) > 0.0001 || now < this.animationUntil;
+    const moving = this.monsterMixers.length > 0 || Math.abs(this.yaw - this.targetYaw) > 0.0001 || Math.abs(this.pitch - this.targetPitch) > 0.0001 || Math.abs(this.distance - this.targetDistance) > 0.001 || Math.abs(this.worldScale - this.targetWorldScale) > 0.0001 || now < this.animationUntil;
     this.frame = moving ? requestAnimationFrame(this.animate) : null;
   };
 
@@ -281,6 +287,8 @@ export class ThreeGameView implements GameView {
   private clearWorld(): void {
     for (const visual of this.actorVisuals) visual.mixer.stopAllAction();
     this.actorVisuals = [];
+    for (const mixer of this.monsterMixers) mixer.stopAllAction();
+    this.monsterMixers = [];
     for (const child of [...this.world.children]) {
       this.world.remove(child);
       disposeObjectTree(child);
