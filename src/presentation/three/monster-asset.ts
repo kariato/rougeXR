@@ -20,6 +20,7 @@ export function observedMonsterAsset(entity: ObservedEntity): string | null {
   if (entity.label === 'G' || entity.label === 'monster.griffin') return 'griffin';
   if (entity.label === 'H' || entity.label === 'monster.hobgoblin') return 'hobgoblin';
   if (entity.label === 'I' || entity.label === 'monster.ice-monster') return 'ice-monster';
+  if (entity.label === 'J' || entity.label === 'monster.jabberwock') return 'jabberwock';
   return null;
 }
 
