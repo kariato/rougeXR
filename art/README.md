@@ -2,6 +2,20 @@
 
 The complete creation, export, registration, and validation workflow is documented in [`docs/MONSTER_ASSET_PIPELINE.md`](../docs/MONSTER_ASSET_PIPELINE.md).
 
+## Emu
+
+Original stylized flightless bird with a shaggy feather coat, long blue-gray neck and legs, alert amber eyes, small wings, and three-clawed feet. Generated using Blender 4.5 LTS; no external models or textures.
+
+- Source: `art/blender/creatures/emu.blend`
+- Runtime: `public/assets/creatures/emu.glb`
+- Preview: `art/previews/emu.png`
+- Rig: 8 bones (root, body, neck, head, two wings, two legs).
+- Clips: `idle` (watchful head sway), `move` (running stride), `attack` (peck and kick), `hurt` (recoil), `death` (side fall).
+- Height: approximately 2.05 m; Blender -Y / glTF +Z forward.
+
+Regenerate with `blender --background --python tools/blender/create_emu.py`.
+Preview on the development server at `/model-preview.html?model=emu`. Gameplay renderer integration remains pending.
+
 ## Medusa
 
 Original stylized gorgon with green stone skin, serpent dress, pointed ears, gold petrifying eyes, snake-hair locks and heads, and a gaze-focus gem. Generated using Blender 4.5 LTS; no external models or textures.
