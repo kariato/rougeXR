@@ -3,7 +3,7 @@ import type { PresentationEvent } from '../../engine/model/action';
 import type { PlayerObservation } from '../../engine/model/observation';
 import type { GameView } from '../game-view';
 import { buildCorridorWalls, buildPrimitiveCells, selectLitTorches } from './scene-plan';
-import { nearestVisibleHit, smoothToward, type CameraMode } from './camera-model';
+import { frontMonsterAttackRequest, nearestVisibleHit, smoothToward, type CameraMode } from './camera-model';
 import { createActorVisual, createDecorationVisual, createItemVisual, type ActorVisual } from './entity-visual';
 import { SceneGeneration } from './asset-cache';
 import { loadPropInto } from './prop-asset';
@@ -61,6 +61,7 @@ export class ThreeGameView implements GameView {
   private worldScale = 1;
   private targetWorldScale = 1;
   private dragging = false;
+  private suppressClick = false;
   private pointerId: number | null = null;
   private frame: number | null = null;
   private lastFrame = 0;
@@ -424,6 +425,7 @@ export class ThreeGameView implements GameView {
 
   private enqueueCameraAction(kind: CameraCue): void {
     const last=this.cameraActions.at(-1);const now=performance.now();
+    if (kind === 'attack') this.canvas.dataset.weaponAction = 'attack';
     this.cameraActions.push({start:last ? Math.max(now,last.start+last.duration) : now,duration:kind==='hurt' ? 320 : 380,kind});
   }
 
@@ -488,10 +490,12 @@ export class ThreeGameView implements GameView {
   }
 
   private readonly onPointerDown = (event: PointerEvent): void => {
+    this.suppressClick = false;
     this.dragging = true; this.pointerId = event.pointerId; this.canvas.setPointerCapture(event.pointerId);
   };
   private readonly onPointerMove = (event: PointerEvent): void => {
     if (!this.dragging || event.pointerId !== this.pointerId) return;
+    if (Math.abs(event.movementX) + Math.abs(event.movementY) > 1) this.suppressClick = true;
     this.targetYaw -= event.movementX * 0.006;
     this.targetPitch = Math.max(-1.35, Math.min(1.1, this.targetPitch - event.movementY * 0.004));
     this.ensureAnimation();
@@ -507,6 +511,15 @@ export class ThreeGameView implements GameView {
     this.ensureAnimation();
   };
   private readonly onClick = (event: MouseEvent): void => {
+    if (this.suppressClick) { this.suppressClick = false; return; }
+    if (event.button === 0 && this.mode === 'firstPerson' && this.observation) {
+      const forward = this.movementDirectionForPov(true);
+      const attack = frontMonsterAttackRequest(this.observation, forward.direction);
+      if (attack) {
+        this.canvas.dispatchEvent(new CustomEvent<ActionRequest>('rougexr-action', { detail: attack }));
+        return;
+      }
+    }
     const bounds = this.canvas.getBoundingClientRect();
     const pointer = new THREE.Vector2((event.clientX - bounds.left) / bounds.width * 2 - 1, -((event.clientY - bounds.top) / bounds.height) * 2 + 1);
     const ray = new THREE.Raycaster(); ray.setFromCamera(pointer, this.camera);

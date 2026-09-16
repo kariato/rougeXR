@@ -1,4 +1,7 @@
 export type CameraMode = 'firstPerson' | 'orbit' | 'tabletop';
+import type { ActionRequest } from '../../engine/model/action';
+import type { PlayerObservation } from '../../engine/model/observation';
+import type { Direction } from '../../engine/model/state';
 
 export interface SelectionHit<T> {
   distance: number;
@@ -20,4 +23,17 @@ export function nearestVisibleHit<T>(hits: SelectionHit<T>[]): T | null {
     if (hit.occludes) return null;
   }
   return null;
+}
+
+const DIRECTION_OFFSETS: Record<Direction, { x: number; y: number }> = {
+  N: { x: 0, y: -1 }, NE: { x: 1, y: -1 }, E: { x: 1, y: 0 }, SE: { x: 1, y: 1 },
+  S: { x: 0, y: 1 }, SW: { x: -1, y: 1 }, W: { x: -1, y: 0 }, NW: { x: -1, y: -1 },
+};
+
+/** Returns a bump-combat request only for a disclosed monster in the adjacent POV-forward cell. */
+export function frontMonsterAttackRequest(observation: PlayerObservation, direction: Direction): ActionRequest | null {
+  const offset = DIRECTION_OFFSETS[direction];
+  const target = { x: observation.playerAt.x + offset.x, y: observation.playerAt.y + offset.y };
+  if (!observation.entities.some(entity => entity.token.startsWith('monster-') && entity.at.x === target.x && entity.at.y === target.y)) return null;
+  return { expectedRevision: observation.revision, action: { type: 'move', direction, pickup: true } };
 }

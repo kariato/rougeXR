@@ -28,6 +28,22 @@ test('shows a first-person gesture for a resolved search action', async ({ page 
   expect(errors).toEqual([]);
 });
 
+test('primary click attacks an adjacent monster directly in front of the POV', async ({ page }) => {
+  const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
+  await page.goto('/'); await page.locator('#tools-toggle').click();
+  await page.locator('#world-mode').selectOption('kestrel'); await page.locator('#new-game').click();
+  await page.locator('h1').click(); await page.keyboard.press('d');
+  await expect(page.locator('#state-summary')).toContainText('Revision 1');
+  await page.locator('#turn-angle').selectOption('90');
+  await page.locator('#turn-right').click();
+  await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-pov-direction', 'E');
+  await page.locator('#dungeon-3d').click({ position: { x: 640, y: 330 } });
+  await expect(page.locator('#state-summary')).toContainText('Revision 2');
+  await expect(page.locator('#messages')).toContainText(/You (hit|missed)/);
+  await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-weapon-action', 'attack');
+  expect(errors).toEqual([]);
+});
+
 test('keeps a slain monster in its death pose after a turn and a map switch', async ({ page }) => {
   test.setTimeout(90_000);
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));

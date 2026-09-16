@@ -253,7 +253,12 @@ threeView.canvas.addEventListener('rougexr-select-cell', event => {
 threeView.canvas.addEventListener('rougexr-xr-action', event => {
   const request = (event as CustomEvent<{ expectedRevision: number; action: GameAction }>).detail;
   if (replayPlayer) return;
-  enqueue(request.action, request.expectedRevision);
+  enqueue(request.action, request.expectedRevision, 'xr');
+});
+threeView.canvas.addEventListener('rougexr-action', event => {
+  const request = (event as CustomEvent<{ expectedRevision: number; action: GameAction }>).detail;
+  if (replayPlayer) return;
+  enqueue(request.action, request.expectedRevision, 'mouse');
 });
 reveal.addEventListener('change', render);
 eventFilter.addEventListener('change', render);
@@ -303,12 +308,12 @@ function submit(action: GameAction): void {
   if (replayPlayer) { replayStatus.textContent = 'Live input is locked during replay. Start a New Game to exit.'; return; }
   enqueue(action);
 }
-function enqueue(action: GameAction, capturedRevision?: number): void {
+function enqueue(action: GameAction, capturedRevision?: number, source?: 'xr' | 'mouse'): void {
   actionQueue = actionQueue.then(async () => {
     const expectedRevision = capturedRevision ?? session.exportState().timing.revision;
     const started = performance.now();
     const resolution = session.submit({ expectedRevision, action }); latestEvents = resolution.events;
-    if (capturedRevision !== undefined) xrStatus.textContent = resolution.status === 'rejected'
+    if (source === 'xr') xrStatus.textContent = resolution.status === 'rejected'
       ? `XR action rejected: ${resolution.reason ?? 'blocked'}.` : `XR action committed at revision ${resolution.revision}.`;
     const engineMs = performance.now() - started;
     const snapshot = session.exportState();
