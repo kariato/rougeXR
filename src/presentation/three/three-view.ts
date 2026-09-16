@@ -7,6 +7,7 @@ import { nearestVisibleHit, smoothToward, type CameraMode } from './camera-model
 import { createActorVisual, createDecorationVisual, createItemVisual, type ActorVisual } from './entity-visual';
 import { SceneGeneration } from './asset-cache';
 import { loadPropInto } from './prop-asset';
+import { equippedWeaponAsset, type WeaponAsset } from './weapon-asset';
 import { loadMonsterInto, observedMonsterAsset, type MonsterCue } from './monster-asset';
 import { ROOM_LOOKS, RoomMaterialCatalog } from './room-materials';
 import { roomFacingForDoor, doorOpenProgress } from './door-model';
@@ -40,6 +41,7 @@ export class ThreeGameView implements GameView {
   private readonly scene = new THREE.Scene();
   private readonly camera = new THREE.PerspectiveCamera(68, 1, 0.05, 120);
   private readonly hand = createFirstPersonHand();
+  private readonly weaponMount = new THREE.Group();
   private readonly world = new THREE.Group();
   private readonly corpseWorld = new THREE.Group();
   private readonly roomMaterials = new RoomMaterialCatalog();
@@ -72,7 +74,10 @@ export class ThreeGameView implements GameView {
   private lastAnimatedRevision = -1;
   private readonly generation = new SceneGeneration();
   private readonly corpseGeneration = new SceneGeneration();
+  private readonly weaponGeneration = new SceneGeneration();
   private corpseToken = this.corpseGeneration.next();
+  private weaponToken = this.weaponGeneration.next();
+  private equippedWeaponId: string | null = null;
   private readonly xrIntent = new DebouncedXrIntent();
   private readonly xrControllers: THREE.Group[] = [];
 
@@ -89,6 +94,12 @@ export class ThreeGameView implements GameView {
     this.scene.add(this.ambient);
     this.lamp.position.set(0, 1.3, 0);
     this.camera.add(this.lamp);
+    this.weaponMount.name = 'first-person-weapon';
+    this.weaponMount.position.set(0, 0.045, -0.055);
+    // Blender exports the weapon's long axis as Three.js +Y. Raise it into view
+    // while canting it forward, rather than aiming it edge-on down the camera axis.
+    this.weaponMount.rotation.set(-0.9, 0, -0.12);
+    this.hand.add(this.weaponMount);
     this.camera.add(this.hand);
     this.scene.add(this.camera);
     for (let index = 0; index < 2; index++) {
@@ -149,6 +160,7 @@ export class ThreeGameView implements GameView {
       if (corpse) { corpse.facing = this.actorFacings.get(event.token) ?? corpse.facing; if (corpse.holder) corpse.holder.rotation.y = corpse.facing; }
     }
     this.observation = observation;
+    this.updateHandWeapon(observation);
     this.canvas.dataset.playerAt = `${observation.playerAt.x},${observation.playerAt.y}`;
     this.canvas.dataset.povDirection = directionFromForward(Math.sin(this.targetYaw), Math.cos(this.targetYaw));
     this.clearWorld();
@@ -360,6 +372,7 @@ export class ThreeGameView implements GameView {
 
   dispose(): void {
     this.generation.next();
+    this.weaponGeneration.next();
     this.canvas.hidden = true;
     this.clearWorld();
     for (const corpse of this.corpses.values()) this.finishCorpse(corpse);
@@ -537,6 +550,37 @@ export class ThreeGameView implements GameView {
       disposeObjectTree(child);
     }
   }
+
+  private updateHandWeapon(observation: PlayerObservation): void {
+    const asset = equippedWeaponAsset(observation);
+    if (asset?.id === this.equippedWeaponId) return;
+    this.equippedWeaponId = asset?.id ?? null;
+    this.weaponToken = this.weaponGeneration.next();
+    for (const child of [...this.weaponMount.children]) {
+      this.weaponMount.remove(child);
+      disposeObjectTree(child);
+    }
+    this.canvas.dataset.equippedWeapon = asset?.id ?? 'none';
+    delete this.canvas.dataset.equippedWeaponModel;
+    if (!asset) return;
+    this.weaponMount.scale.setScalar(asset.scale);
+    const fallback = createWeaponFallback(asset);
+    this.weaponMount.add(fallback);
+    void loadPropInto(asset.url, this.weaponMount, fallback, this.weaponGeneration, this.weaponToken, () => {
+      this.canvas.dataset.equippedWeaponModel = 'loaded';
+      this.ensureAnimation();
+    });
+  }
+}
+
+function createWeaponFallback(asset: WeaponAsset): THREE.Object3D {
+  const holder = new THREE.Group();
+  const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.2, 8), new THREE.MeshStandardMaterial({ color: 0x4a2d1b, roughness: 0.9, depthTest: false }));
+  const head = new THREE.Mesh(asset.id.includes('sword') || asset.id === 'dagger'
+    ? new THREE.BoxGeometry(0.055, 0.5, 0.015) : new THREE.SphereGeometry(0.08, 8, 6),
+    new THREE.MeshStandardMaterial({ color: 0xa7adb3, metalness: 0.75, roughness: 0.35, depthTest: false }));
+  grip.position.y = 0.1; head.position.y = asset.id.includes('sword') || asset.id === 'dagger' ? 0.46 : 0.25;
+  holder.add(grip, head); return holder;
 }
 
 function inheritedUserData(object: THREE.Object3D): Record<string, unknown> {

@@ -80,7 +80,8 @@ export function observe(state: WorldState): PlayerObservation {
   const inventory = state.player.packOrder.map(id => {
     const item = state.entities[id]; if (item?.kind !== 'item') throw new Error('Invalid player pack');
     const equippedSlot = Object.entries(state.player.equipment).find(([, equipped]) => equipped === id)?.[0] ?? null;
-    return { token: item.id, label: observedItemLabel(state, item), quantity: item.quantity, category: item.category, equippedSlot };
+    return { token: item.id, label: observedItemLabel(state, item), quantity: item.quantity, category: item.category, equippedSlot,
+      assetKey: item.category === 'weapon' ? item.definitionId : null };
   });
   const decorations = state.level.rooms.flatMap(room => room.design.decorations.flatMap(decoration => {
     if (room.design.theme === 'treasure' && !revealedTreasureRooms.has(room.id)) return [];

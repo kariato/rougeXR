@@ -349,6 +349,8 @@ Completion: repeated seeds reproduce decoration exactly; 100 generated levels ha
 ### 14.7 — First-person feedback
 
 - Add a subtle weapon or hand presence tied to equipped items, with presentation-only idle, move, attack, and recoil animation.
+
+Equipped-weapon presence implemented 2026-09-16. `PlayerObservation.inventory.assetKey` discloses the immutable definition ID for carried weapons, independently of their randomized or player-assigned display label. The Three.js view maps all nine source weapon definitions to dedicated files under `public/assets/weapons/`, attaches the selected GLB to a camera-space hand socket, and replaces it immediately when equipment changes. The hand's existing resolved-event motion carries the weapon through attack, cast, consume, and interaction poses without changing engine timing. The weapon remains depth-tested against the dungeon, while the hand stays legible as the fallback foreground cue. `tools/blender/create_weapons.py` regenerates the nine editable `.blend` files, runtime `.glb` files, and review PNGs in one headless Blender run.
 - Add restrained head bob, footstep cadence, doorway response, and camera impulse with reduced-motion and XR-safe profiles.
 - Translate resolved combat events into hit flashes, directional damage vignette, contact particles, floating dust, and concise message overlays.
 - Add interaction highlights that cannot be confused with collectible objects, traps, or authoritative targeting state.
