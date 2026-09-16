@@ -13,6 +13,7 @@ test('loads the visible treasure chest and wall torch in generated first-person 
   await page.locator('#new-game').click();
   await expect(page.locator('#dungeon-3d')).toBeVisible();
   await expect.poll(() => loaded.has('/assets/props/crate.glb'), { timeout: 20_000 }).toBe(true);
+  await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-chest-animation', 'open');
   await expect.poll(() => loaded.has('/assets/props/torch.glb'), { timeout: 20_000 }).toBe(true);
   expect(errors).toEqual([]);
 });

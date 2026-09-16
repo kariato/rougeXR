@@ -12,6 +12,7 @@ import { loadMonsterInto, observedMonsterAsset, type MonsterCue } from './monste
 import { ROOM_LOOKS, RoomMaterialCatalog } from './room-materials';
 import { roomFacingForDoor, doorOpenProgress } from './door-model';
 import { createDoorFallback, loadDoorInto } from './door-asset';
+import { loadChestInto } from './chest-asset';
 import type { XrSessionLike } from '../xr/session-controller';
 import { DebouncedXrIntent, directionFromForward } from '../xr/input';
 import type { ActionRequest } from '../../engine/model/action';
@@ -65,6 +66,7 @@ export class ThreeGameView implements GameView {
   private lastFrame = 0;
   private actorVisuals: ActorVisual[] = [];
   private monsterMixers: THREE.AnimationMixer[] = [];
+  private decorationMixers: THREE.AnimationMixer[] = [];
   private doorVisuals: DoorVisual[] = [];
   private readonly openedDoors = new Map<string, number>();
   private actorFacings = new Map<string, number>();
@@ -242,7 +244,12 @@ export class ThreeGameView implements GameView {
       if (decoration.kind === 'coinScatter') void loadPropInto('/assets/props/coinScatter.glb', holder, fallback, this.generation, sceneToken);
       if (decoration.kind === 'bones') void loadPropInto('/assets/props/bones.glb?v=2', holder, fallback, this.generation, sceneToken, () => this.ensureAnimation());
       if (decoration.kind === 'mushroom') void loadPropInto('/assets/props/mushroom.glb?v=2', holder, fallback, this.generation, sceneToken, () => this.ensureAnimation());
-      if (decoration.kind === 'crate') void loadPropInto('/assets/props/crate.glb?v=2', holder, fallback, this.generation, sceneToken, () => this.ensureAnimation());
+      if (decoration.kind === 'crate') void loadChestInto(holder, fallback, this.generation, sceneToken, (mixer, duration) => {
+        this.decorationMixers.push(mixer);
+        this.animationUntil = Math.max(this.animationUntil, performance.now() + duration * 1000);
+        this.canvas.dataset.chestAnimation = 'open';
+        this.ensureAnimation();
+      });
       if (decoration.kind === 'urn') void loadPropInto('/assets/props/urn.glb', holder, fallback, this.generation, sceneToken);
     }
 
@@ -438,6 +445,7 @@ export class ThreeGameView implements GameView {
     this.world.scale.setScalar(this.worldScale);
     for (const visual of this.actorVisuals) visual.mixer.update(elapsed);
     for (const mixer of this.monsterMixers) mixer.update(elapsed);
+    for (const mixer of this.decorationMixers) mixer.update(elapsed);
     for (const door of this.doorVisuals) {
       if (door.openedAt === null) continue;
       door.hinge.rotation.y = -Math.PI / 2 * doorOpenProgress(door.openedAt, now);
@@ -542,6 +550,8 @@ export class ThreeGameView implements GameView {
     this.actorVisuals = [];
     for (const mixer of this.monsterMixers) mixer.stopAllAction();
     this.monsterMixers = [];
+    for (const mixer of this.decorationMixers) mixer.stopAllAction();
+    this.decorationMixers = [];
     for (const door of this.doorVisuals) door.mixer?.stopAllAction();
     this.doorVisuals = [];
     for (const child of [...this.world.children]) {

@@ -36,7 +36,13 @@ elif N=='urn':
  for s in (-1,1):o=tor(f'handle_{s}',(s*.18,0,.48),.105,.023,light);o.rotation_euler.y=math.pi/2
 elif N=='crate':
  # Keep the historical 'crate' asset ID while giving it a clear treasure-chest silhouette.
- cube('chest_coffer',(0,0,.22),(.54,.39,.37),wood)
+ # Build an actual hollow coffer so the opened lid reveals an empty dark interior.
+ cube('chest_floor',(0,0,.055),(.54,.39,.08),wood)
+ cube('chest_front',(0,-.18,.22),(.54,.045,.33),wood)
+ cube('chest_back',(0,.18,.22),(.54,.045,.33),wood)
+ cube('chest_left',(-.247,0,.22),(.045,.32,.33),wood)
+ cube('chest_right',(.247,0,.22),(.045,.32,.33),wood)
+ cube('empty_interior',(0,0,.10),(.44,.29,.018),dark)
  cube('dark_lid_seam',(0,-.208,.405),(.55,.015,.028),dark)
  cube('front_brass_rim',(0,-.211,.39),(.56,.027,.035),gold)
  cube('front_base_rim',(0,-.211,.045),(.56,.027,.033),iron)
@@ -54,6 +60,17 @@ elif N=='crate':
  cube('rear_brass_rim',(0,.211,.39),(.56,.027,.035),gold)
  for x in (-.245,.245):cube(f'rear_corner_guard_{x}',(x,.218,.22),(.036,.029,.34),iron)
  for side in (-1,1):cube(f'side_brass_lockplate_{side}',(side*.278,0,.30),(.015,.14,.12),gold)
+ # The lid hierarchy pivots at the rear rim and exports one clamped opening clip.
+ bpy.ops.object.empty_add(type='PLAIN_AXES',location=(0,.205,.405));hinge=bpy.context.object;hinge.name='chest_lid_hinge'
+ lid_names=('dark_lid_seam','front_brass_rim','rear_brass_rim','front_hasplock','keyhole','lock_rivet')
+ lid_parts=[o for o in sc.objects if o.name.startswith(('arched_lid_panel_','curved_iron_band_','front_rivet_')) or o.name in lid_names]
+ for o in lid_parts:
+  world=o.matrix_world.copy();o.parent=hinge;o.matrix_world=world
+ hinge.rotation_mode='XYZ';hinge.rotation_euler.x=0;hinge.keyframe_insert('rotation_euler',frame=1,index=0)
+ hinge.rotation_euler.x=math.radians(-112);hinge.keyframe_insert('rotation_euler',frame=25,index=0)
+ action=hinge.animation_data.action;action.name='open'
+ for curve in action.fcurves:
+  for point in curve.keyframe_points:point.interpolation='BEZIER'
 elif N=='torch':
  cube('wall_backplate',(0,0,0),(.23,.035,.29),iron)
  for z in (-.105,.105):ico(f'plate_rivet_{z}',(0,-.024,z),(.018,.008,.018),gold)
@@ -151,9 +168,10 @@ elif N=='stick':
  for x in (-.15,.08):o=tor(f'metal_band_{x}',(x,0,.10),.028,.009,gold);o.rotation_euler.y=math.pi/2
 bpy.ops.wm.save_as_mainfile(filepath=str(S));bpy.ops.object.select_all(action='DESELECT')
 for o in sc.objects:
- if o.type=='MESH':o.select_set(True)
-bpy.ops.export_scene.gltf(filepath=str(E),export_format='GLB',use_selection=True,export_animations=False)
+ if o.type=='MESH' or (N=='crate' and o.name=='chest_lid_hinge'):o.select_set(True)
+bpy.ops.export_scene.gltf(filepath=str(E),export_format='GLB',use_selection=True,export_animations=N=='crate',export_animation_mode='ACTIONS' if N=='crate' else 'ACTIONS')
 target_height=.10 if N in ('rubble','bones','coinScatter','scroll','food','ring','stick') else .52 if N=='pillar' else .42 if N in ('weapon','amulet') else .15 if N=='armor' else .08 if N=='torch' else .30
 preview_scale=1.65 if N=='pillar' else 1.35 if N=='bones' else 1.20 if N in ('weapon','armor','amulet','crate') else 1.10 if N=='mushroom' else 1.05 if N=='urn' else .8
+if N=='crate':sc.frame_set(25)
 bpy.ops.object.camera_add(location=(1.0,-1.8,1.35));cam=bpy.context.object;cam.rotation_euler=(Vector((0,0,target_height))-cam.location).to_track_quat('-Z','Y').to_euler();cam.data.type='ORTHO';cam.data.ortho_scale=preview_scale;sc.camera=cam
 sc.render.engine='BLENDER_WORKBENCH';sc.display.shading.light='STUDIO';sc.display.shading.color_type='MATERIAL';sc.display.shading.show_shadows=True;sc.display.shading.show_cavity=True;sc.display.shading.background_type='WORLD';sc.world.color=(.035,.045,.065);sc.render.resolution_x=900;sc.render.resolution_y=700;sc.render.resolution_percentage=100;sc.render.image_settings.file_format='PNG';sc.render.filepath=str(P);bpy.ops.render.render(write_still=True);print('CREATED',S,E,P)
