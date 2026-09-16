@@ -44,6 +44,22 @@ test('primary click attacks an adjacent monster directly in front of the POV', a
   expect(errors).toEqual([]);
 });
 
+test('falls to a ground-level upward view when the player dies', async ({ page }) => {
+  test.setTimeout(90_000);
+  const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
+  await page.goto('/'); await page.locator('#tools-toggle').click();
+  await page.locator('#world-mode').selectOption('kestrel'); await page.locator('#new-game').click();
+  for (let revision = 1; revision <= 30; revision++) {
+    if ((await page.locator('#state-summary').innerText()).includes('dead')) break;
+    await page.locator('#rest').click();
+    await expect(page.locator('#state-summary')).toContainText(`Revision ${revision}`);
+  }
+  await expect(page.locator('#state-summary')).toContainText('dead');
+  await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-player-death', 'grounded-looking-up', { timeout: 3_000 });
+  await page.locator('#dungeon-3d').screenshot({ path: 'test-results/player-death-looking-up.png' });
+  expect(errors).toEqual([]);
+});
+
 test('keeps a slain monster in its death pose after a turn and a map switch', async ({ page }) => {
   test.setTimeout(90_000);
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));

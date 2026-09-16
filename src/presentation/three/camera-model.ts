@@ -16,6 +16,13 @@ export function smoothToward(current: number, target: number, response: number, 
   return target + (current - target) * Math.exp(-Math.max(0, response) * elapsedSeconds);
 }
 
+/** Smooth one-way fall progress that stays at the final ground pose. */
+export function deathFallProgress(startedAt: number | null, now: number, duration = 1400): number {
+  if (startedAt === null) return 0;
+  const linear = Math.max(0, Math.min(1, (now - startedAt) / duration));
+  return linear * linear * (3 - 2 * linear);
+}
+
 /** Returns the nearest eligible hit, unless nearer geometry blocks it. */
 export function nearestVisibleHit<T>(hits: SelectionHit<T>[]): T | null {
   for (const hit of [...hits].sort((a, b) => a.distance - b.distance)) {

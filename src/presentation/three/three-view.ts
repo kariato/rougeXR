@@ -3,7 +3,7 @@ import type { PresentationEvent } from '../../engine/model/action';
 import type { PlayerObservation } from '../../engine/model/observation';
 import type { GameView } from '../game-view';
 import { buildCorridorWalls, buildPrimitiveCells, selectLitTorches } from './scene-plan';
-import { frontMonsterAttackRequest, nearestVisibleHit, smoothToward, type CameraMode } from './camera-model';
+import { deathFallProgress, frontMonsterAttackRequest, nearestVisibleHit, smoothToward, type CameraMode } from './camera-model';
 import { createActorVisual, createDecorationVisual, createItemVisual, type ActorVisual } from './entity-visual';
 import { SceneGeneration } from './asset-cache';
 import { loadPropInto } from './prop-asset';
@@ -74,6 +74,7 @@ export class ThreeGameView implements GameView {
   private readonly corpses = new Map<string, CorpseRecord>();
   private cameraActions: Array<{ start: number; duration: number; kind: CameraCue }> = [];
   private animationUntil = 0;
+  private deathStartedAt: number | null = null;
   private lastAnimatedRevision = -1;
   private readonly generation = new SceneGeneration();
   private readonly corpseGeneration = new SceneGeneration();
@@ -134,7 +135,9 @@ export class ThreeGameView implements GameView {
   update(observation: PlayerObservation, _events: PresentationEvent[]): void {
     const sceneToken = this.generation.next();
     const freshEvents = observation.revision === this.lastAnimatedRevision ? [] : _events;
-    if (observation.revision === 0 || freshEvents.some(event => event.type === 'levelViewReset')) {this.actorFacings.clear();this.cameraActions=[];}
+    if (observation.revision === 0 || freshEvents.some(event => event.type === 'levelViewReset')) {
+      this.actorFacings.clear();this.cameraActions=[];this.deathStartedAt=null;delete this.canvas.dataset.playerDeath;
+    }
     const actorCues = new Map<string, ActorCue[]>();
     const addCue=(token:string,cue:ActorCue):void=>{const sequence=actorCues.get(token) ?? [];sequence.push(cue);actorCues.set(token,sequence);};
     for (const event of freshEvents) {
@@ -149,7 +152,13 @@ export class ThreeGameView implements GameView {
         if (event.hit) addCue(event.defenderToken,'hurt');
         if (event.attackerToken === 'player') { this.targetYaw=towardDefender;this.enqueueCameraAction('attack'); }
         else if (event.defenderToken === 'player' && event.hit) this.enqueueCameraAction('hurt');
-      } else if (event.type === 'visibleDefeat') addCue(event.token,'death');
+      } else if (event.type === 'visibleDefeat') {
+        addCue(event.token,'death');
+        if (event.token === 'player' && this.deathStartedAt === null) {
+          this.deathStartedAt = performance.now(); this.canvas.dataset.playerDeath = 'falling';
+          this.animationUntil = Math.max(this.animationUntil, this.deathStartedAt + 1400); this.ensureAnimation();
+        }
+      }
       else if (event.type === 'visiblePlayerAction') {
         addCue('player','gesture');
         this.enqueueCameraAction(event.action==='rest' ? 'rest' : ['eat','drink','read'].includes(event.action) ? 'consume'
@@ -340,7 +349,8 @@ export class ThreeGameView implements GameView {
   resetPresentation(): void {
     this.clearCorpses();
     this.openedDoors.clear();
-    this.actorFacings.clear(); this.cameraActions = []; this.lastAnimatedRevision = -1;
+    this.actorFacings.clear(); this.cameraActions = []; this.deathStartedAt = null; this.lastAnimatedRevision = -1;
+    delete this.canvas.dataset.playerDeath;
     this.canvas.dataset.visibleCorpses = '0';
     this.canvas.dataset.visibleDoors = '0'; this.canvas.dataset.openDoors = '0';
   }
@@ -472,13 +482,16 @@ export class ThreeGameView implements GameView {
       const action=this.cameraActions[0];const progress=action ? (performance.now()-action.start)/action.duration : 1;
       const pulse=action && progress>=0 && progress<1 ? Math.sin(Math.PI*progress) : 0;
       const bob=pulse*(action?.kind==='hurt' ? -.11 : action?.kind==='rest' ? .015 : action?.kind==='interact' ? -.025 : -.06);
-      this.hand.position.set(.36-pulse*(action?.kind==='consume' ? .15 : 0),-.34+pulse*(action?.kind==='consume' ? .12 : 0),
+      const death = deathFallProgress(this.deathStartedAt, performance.now());
+      this.hand.position.set(.36-pulse*(action?.kind==='consume' ? .15 : 0)+death*.22,-.34+pulse*(action?.kind==='consume' ? .12 : 0)-death*.72,
         -.63-pulse*(action?.kind==='attack' ? .28 : action?.kind==='cast' ? .25 : action?.kind==='interact' ? .16 : action?.kind==='consume' ? -.17 : 0));
-      this.hand.rotation.x=pulse*(action?.kind==='attack' ? -.95 : action?.kind==='cast' ? -.7 : action?.kind==='interact' ? -.42 : action?.kind==='consume' ? .4 : action?.kind==='hurt' ? .2 : 0);
-      this.hand.rotation.y=pulse*(action?.kind==='attack' || action?.kind==='cast' ? -.35 : 0);
-      this.camera.position.set(player.x, 0.72+bob, player.y);
+      this.hand.rotation.x=pulse*(action?.kind==='attack' ? -.95 : action?.kind==='cast' ? -.7 : action?.kind==='interact' ? -.42 : action?.kind==='consume' ? .4 : action?.kind==='hurt' ? .2 : 0)+death*.85;
+      this.hand.rotation.y=pulse*(action?.kind==='attack' || action?.kind==='cast' ? -.35 : 0)+death*.4;
+      this.camera.position.set(player.x, 0.72+bob-death*.60, player.y);
       const horizontal = Math.cos(this.pitch);
-      this.camera.lookAt(player.x + Math.sin(this.yaw) * horizontal, 0.72 + Math.sin(this.pitch), player.y + Math.cos(this.yaw) * horizontal);
+      this.camera.lookAt(player.x + Math.sin(this.yaw) * horizontal, 0.72 + Math.sin(this.pitch)+death*.72, player.y + Math.cos(this.yaw) * horizontal);
+      this.camera.rotateZ(death*.42);
+      if (death >= 1) this.canvas.dataset.playerDeath = 'grounded-looking-up';
     } else {
       const targetX = (this.mode === 'tabletop' ? observation.width / 2 : player.x) * this.worldScale;
       const targetZ = (this.mode === 'tabletop' ? observation.height / 2 : player.y) * this.worldScale;

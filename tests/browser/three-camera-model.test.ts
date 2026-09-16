@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { frontMonsterAttackRequest, nearestVisibleHit, smoothToward } from '../../src/presentation/three/camera-model';
+import { deathFallProgress, frontMonsterAttackRequest, nearestVisibleHit, smoothToward } from '../../src/presentation/three/camera-model';
 import type { PlayerObservation } from '../../src/engine/model/observation';
 
 describe('desktop 3D camera model', () => {
@@ -38,5 +38,15 @@ describe('first-person click combat', () => {
   it('does not attack monsters beside the POV or beyond one Rogue cell', () => {
     expect(frontMonsterAttackRequest(observation({ x: 2, y: 1 }), 'E')).toBeNull();
     expect(frontMonsterAttackRequest(observation({ x: 4, y: 2 }), 'E')).toBeNull();
+  });
+});
+
+describe('player death camera fall', () => {
+  it('eases from standing to a persistent ground pose', () => {
+    expect(deathFallProgress(null, 5000)).toBe(0);
+    expect(deathFallProgress(1000, 1000)).toBe(0);
+    expect(deathFallProgress(1000, 1700)).toBeCloseTo(0.5);
+    expect(deathFallProgress(1000, 2400)).toBe(1);
+    expect(deathFallProgress(1000, 9000)).toBe(1);
   });
 });
