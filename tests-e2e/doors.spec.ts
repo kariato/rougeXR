@@ -16,6 +16,12 @@ test('loads a room-facing GLB doorway and keeps it open after crossing', async (
     await page.keyboard.press('d');
     await expect(page.locator('#state-summary')).toContainText(`Revision ${revision}`);
   }
+  // At first entry only the two perpendicular side walls may be inferred. The
+  // undisclosed continuation ahead must remain open rather than becoming a cap.
+  await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-corridor-walls', '2');
+  await page.locator('#turn-angle').selectOption('90'); await page.locator('#turn-right').click();
+  await page.waitForTimeout(250);
+  await page.locator('#dungeon-3d').screenshot({ path: 'test-results/corridor-first-entry.png' });
   await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-open-doors', '1');
   await expect.poll(async () => Number(await page.locator('#dungeon-3d').getAttribute('data-corridor-walls'))).toBeGreaterThan(0);
   await page.waitForTimeout(900);

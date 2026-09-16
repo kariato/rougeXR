@@ -39,8 +39,16 @@ export function buildCorridorWalls(cells: readonly PrimitiveCell[]): CorridorWal
   const walls: CorridorWall[] = [];
   for (const cell of cells) {
     if (cell.kind !== 'passage') continue;
-    for (const [dx, dz] of [[0, -1], [1, 0], [0, 1], [-1, 0]] as const) {
+    const directions = [[0, -1], [1, 0], [0, 1], [-1, 0]] as const;
+    const connectedAxes = new Set(directions.filter(([dx, dz]) => connected(cell.x + dx, cell.z + dz))
+      .map(([dx]) => dx === 0 ? 'z' : 'x'));
+    for (const [dx, dz] of directions) {
       if (connected(cell.x + dx, cell.z + dz)) continue;
+      const neighborKnown = byPosition.has(`${cell.x + dx},${cell.z + dz}`);
+      const sideAxis = dx === 0 ? 'z' : 'x';
+      // An absent cell may be the still-undisclosed continuation ahead. Infer only
+      // perpendicular side walls from a single known corridor axis; never cap fog.
+      if (!neighborKnown && (connectedAxes.size !== 1 || connectedAxes.has(sideAxis))) continue;
       walls.push({ x: cell.x + dx * .47, z: cell.z + dz * .47, axis: dx === 0 ? 'x' : 'z', theme: cell.theme,
         condition: cell.condition, dark: cell.dark, remembered: cell.visibility === 'remembered' });
     }

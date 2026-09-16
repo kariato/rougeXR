@@ -33,8 +33,22 @@ describe('desktop 3D scene plan', () => {
       status: { hp: 1, maxHp: 1, gold: 0, depth: 1, hungerStage: 0 }, inventory: [], pendingDecision: null };
     const walls = buildCorridorWalls(buildPrimitiveCells(observation));
     expect(walls.filter(wall => wall.x === 1)).toHaveLength(2);
-    expect(walls).toHaveLength(5);
+    expect(walls).toHaveLength(4);
     expect(walls.some(wall => wall.z === 0 && wall.x > .5 && wall.x < 1.5)).toBe(false);
+    expect(walls.some(wall => wall.z === 0 && wall.x > 2)).toBe(false);
+  });
+
+  it('does not build a false end wall across an undisclosed corridor continuation', () => {
+    const cells = [
+      { x: 0, z: 0, kind: 'door', visibility: 'remembered', theme: 'dungeon', condition: 0, dark: false },
+      { x: 1, z: 0, kind: 'passage', visibility: 'visible', theme: 'dungeon', condition: 0, dark: false },
+    ] as const;
+    const walls = buildCorridorWalls(cells);
+    expect(walls).toEqual(expect.arrayContaining([
+      expect.objectContaining({ x: 1, z: -.47, axis: 'x' }),
+      expect.objectContaining({ x: 1, z: .47, axis: 'x' }),
+    ]));
+    expect(walls.some(wall => wall.axis === 'z')).toBe(false);
   });
 
   it('lights at most four currently visible torches and excludes remembered or reserved cells', () => {
