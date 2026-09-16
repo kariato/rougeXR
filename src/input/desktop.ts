@@ -2,13 +2,19 @@ import type { GameAction } from '../engine/model/action';
 import type { Direction } from '../engine/model/state';
 
 const MOVEMENT_KEYS: Readonly<Record<string, Direction>> = {
-  ArrowUp: 'N', w: 'N', k: 'N', ArrowRight: 'E', d: 'E', l: 'E', ArrowDown: 'S', s: 'S', j: 'S',
-  ArrowLeft: 'W', a: 'W', h: 'W', q: 'NW', y: 'NW', e: 'NE', u: 'NE', z: 'SW', b: 'SW', c: 'SE', n: 'SE',
+  w: 'N', k: 'N', d: 'E', l: 'E', s: 'S', j: 'S',
+  a: 'W', h: 'W', q: 'NW', y: 'NW', e: 'NE', u: 'NE', z: 'SW', b: 'SW', c: 'SE', n: 'SE',
 };
 
 export interface KeyboardInput {
   key: string; repeat: boolean; target: EventTarget | null;
   preventDefault(): void;
+}
+export type PovArrowCommand = 'turnLeft' | 'turnRight' | 'forward' | 'backward';
+
+export function povCommandForKeyboardEvent(event: KeyboardInput): PovArrowCommand | null {
+  if (event.repeat || isEditableTarget(event.target)) return null;
+  return ({ ArrowLeft: 'turnLeft', ArrowRight: 'turnRight', ArrowUp: 'forward', ArrowDown: 'backward' } as const)[event.key as 'ArrowLeft'] ?? null;
 }
 
 export function actionForKeyboardEvent(event: KeyboardInput): GameAction | null {
@@ -35,6 +41,19 @@ export function bindViewTurnInput(target: Window, stepDegrees: () => number, tur
   const onKeyDown = (event: KeyboardEvent): void => {
     const degrees = viewTurnForKeyboardEvent(event, stepDegrees());
     if (degrees !== null && turn(degrees)) event.preventDefault();
+  };
+  target.addEventListener('keydown', onKeyDown);
+  return () => target.removeEventListener('keydown', onKeyDown);
+}
+
+/** First-person arrow controls rotate the view or move along its current eight-way heading. */
+export function bindPovArrowInput(target: Window, stepDegrees: () => number, turn: (degrees: number) => boolean,
+  move: (forward: boolean) => boolean): () => void {
+  const onKeyDown = (event: KeyboardEvent): void => {
+    const command = povCommandForKeyboardEvent(event);
+    const handled = command === 'turnLeft' ? turn(-stepDegrees()) : command === 'turnRight' ? turn(stepDegrees())
+      : command === 'forward' ? move(true) : command === 'backward' ? move(false) : false;
+    if (handled) event.preventDefault();
   };
   target.addEventListener('keydown', onKeyDown);
   return () => target.removeEventListener('keydown', onKeyDown);

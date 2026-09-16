@@ -7,7 +7,7 @@ import { CanvasGridView } from '../presentation/grid/canvas-view';
 import type { GameView } from '../presentation/game-view';
 import { ThreeGameView } from '../presentation/three/three-view';
 import { XrSessionController, type XrSystemLike } from '../presentation/xr/session-controller';
-import { bindDesktopInput, bindViewTurnInput } from '../input/desktop';
+import { bindDesktopInput, bindPovArrowInput, bindViewTurnInput } from '../input/desktop';
 import type { PresentationEvent } from '../engine/model/action';
 import type { GameAction } from '../engine/model/action';
 import { parseSave, restoreGame, serializeSave } from '../persistence/save';
@@ -222,6 +222,10 @@ function turnCamera(degrees: number): boolean {
 turnLeft.addEventListener('click', () => turnCamera(-Number(turnAngle.value)));
 turnRight.addEventListener('click', () => turnCamera(Number(turnAngle.value)));
 bindViewTurnInput(window, () => Number(turnAngle.value), turnCamera);
+bindPovArrowInput(window, () => Number(turnAngle.value), turnCamera, forward => {
+  if (view !== threeView || cameraMode.value !== 'firstPerson' || xrController.status() === 'active') return false;
+  submit(threeView.movementDirectionForPov(forward)); return true;
+});
 
 canvas.addEventListener('click', event => {
   if (view !== gridView) return;

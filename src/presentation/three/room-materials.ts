@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { RoomTheme } from '../../engine/model/state';
 
-export const ROOM_MATERIAL_VERSION = 1;
+export const ROOM_MATERIAL_VERSION = 2;
 export type Surface = 'floor' | 'wall';
 export interface RoomLook {
   floor: number; wall: number; grout: number; accent: number;
@@ -50,7 +50,7 @@ function drawPattern(ctx: CanvasRenderingContext2D, theme: RoomTheme, surface: S
     for (let row = 0; row < rows; row++) { const offset = ((row + variant) % 2) * 24; const y0 = row * 128 / rows; const y1 = (row + 1) * 128 / rows;
       for (let x = offset; x < 128; x += theme === 'crypt' ? 48 : 64) { ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x, y1); ctx.stroke(); } }
     ctx.strokeStyle = color(look.accent); ctx.lineWidth = theme === 'treasure' ? 3 : 1;
-    for (let i = 0; i < 4; i++) { const x = (i * 53 + variant * 23) % 128; const y = (i * 37 + variant * 41) % 128;
+    if (surface === 'floor') for (let i = 0; i < 4; i++) { const x = (i * 53 + variant * 23) % 128; const y = (i * 37 + variant * 41) % 128;
       ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + 8, y + (i % 2 ? -5 : 7)); ctx.lineTo(x + 15, y + 3); ctx.stroke(); }
     if (theme === 'crypt') { ctx.strokeStyle = color(look.accent); ctx.strokeRect(48, 43, 32, 40); ctx.beginPath(); ctx.moveTo(64, 50); ctx.lineTo(64, 76); ctx.moveTo(53, 63); ctx.lineTo(75, 63); ctx.stroke(); }
     if (theme === 'treasure') { ctx.strokeStyle = color(look.accent); ctx.strokeRect(46, 46, 36, 36); ctx.strokeRect(54, 54, 20, 20); }

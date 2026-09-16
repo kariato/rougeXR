@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { PlayerObservation } from '../../src/engine/model/observation';
-import { buildPrimitiveCells, selectLitTorches } from '../../src/presentation/three/scene-plan';
+import { buildCorridorWalls, buildPrimitiveCells, selectLitTorches } from '../../src/presentation/three/scene-plan';
 
 describe('desktop 3D scene plan', () => {
   it('builds geometry exclusively from visible and remembered observations', () => {
@@ -24,6 +24,17 @@ describe('desktop 3D scene plan', () => {
     const observation: PlayerObservation = { revision: 0, width: 4, height: 1, playerAt: { x: 0, y: 0 }, cells: [cell, cell, cell, cell], entities: [], decorations: [],
       status: { hp: 1, maxHp: 1, gold: 0, depth: 1, hungerStage: 0 }, inventory: [], pendingDecision: null };
     expect(buildPrimitiveCells(observation, 1).map(value => value.x)).toEqual([0, 1]);
+  });
+
+  it('adds side walls around disclosed corridor cells and leaves connected ends open', () => {
+    const passage = { visibility: 'visible' as const, appearance: { glyph: '#', terrainLabel: 'passage', featureLabel: null }, visualRegion: null };
+    const door = { visibility: 'visible' as const, appearance: { glyph: '+', terrainLabel: 'door', featureLabel: null }, visualRegion: null };
+    const observation: PlayerObservation = { revision: 0, width: 3, height: 1, playerAt: { x: 1, y: 0 }, cells: [door, passage, passage], entities: [], decorations: [],
+      status: { hp: 1, maxHp: 1, gold: 0, depth: 1, hungerStage: 0 }, inventory: [], pendingDecision: null };
+    const walls = buildCorridorWalls(buildPrimitiveCells(observation));
+    expect(walls.filter(wall => wall.x === 1)).toHaveLength(2);
+    expect(walls).toHaveLength(5);
+    expect(walls.some(wall => wall.z === 0 && wall.x > .5 && wall.x < 1.5)).toBe(false);
   });
 
   it('lights at most four currently visible torches and excludes remembered or reserved cells', () => {

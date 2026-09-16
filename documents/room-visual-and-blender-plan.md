@@ -317,6 +317,8 @@ Implemented material slice 2026-09-15: `room-materials.ts` defines a versioned, 
 
 Implemented doorway and player asset slice 2026-09-16: the passable door tile now hosts `door.glb`, with a stone frame, a hinged oak leaf, matching iron rails, and lever handles on both faces. Disclosed adjacent room cells determine the doorway's room-facing direction without inspecting hidden level state. Crossing the tile plays the GLB `open` clip toward the room and holds it open for the level; this remains presentation-only. The tabletop and orbit player placeholder now streams `rogue.glb`, a hooded, dagger-equipped character with the same `idle`, `move`, `attack`, `hurt`, and `death` clip contract as creature assets.
 
+Implemented corridor enclosure slice 2026-09-16: disclosed passage cells derive narrow side-wall segments from disclosed neighboring passage and door cells. The renderer does not inspect unknown cells or change traversability. Corridor turns and endpoints are therefore enclosed in first person while the 2D observation remains authoritative. Wall textures retain masonry joints and theme details but omit the repeated angled accent strokes that read as directional chevrons.
+
 - Add the versioned theme and asset-manifest schemas.
 - Implement pure weighted theme selection and adjacency fallback.
 - Add Hewn Dungeon and Natural Cave definitions using existing primitive materials.

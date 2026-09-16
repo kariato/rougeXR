@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { PresentationEvent } from '../../engine/model/action';
 import type { PlayerObservation } from '../../engine/model/observation';
 import type { GameView } from '../game-view';
-import { buildPrimitiveCells, selectLitTorches } from './scene-plan';
+import { buildCorridorWalls, buildPrimitiveCells, selectLitTorches } from './scene-plan';
 import { nearestVisibleHit, smoothToward, type CameraMode } from './camera-model';
 import { createActorVisual, createDecorationVisual, createItemVisual, type ActorVisual } from './entity-visual';
 import { SceneGeneration } from './asset-cache';
@@ -149,6 +149,8 @@ export class ThreeGameView implements GameView {
       if (corpse) { corpse.facing = this.actorFacings.get(event.token) ?? corpse.facing; if (corpse.holder) corpse.holder.rotation.y = corpse.facing; }
     }
     this.observation = observation;
+    this.canvas.dataset.playerAt = `${observation.playerAt.x},${observation.playerAt.y}`;
+    this.canvas.dataset.povDirection = directionFromForward(Math.sin(this.targetYaw), Math.cos(this.targetYaw));
     this.clearWorld();
     this.roomMaterials.beginFrame();
     const currentRegion = observation.cells[observation.playerAt.y * observation.width + observation.playerAt.x]?.visualRegion;
@@ -191,6 +193,14 @@ export class ThreeGameView implements GameView {
         }
       }
     }
+    const corridorWalls = buildCorridorWalls(primitiveCells);
+    for (const wall of corridorWalls) {
+      const geometry = new THREE.BoxGeometry(wall.axis === 'x' ? 1 : .10, 1.8, wall.axis === 'z' ? 1 : .10);
+      const mesh = new THREE.Mesh(geometry, this.roomMaterials.material(wall.theme, 'wall', wall.condition,
+        wall.remembered, wall.dark, Math.round(wall.x * 2), Math.round(wall.z * 2)));
+      mesh.position.set(wall.x, .9, wall.z); mesh.userData = { eligible: false, occludes: true }; this.world.add(mesh);
+    }
+    this.canvas.dataset.corridorWalls = String(corridorWalls.length);
     this.canvas.dataset.visibleDoors = String(this.doorVisuals.length);
     this.canvas.dataset.openDoors = String(this.doorVisuals.filter(door => door.openedAt !== null).length);
 
@@ -381,7 +391,15 @@ export class ThreeGameView implements GameView {
   rotatePov(degrees: number): void {
     if (this.mode !== 'firstPerson' || !Number.isFinite(degrees)) return;
     this.targetYaw -= degrees * Math.PI / 180;
+    this.actorFacings.set('player', this.targetYaw);
+    this.canvas.dataset.povDirection = directionFromForward(Math.sin(this.targetYaw), Math.cos(this.targetYaw));
     this.ensureAnimation();
+  }
+
+  /** Resolve forward/backward against the camera heading without adding facing to Rogue state. */
+  movementDirectionForPov(forward: boolean): ActionRequest['action'] & { type: 'move' } {
+    const sign = forward ? 1 : -1;
+    return { type: 'move', direction: directionFromForward(Math.sin(this.targetYaw) * sign, Math.cos(this.targetYaw) * sign), pickup: true };
   }
 
   private enqueueCameraAction(kind: CameraCue): void {
@@ -418,7 +436,7 @@ export class ThreeGameView implements GameView {
       else { corpse.actor?.mixer.update(elapsed); corpse.mixer?.update(elapsed); }
     }
     this.placeCamera();
-    const moving = this.monsterMixers.length > 0 || this.cameraActions.length>0 || this.doorVisuals.some(door => door.openedAt !== null && now < door.openedAt + 750) || [...this.corpses.values()].some(corpse => corpse.settlingUntil > 0) || Math.abs(this.yaw - this.targetYaw) > 0.0001 || Math.abs(this.pitch - this.targetPitch) > 0.0001 || Math.abs(this.distance - this.targetDistance) > 0.001 || Math.abs(this.worldScale - this.targetWorldScale) > 0.0001 || now < this.animationUntil;
+    const moving = this.cameraActions.length>0 || this.doorVisuals.some(door => door.openedAt !== null && now < door.openedAt + 750) || [...this.corpses.values()].some(corpse => corpse.settlingUntil > 0) || Math.abs(this.yaw - this.targetYaw) > 0.0001 || Math.abs(this.pitch - this.targetPitch) > 0.0001 || Math.abs(this.distance - this.targetDistance) > 0.001 || Math.abs(this.worldScale - this.targetWorldScale) > 0.0001 || now < this.animationUntil;
     this.frame = moving ? requestAnimationFrame(this.animate) : null;
   };
 

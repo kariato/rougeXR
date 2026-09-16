@@ -17,6 +17,7 @@ test('loads a room-facing GLB doorway and keeps it open after crossing', async (
     await expect(page.locator('#state-summary')).toContainText(`Revision ${revision}`);
   }
   await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-open-doors', '1');
+  await expect.poll(async () => Number(await page.locator('#dungeon-3d').getAttribute('data-corridor-walls'))).toBeGreaterThan(0);
   await page.waitForTimeout(900);
   await expect.poll(async () => Number(await page.locator('#dungeon-3d').getAttribute('data-door-swing'))).toBeLessThan(-1);
   await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-player-model', 'rogue');

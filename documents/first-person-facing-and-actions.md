@@ -2,6 +2,8 @@
 
 Rogue stores a cell for each actor and resolves combat by bumping an adjacent occupied cell. It has no actor facing or position within a cell. RougeXR therefore treats facing and short action motion as presentation state. The engine still determines the legal move, attack result, damage, and turn cost.
 
+First-person arrow controls use that presentation facing. Left and right rotate the POV and player model by the configured turn angle without advancing engine time. Up submits a normal Rogue move in the nearest eight-way direction to the POV; down submits the opposite direction. Letter movement keys retain the source-style absolute compass controls for debugging and experienced Rogue players.
+
 ## Data boundary
 
 `GameSession` projects raw `attackResolved` events to `visibleAttack` only when both participants' cell positions are visible and any monster token is disclosed by the player observation. It carries the two cell positions and hit flag, not a hidden AI target. `visibleDefeat` uses a position captured before the monster is removed from engine state. Resolved non-movement actions project `visiblePlayerAction`. These cues are transient and do not enter saves or replay state; replay still produces them from the same resolved actions.

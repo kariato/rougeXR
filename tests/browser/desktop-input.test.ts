@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { actionForKeyboardEvent, viewTurnForKeyboardEvent } from '../../src/input/desktop';
+import { actionForKeyboardEvent, povCommandForKeyboardEvent, viewTurnForKeyboardEvent } from '../../src/input/desktop';
 
 const keyboard = (key: string, options: { repeat?: boolean; target?: object | null } = {}) => ({
   key, repeat: options.repeat ?? false, target: (options.target ?? null) as EventTarget | null, preventDefault: vi.fn(),
@@ -7,13 +7,20 @@ const keyboard = (key: string, options: { repeat?: boolean; target?: object | nu
 
 describe('desktop input', () => {
   it('maps movement and rest keys to one action', () => {
-    expect(actionForKeyboardEvent(keyboard('ArrowUp'))).toEqual({ type: 'move', direction: 'N', pickup: true });
+    expect(actionForKeyboardEvent(keyboard('ArrowUp'))).toBeNull();
     expect(actionForKeyboardEvent(keyboard('c'))).toEqual({ type: 'move', direction: 'SE', pickup: true });
     expect(actionForKeyboardEvent(keyboard('.'))).toEqual({ type: 'rest' });
     expect(actionForKeyboardEvent(keyboard('f'))).toEqual({ type: 'search' });
     expect(actionForKeyboardEvent(keyboard(','))).toEqual({ type: 'pickup' });
     expect(actionForKeyboardEvent(keyboard('>'))).toEqual({ type: 'descend' });
     expect(actionForKeyboardEvent(keyboard('<'))).toEqual({ type: 'ascend' });
+  });
+  it('maps arrows to first-person turning and heading-relative travel', () => {
+    expect(povCommandForKeyboardEvent(keyboard('ArrowLeft'))).toBe('turnLeft');
+    expect(povCommandForKeyboardEvent(keyboard('ArrowRight'))).toBe('turnRight');
+    expect(povCommandForKeyboardEvent(keyboard('ArrowUp'))).toBe('forward');
+    expect(povCommandForKeyboardEvent(keyboard('ArrowDown'))).toBe('backward');
+    expect(povCommandForKeyboardEvent(keyboard('ArrowUp', { target: { tagName: 'INPUT' } }))).toBeNull();
   });
   it('ignores repeats, unknown keys, and focused controls (B02)', () => {
     expect(actionForKeyboardEvent(keyboard('w', { repeat: true }))).toBeNull();

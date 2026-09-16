@@ -4,7 +4,7 @@ import type { RoomTheme } from '../../engine/model/state';
 export interface PrimitiveCell {
   x: number;
   z: number;
-  kind: 'floor' | 'wall' | 'door';
+  kind: 'floor' | 'passage' | 'wall' | 'door';
   visibility: Exclude<Visibility, 'unknown'>;
   theme: RoomTheme;
   condition: 0 | 1 | 2;
@@ -21,10 +21,31 @@ export function buildPrimitiveCells(observation: PlayerObservation, radius = Num
     const z = Math.floor(index / observation.width);
     if (Math.abs(x - observation.playerAt.x) + Math.abs(z - observation.playerAt.y) > radius) continue;
     const terrain = cell.appearance.terrainLabel;
-    result.push({ x, z, kind: terrain === 'wallH' || terrain === 'wallV' ? 'wall' : terrain === 'door' ? 'door' : 'floor', visibility: cell.visibility,
+    result.push({ x, z, kind: terrain === 'wallH' || terrain === 'wallV' ? 'wall' : terrain === 'door' ? 'door' : terrain === 'passage' ? 'passage' : 'floor', visibility: cell.visibility,
       theme: cell.visualRegion?.theme ?? 'dungeon', condition: cell.visualRegion?.condition ?? 0, dark: cell.visualRegion?.dark ?? false });
   }
   return result;
+}
+
+export interface CorridorWall { x: number; z: number; axis: 'x' | 'z'; theme: RoomTheme; condition: 0 | 1 | 2; dark: boolean; remembered: boolean }
+
+/** Close the disclosed sides of narrow passage cells; unknown level topology is never inspected. */
+export function buildCorridorWalls(cells: readonly PrimitiveCell[]): CorridorWall[] {
+  const byPosition = new Map(cells.map(cell => [`${cell.x},${cell.z}`, cell]));
+  const connected = (x: number, z: number): boolean => {
+    const kind = byPosition.get(`${x},${z}`)?.kind;
+    return kind === 'passage' || kind === 'door';
+  };
+  const walls: CorridorWall[] = [];
+  for (const cell of cells) {
+    if (cell.kind !== 'passage') continue;
+    for (const [dx, dz] of [[0, -1], [1, 0], [0, 1], [-1, 0]] as const) {
+      if (connected(cell.x + dx, cell.z + dz)) continue;
+      walls.push({ x: cell.x + dx * .47, z: cell.z + dz * .47, axis: dx === 0 ? 'x' : 'z', theme: cell.theme,
+        condition: cell.condition, dark: cell.dark, remembered: cell.visibility === 'remembered' });
+    }
+  }
+  return walls;
 }
 
 /** Only currently visible wall torches may emit local light; nearest four win. */
