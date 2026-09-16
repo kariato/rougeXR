@@ -113,7 +113,7 @@ function render(): void {
   const debugSnapshot = debugFixtureSnapshot(state);
   const detections = latestEvents.flatMap(event => event.type === 'magicDetected' ? event.positions.map(at => ({ at, glyph: '*' }))
     : event.type === 'itemsDetected' ? event.positions.map(at => ({ at, glyph: event.glyph })) : []);
-  if (view === gridView) { threeView.rememberDefeats(latestEvents); gridView.render(observation, reveal.checked ? debugSnapshot : null, detections); }
+  if (view === gridView) { threeView.rememberDoors(latestEvents, observation); threeView.rememberDefeats(latestEvents); gridView.render(observation, reveal.checked ? debugSnapshot : null, detections); }
   else view.update(observation, latestEvents);
   hudHp.textContent = `${observation.status.hp}/${observation.status.maxHp}`;
   hudDepth.textContent = String(observation.status.depth);

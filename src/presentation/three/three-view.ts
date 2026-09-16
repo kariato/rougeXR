@@ -9,6 +9,8 @@ import { SceneGeneration } from './asset-cache';
 import { loadPropInto } from './prop-asset';
 import { loadMonsterInto, observedMonsterAsset, type MonsterCue } from './monster-asset';
 import { ROOM_LOOKS, RoomMaterialCatalog } from './room-materials';
+import { roomFacingForDoor, doorOpenProgress } from './door-model';
+import { createDoorFallback, loadDoorInto } from './door-asset';
 import type { XrSessionLike } from '../xr/session-controller';
 import { DebouncedXrIntent, directionFromForward } from '../xr/input';
 import type { ActionRequest } from '../../engine/model/action';
@@ -20,6 +22,7 @@ interface CorpseRecord {
   token: string; at: { x: number; y: number }; assetId: string | null; facing: number;
   holder: THREE.Group | null; actor: ActorVisual | null; mixer: THREE.AnimationMixer | null; settlingUntil: number;
 }
+interface DoorVisual { holder: THREE.Group; hinge: THREE.Group; modelHinge: THREE.Object3D | null; openedAt: number | null; mixer: THREE.AnimationMixer | null }
 
 function createFirstPersonHand(): THREE.Group {
   const hand=new THREE.Group();
@@ -60,6 +63,8 @@ export class ThreeGameView implements GameView {
   private lastFrame = 0;
   private actorVisuals: ActorVisual[] = [];
   private monsterMixers: THREE.AnimationMixer[] = [];
+  private doorVisuals: DoorVisual[] = [];
+  private readonly openedDoors = new Map<string, number>();
   private actorFacings = new Map<string, number>();
   private readonly corpses = new Map<string, CorpseRecord>();
   private cameraActions: Array<{ start: number; duration: number; kind: CameraCue }> = [];
@@ -137,6 +142,7 @@ export class ThreeGameView implements GameView {
           : ['throw','zap'].includes(event.action) ? 'cast' : 'interact');
       }
     }
+    this.rememberDoors(freshEvents, observation);
     this.rememberDefeats(freshEvents);
     for (const event of freshEvents) if (event.type === 'visibleDefeat') {
       const corpse = this.corpses.get(event.token);
@@ -156,7 +162,6 @@ export class ThreeGameView implements GameView {
     const floorGeometry = new THREE.PlaneGeometry(TILE, TILE);
     floorGeometry.rotateX(-Math.PI / 2);
     const wallGeometry = new THREE.BoxGeometry(TILE, 1.8, TILE);
-    const doorMaterial = new THREE.MeshStandardMaterial({ color: 0x7d4d2f, roughness: 0.85 });
 
     const primitiveCells = buildPrimitiveCells(observation, this.mode === 'tabletop' ? Number.POSITIVE_INFINITY : 14);
     const activeCells = new Set(primitiveCells.map(cell => `${cell.x},${cell.z}`));
@@ -170,11 +175,24 @@ export class ThreeGameView implements GameView {
         const floor = new THREE.Mesh(floorGeometry, this.roomMaterials.material(cell.theme, 'floor', cell.condition, cell.visibility === 'remembered', cell.dark, cell.x, cell.z));
         floor.position.set(cell.x, 0, cell.z); floor.userData = { cell: { x: cell.x, y: cell.z }, eligible: true, occludes: false }; this.world.add(floor);
         if (cell.kind === 'door') {
-          const door = new THREE.Mesh(new THREE.BoxGeometry(0.82, 1.65, 0.16), doorMaterial);
-          door.position.set(cell.x, 0.825, cell.z); door.userData = { cell: { x: cell.x, y: cell.z }, eligible: true, occludes: true }; this.world.add(door);
+          const facing = roomFacingForDoor(observation, cell.x, cell.z);
+          if (facing) {
+            const holder = new THREE.Group(); holder.position.set(cell.x, 0, cell.z); holder.rotation.y = facing.yaw;
+            const openedAt = this.openedDoors.get(`${cell.x},${cell.z}`) ?? null;
+            holder.userData = { cell: { x: cell.x, y: cell.z }, eligible: false, occludes: openedAt === null };
+            const fallback = createDoorFallback(); holder.add(fallback.root); this.world.add(holder);
+            fallback.hinge.rotation.y = -Math.PI / 2 * doorOpenProgress(openedAt, performance.now());
+            const visual: DoorVisual = { holder, hinge: fallback.hinge, modelHinge: null, openedAt, mixer: null };
+            this.doorVisuals.push(visual);
+            void loadDoorInto(holder, fallback.root, this.generation, sceneToken, openedAt, (mixer, modelHinge) => {
+              visual.mixer = mixer; visual.modelHinge = modelHinge; this.ensureAnimation();
+            });
+          }
         }
       }
     }
+    this.canvas.dataset.visibleDoors = String(this.doorVisuals.length);
+    this.canvas.dataset.openDoors = String(this.doorVisuals.filter(door => door.openedAt !== null).length);
 
     const reserved = new Set([`${observation.playerAt.x},${observation.playerAt.y}`,
       ...observation.entities.map(entity => `${entity.at.x},${entity.at.y}`),
@@ -207,10 +225,16 @@ export class ThreeGameView implements GameView {
     }
 
     this.lastAnimatedRevision = observation.revision;
-    const playerVisual = createActorVisual(0x43c7e8); playerVisual.root.position.set(observation.playerAt.x, 0, observation.playerAt.y);
-    playerVisual.root.rotation.y=this.actorFacings.get('player') ?? this.yaw;
-    playerVisual.root.visible = this.mode !== 'firstPerson'; this.world.add(playerVisual.root); this.actorVisuals.push(playerVisual);
-    if (actorCues.has('player')) playerVisual.playSequence(actorCues.get('player')!);
+    const playerVisual = createActorVisual(0x43c7e8); const playerHolder = new THREE.Group();
+    playerHolder.position.set(observation.playerAt.x, 0, observation.playerAt.y);
+    playerHolder.rotation.y=this.actorFacings.get('player') ?? this.yaw; playerHolder.visible = this.mode !== 'firstPerson';
+    playerHolder.add(playerVisual.root); this.world.add(playerHolder); this.actorVisuals.push(playerVisual);
+    const playerCues = actorCues.get('player') ?? [];
+    if (playerCues.length) playerVisual.playSequence(playerCues);
+    void loadMonsterInto('rogue', playerHolder, playerVisual.root, this.generation, sceneToken,
+      playerCues.filter((cue):cue is MonsterCue=>cue!=='gesture'), mixer => {
+        this.monsterMixers.push(mixer); this.canvas.dataset.playerModel = 'rogue'; this.ensureAnimation();
+      });
     for (const entity of observation.entities) {
       if (entity.token.startsWith('monster-')) {
         const actor = createActorVisual(0xc65353); const holder = new THREE.Group(); holder.position.set(entity.at.x, 0, entity.at.y);
@@ -269,10 +293,26 @@ export class ThreeGameView implements GameView {
     }
   }
 
+  /** Crossing a disclosed door opens its presentation leaf without changing engine terrain. */
+  rememberDoors(events: PresentationEvent[], observation: PlayerObservation): void {
+    if (events.some(event => event.type === 'levelViewReset')) this.openedDoors.clear();
+    const isDoor = (x: number, y: number): boolean =>
+      observation.cells[y * observation.width + x]?.appearance?.terrainLabel === 'door';
+    for (const event of events) {
+      if (event.type !== 'visibleMovement' || event.token !== 'player') continue;
+      for (const at of [event.from, event.to]) if (isDoor(at.x, at.y)) {
+        const key = `${at.x},${at.y}`;
+        if (!this.openedDoors.has(key)) this.openedDoors.set(key, performance.now());
+      }
+    }
+  }
+
   resetPresentation(): void {
     this.clearCorpses();
+    this.openedDoors.clear();
     this.actorFacings.clear(); this.cameraActions = []; this.lastAnimatedRevision = -1;
     this.canvas.dataset.visibleCorpses = '0';
+    this.canvas.dataset.visibleDoors = '0'; this.canvas.dataset.openDoors = '0';
   }
 
   private attachCorpse(corpse: CorpseRecord): void {
@@ -367,12 +407,18 @@ export class ThreeGameView implements GameView {
     this.world.scale.setScalar(this.worldScale);
     for (const visual of this.actorVisuals) visual.mixer.update(elapsed);
     for (const mixer of this.monsterMixers) mixer.update(elapsed);
+    for (const door of this.doorVisuals) {
+      if (door.openedAt === null) continue;
+      door.hinge.rotation.y = -Math.PI / 2 * doorOpenProgress(door.openedAt, now);
+      door.mixer?.update(elapsed);
+    }
+    this.canvas.dataset.doorSwing = String(this.doorVisuals.find(door => door.openedAt !== null)?.modelHinge?.rotation.y ?? 'fallback');
     for (const corpse of this.corpses.values()) if (corpse.settlingUntil > 0) {
       if (now >= corpse.settlingUntil) this.finishCorpse(corpse);
       else { corpse.actor?.mixer.update(elapsed); corpse.mixer?.update(elapsed); }
     }
     this.placeCamera();
-    const moving = this.monsterMixers.length > 0 || this.cameraActions.length>0 || [...this.corpses.values()].some(corpse => corpse.settlingUntil > 0) || Math.abs(this.yaw - this.targetYaw) > 0.0001 || Math.abs(this.pitch - this.targetPitch) > 0.0001 || Math.abs(this.distance - this.targetDistance) > 0.001 || Math.abs(this.worldScale - this.targetWorldScale) > 0.0001 || now < this.animationUntil;
+    const moving = this.monsterMixers.length > 0 || this.cameraActions.length>0 || this.doorVisuals.some(door => door.openedAt !== null && now < door.openedAt + 750) || [...this.corpses.values()].some(corpse => corpse.settlingUntil > 0) || Math.abs(this.yaw - this.targetYaw) > 0.0001 || Math.abs(this.pitch - this.targetPitch) > 0.0001 || Math.abs(this.distance - this.targetDistance) > 0.001 || Math.abs(this.worldScale - this.targetWorldScale) > 0.0001 || now < this.animationUntil;
     this.frame = moving ? requestAnimationFrame(this.animate) : null;
   };
 
@@ -465,6 +511,8 @@ export class ThreeGameView implements GameView {
     this.actorVisuals = [];
     for (const mixer of this.monsterMixers) mixer.stopAllAction();
     this.monsterMixers = [];
+    for (const door of this.doorVisuals) door.mixer?.stopAllAction();
+    this.doorVisuals = [];
     for (const child of [...this.world.children]) {
       if (child === this.corpseWorld) continue;
       this.world.remove(child);

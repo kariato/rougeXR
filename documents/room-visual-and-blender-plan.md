@@ -315,6 +315,8 @@ Completion: multiple instances animate independently, hidden actors remain priva
 
 Implemented material slice 2026-09-15: `room-materials.ts` defines a versioned, typed palette for all five room families and four stable procedural variants per floor/wall surface. The Three.js renderer reads disclosed `visualRegion` data, applies the appropriate textured material, and retints its existing hemisphere and player lamp when the player enters a themed region. Texture and frame-material caches are disposed on view teardown; an unavailable 2D canvas uses flat-material fallback. Distinct browser pixel signatures and live dungeon/store captures verify the theme language. The creature asset manifest remains in 14.3; structural geometry and authored environment maps remain in 14.5 and 14.8.
 
+Implemented doorway and player asset slice 2026-09-16: the passable door tile now hosts `door.glb`, with a stone frame, a hinged oak leaf, matching iron rails, and lever handles on both faces. Disclosed adjacent room cells determine the doorway's room-facing direction without inspecting hidden level state. Crossing the tile plays the GLB `open` clip toward the room and holds it open for the level; this remains presentation-only. The tabletop and orbit player placeholder now streams `rogue.glb`, a hooded, dagger-equipped character with the same `idle`, `move`, `attack`, `hurt`, and `death` clip contract as creature assets.
+
 - Add the versioned theme and asset-manifest schemas.
 - Implement pure weighted theme selection and adjacency fallback.
 - Add Hewn Dungeon and Natural Cave definitions using existing primitive materials.
