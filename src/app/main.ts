@@ -8,6 +8,8 @@ import type { GameView } from '../presentation/game-view';
 import { ThreeGameView } from '../presentation/three/three-view';
 import { XrSessionController, type XrSystemLike } from '../presentation/xr/session-controller';
 import { bindDesktopInput, bindPovArrowInput, bindViewTurnInput } from '../input/desktop';
+import { bindVirtualJoystick } from '../input/virtual-joystick';
+import { directionFromForward } from '../presentation/xr/input';
 import type { PresentationEvent } from '../engine/model/action';
 import type { GameAction } from '../engine/model/action';
 import { parseSave, restoreGame, serializeSave } from '../persistence/save';
@@ -35,6 +37,8 @@ const crosshair = required<HTMLElement>('#crosshair');
 const contextPrompt = required<HTMLElement>('#context-prompt');
 const turnLeft = required<HTMLButtonElement>('#turn-left');
 const turnRight = required<HTMLButtonElement>('#turn-right');
+const movementStick = required<HTMLButtonElement>('#movement-stick');
+const movementStickKnob = required<HTMLElement>('#movement-stick-knob');
 const turnAngle = required<HTMLSelectElement>('#turn-angle');
 const viewMode = required<HTMLSelectElement>('#view-mode');
 const cameraMode = required<HTMLSelectElement>('#camera-mode');
@@ -86,6 +90,10 @@ let replayTimer: number | null = null;
 let replaySchedule = 0;
 let latestActionTiming = 'No action measured.';
 let lastHudMessage = '';
+const stopMovementStick = bindVirtualJoystick(movementStick, movementStickKnob, ({ horizontal, vertical }) => {
+  if (view === threeView && cameraMode.value === 'firstPerson') submit(threeView.movementDirectionForStick(horizontal, vertical));
+  else submit({ type: 'move', direction: directionFromForward(horizontal, -vertical), pickup: true });
+});
 
 function setToolsOpen(open: boolean): void {
   toolsPanel.hidden = !open;
@@ -139,6 +147,8 @@ function render(): void {
   const filter = eventFilter.value as EventFilter;
   messages.textContent = filterEvents(latestEvents, filter).map(event => event.type === 'message' ? event.text : event.type === 'visibleMovement' ? 'You move.' : event.type).join('\n') || 'No matching events.';
   const decisionPending = observation.pendingDecision !== null;
+  movementStick.disabled = replayPlayer !== null || decisionPending || state.timing.status !== 'playing' || xrController.status() === 'active';
+  if (movementStick.disabled) stopMovementStick();
   inventory.replaceChildren(...observation.inventory.map(item => {
     const row = document.createElement('div'); row.append(`${item.label} ×${item.quantity} `);
     if (item.category === 'weapon' || item.category === 'armor') {
@@ -236,13 +246,14 @@ canvas.addEventListener('click', event => {
   render();
 });
 viewMode.addEventListener('change', () => {
+  stopMovementStick();
   view.dispose();
   view = viewMode.value === '2d' ? gridView : threeView;
   view.mount(viewHost);
   selectedIndex = null;
   render();
 });
-cameraMode.addEventListener('change', () => { threeView.setMode(cameraMode.value as 'firstPerson' | 'orbit' | 'tabletop'); render(); });
+cameraMode.addEventListener('change', () => { stopMovementStick(); threeView.setMode(cameraMode.value as 'firstPerson' | 'orbit' | 'tabletop'); render(); });
 xrToggle.addEventListener('click', () => { void xrController.toggle().then(updateXrControls).catch(error => { xrStatus.textContent = `XR failed: ${error instanceof Error ? error.message : String(error)}`; }); });
 threeView.canvas.addEventListener('rougexr-select-cell', event => {
   const position = (event as CustomEvent<{ x: number; y: number }>).detail;
@@ -427,6 +438,7 @@ void xrController.detect().then(updateXrControls);
 actionQueue = actionQueue.then(restoreLatestAutosave);
 
 function updateXrControls(status: ReturnType<XrSessionController['status']>): void {
+  if (status === 'active') { movementStick.disabled = true; stopMovementStick(); }
   xrToggle.disabled = status === 'checking' || status === 'unavailable';
   xrToggle.textContent = status === 'active' ? 'Exit XR' : status === 'available' ? 'Enter XR' : 'XR unavailable';
   xrStatus.textContent = status === 'active' ? 'Immersive session active.' : status === 'available' ? 'Immersive VR is available.' : 'Desktop mode is fully available; immersive VR is not supported here.';
