@@ -1,3 +1,4 @@
+import { assetUrl } from "../../asset-url";
 import * as THREE from 'three';
 import { GLTFLoader, type GLTF } from 'three/addons/loaders/GLTFLoader.js';
 import { clone as cloneSkeleton } from 'three/addons/utils/SkeletonUtils.js';
@@ -44,7 +45,7 @@ export type MonsterCue = 'move' | 'attack' | 'hurt' | 'death';
 export async function loadMonsterInto(id: string, holder: THREE.Group, fallback: THREE.Object3D,
   generation: SceneGeneration, token: number, cues: MonsterCue[], onMixer: (mixer: THREE.AnimationMixer) => void): Promise<void> {
   try {
-    const lease = await cache.acquire(`/assets/creatures/${id}.glb`, {});
+    const lease = await cache.acquire(assetUrl(`assets/creatures/${id}.glb`), {});
     if (!generation.isCurrent(token) || !holder.parent) { lease.release(); return; }
     const instance = cloneSkeleton(lease.value.scene);
     instance.traverse(object => {

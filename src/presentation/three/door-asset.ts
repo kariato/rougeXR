@@ -1,3 +1,4 @@
+import { assetUrl } from "../../asset-url";
 import * as THREE from 'three';
 import { GLTFLoader, type GLTF } from 'three/addons/loaders/GLTFLoader.js';
 import { AssetCache, type SceneGeneration } from './asset-cache';
@@ -37,7 +38,7 @@ export function createDoorFallback(): { root: THREE.Group; hinge: THREE.Group } 
 export async function loadDoorInto(holder: THREE.Group, fallback: THREE.Object3D, generation: SceneGeneration,
   token: number, openedAt: number | null, onAttached: (mixer: THREE.AnimationMixer | null, hinge: THREE.Object3D | null) => void): Promise<void> {
   try {
-    const lease = await cache.acquire('/assets/props/door.glb?v=2', {});
+    const lease = await cache.acquire(assetUrl('assets/props/door.glb?v=2'), {});
     if (!generation.isCurrent(token) || !holder.parent) { lease.release(); return; }
     const clip = lease.value.animations.find(animation => animation.name === 'open');
     if (!clip) { lease.release(); return; }

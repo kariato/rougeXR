@@ -1,3 +1,4 @@
+import { assetUrl } from "../../asset-url";
 import * as THREE from 'three';
 import type { PresentationEvent } from '../../engine/model/action';
 import type { PlayerObservation } from '../../engine/model/observation';
@@ -245,22 +246,22 @@ export class ThreeGameView implements GameView {
           const light = new THREE.PointLight(0xffa45b, 5, 4.5, 2); light.position.set(0, .22, .22); mount.add(light);
         }
         this.world.add(holder);
-        void loadPropInto('/assets/props/torch.glb?v=2', mount, fallback, this.generation, sceneToken, () => this.ensureAnimation());
+        void loadPropInto(assetUrl('assets/props/torch.glb?v=2'), mount, fallback, this.generation, sceneToken, () => this.ensureAnimation());
         continue;
       }
       holder.add(fallback); this.world.add(holder);
-      if (decoration.kind === 'rubble') void loadPropInto('/assets/props/rubble.glb', holder, fallback, this.generation, sceneToken);
-      if (decoration.kind === 'pillar') void loadPropInto('/assets/props/pillar.glb', holder, fallback, this.generation, sceneToken);
-      if (decoration.kind === 'coinScatter') void loadPropInto('/assets/props/coinScatter.glb', holder, fallback, this.generation, sceneToken);
-      if (decoration.kind === 'bones') void loadPropInto('/assets/props/bones.glb?v=2', holder, fallback, this.generation, sceneToken, () => this.ensureAnimation());
-      if (decoration.kind === 'mushroom') void loadPropInto('/assets/props/mushroom.glb?v=2', holder, fallback, this.generation, sceneToken, () => this.ensureAnimation());
+      if (decoration.kind === 'rubble') void loadPropInto(assetUrl('assets/props/rubble.glb'), holder, fallback, this.generation, sceneToken);
+      if (decoration.kind === 'pillar') void loadPropInto(assetUrl('assets/props/pillar.glb'), holder, fallback, this.generation, sceneToken);
+      if (decoration.kind === 'coinScatter') void loadPropInto(assetUrl('assets/props/coinScatter.glb'), holder, fallback, this.generation, sceneToken);
+      if (decoration.kind === 'bones') void loadPropInto(assetUrl('assets/props/bones.glb?v=2'), holder, fallback, this.generation, sceneToken, () => this.ensureAnimation());
+      if (decoration.kind === 'mushroom') void loadPropInto(assetUrl('assets/props/mushroom.glb?v=2'), holder, fallback, this.generation, sceneToken, () => this.ensureAnimation());
       if (decoration.kind === 'crate') void loadChestInto(holder, fallback, this.generation, sceneToken, (mixer, duration) => {
         this.decorationMixers.push(mixer);
         this.animationUntil = Math.max(this.animationUntil, performance.now() + duration * 1000);
         this.canvas.dataset.chestAnimation = 'open';
         this.ensureAnimation();
       });
-      if (decoration.kind === 'urn') void loadPropInto('/assets/props/urn.glb', holder, fallback, this.generation, sceneToken);
+      if (decoration.kind === 'urn') void loadPropInto(assetUrl('assets/props/urn.glb'), holder, fallback, this.generation, sceneToken);
     }
 
     this.lastAnimatedRevision = observation.revision;
@@ -288,15 +289,15 @@ export class ThreeGameView implements GameView {
         const holder = new THREE.Group(); holder.position.set(entity.at.x, 0, entity.at.y);
         const fallback = createItemVisual(); fallback.position.y = 0.23; holder.add(fallback);
         holder.userData = { cell: { ...entity.at }, eligible: true, occludes: false }; this.world.add(holder);
-        if (entity.appearance === '*') void loadPropInto('/assets/props/gold.glb?v=3', holder, fallback, this.generation, sceneToken, () => this.ensureAnimation());
-        if (entity.appearance === '/') void loadPropInto('/assets/props/stick.glb', holder, fallback, this.generation, sceneToken);
-        if (entity.appearance === '=') void loadPropInto('/assets/props/ring.glb', holder, fallback, this.generation, sceneToken);
-        if (entity.appearance === ',') void loadPropInto('/assets/props/amulet.glb', holder, fallback, this.generation, sceneToken);
-        if (entity.appearance === ']') void loadPropInto('/assets/props/armor.glb?v=2', holder, fallback, this.generation, sceneToken, () => this.ensureAnimation());
-        if (entity.appearance === ')') void loadPropInto('/assets/props/weapon.glb', holder, fallback, this.generation, sceneToken);
-        if (entity.appearance === ':') void loadPropInto('/assets/props/food.glb?v=2', holder, fallback, this.generation, sceneToken, () => this.ensureAnimation());
-        if (entity.appearance === '?') void loadPropInto('/assets/props/scroll.glb', holder, fallback, this.generation, sceneToken);
-        if (entity.appearance === '!') void loadPropInto('/assets/props/potion.glb', holder, fallback, this.generation, sceneToken);
+        if (entity.appearance === '*') void loadPropInto(assetUrl('assets/props/gold.glb?v=3'), holder, fallback, this.generation, sceneToken, () => this.ensureAnimation());
+        if (entity.appearance === '/') void loadPropInto(assetUrl('assets/props/stick.glb'), holder, fallback, this.generation, sceneToken);
+        if (entity.appearance === '=') void loadPropInto(assetUrl('assets/props/ring.glb'), holder, fallback, this.generation, sceneToken);
+        if (entity.appearance === ',') void loadPropInto(assetUrl('assets/props/amulet.glb'), holder, fallback, this.generation, sceneToken);
+        if (entity.appearance === ']') void loadPropInto(assetUrl('assets/props/armor.glb?v=2'), holder, fallback, this.generation, sceneToken, () => this.ensureAnimation());
+        if (entity.appearance === ')') void loadPropInto(assetUrl('assets/props/weapon.glb'), holder, fallback, this.generation, sceneToken);
+        if (entity.appearance === ':') void loadPropInto(assetUrl('assets/props/food.glb?v=2'), holder, fallback, this.generation, sceneToken, () => this.ensureAnimation());
+        if (entity.appearance === '?') void loadPropInto(assetUrl('assets/props/scroll.glb'), holder, fallback, this.generation, sceneToken);
+        if (entity.appearance === '!') void loadPropInto(assetUrl('assets/props/potion.glb'), holder, fallback, this.generation, sceneToken);
       }
     }
     for (const corpse of this.corpses.values()) {

@@ -1,3 +1,4 @@
+import { assetUrl } from "./asset-url";
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -27,7 +28,7 @@ const selector = document.querySelector<HTMLSelectElement>('#animation')!;
 const status = document.querySelector<HTMLElement>('#status')!;
 let mixer: THREE.AnimationMixer | null = null;
 let active: THREE.AnimationAction | null = null;
-new GLTFLoader().load(`/assets/creatures/${model}.glb`, gltf => {
+new GLTFLoader().load(assetUrl(`assets/creatures/${model}.glb`), gltf => {
   scene.add(gltf.scene); mixer = new THREE.AnimationMixer(gltf.scene);
   selector.replaceChildren(...gltf.animations.map(clip => { const option = document.createElement('option'); option.value = clip.name; option.textContent = clip.name; return option; }));
   const play = (): void => {

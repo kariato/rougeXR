@@ -17,6 +17,15 @@ Phase 10 browser debugging is complete. Versioned saves autosave to IndexedDB af
 
 Run `npx playwright install chromium firefox` once, then `npm run test:browser` for the Chromium and Firefox smoke matrix.
 
+## GitHub Pages
+
+The Pages workflow builds and deploys `main` to `https://kariato.github.io/rougeXR/`.
+In the repository's **Settings → Pages**, set **Build and deployment → Source** to
+**GitHub Actions**. Then run **Deploy GitHub Pages** from the Actions tab or push
+to `main`. The workflow uses Node 24 and builds with the `/rougeXR/` base path.
+To check that build locally, run `GITHUB_PAGES=true npm run build` and
+`GITHUB_PAGES=true npx vite preview`.
+
 - [Browser-first design](documents/design.md)
 - [Detailed TypeScript implementation specification](documents/typescript-implementation.md)
 - [Phased implementation plan](documents/implementation-plan.md)
