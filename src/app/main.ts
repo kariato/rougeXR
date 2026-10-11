@@ -91,8 +91,12 @@ let replaySchedule = 0;
 let latestActionTiming = 'No action measured.';
 let lastHudMessage = '';
 const stopMovementStick = bindVirtualJoystick(movementStick, movementStickKnob, ({ horizontal, vertical }) => {
-  if (view === threeView && cameraMode.value === 'firstPerson') submit(threeView.movementDirectionForStick(horizontal, vertical));
-  else submit({ type: 'move', direction: directionFromForward(horizontal, -vertical), pickup: true });
+  if (view === threeView && cameraMode.value === 'firstPerson') {
+    if (Math.abs(horizontal) > .38) turnCamera(Math.sign(horizontal) * Number(turnAngle.value));
+    if (Math.abs(vertical) > .38) submit(threeView.movementDirectionForPov(vertical > 0));
+    return;
+  }
+  submit({ type: 'move', direction: directionFromForward(horizontal, -vertical), pickup: true });
 });
 
 function setToolsOpen(open: boolean): void {

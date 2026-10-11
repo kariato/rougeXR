@@ -9,7 +9,7 @@ Current implementation: the Phase 11 full-rules candidate and Phase 12 desktop 3
 
 In first person, press `[` to turn the POV left or `]` to turn right. The turn angle is selectable in Tools (15°, 30°, 45° by default, or 90°); the on-screen turn buttons use the same angle. Camera turning does not advance Rogue time. Arrow keys and WASD still move in dungeon directions.
 
-On touch screens, drag the circular movement stick at the lower left to move in eight directions. In first person it follows the current camera heading; in map, orbit, and tabletop views it follows dungeon directions. Release the stick to stop repeating moves.
+On touch screens, drag the circular movement stick at the lower left. In first person, up and down move forward and backward while left and right turn the POV by the selected angle; diagonals combine turning and movement. In map, orbit, and tabletop views the stick moves in dungeon directions. Release it to stop repeating input.
 
 Phase 13 now includes optional immersive-VR session entry, tracked controller rays, debounced revision-checked directional gestures, and tabletop scaling. Unsupported browsers retain the complete desktop game. Target-headset comfort, tracking-loss, and performance verification remains the final hardware gate.
 

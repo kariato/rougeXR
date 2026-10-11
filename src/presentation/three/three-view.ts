@@ -434,13 +434,6 @@ export class ThreeGameView implements GameView {
     return { type: 'move', direction: directionFromForward(Math.sin(this.targetYaw) * sign, Math.cos(this.targetYaw) * sign), pickup: true };
   }
 
-  /** Resolve a screen-relative stick direction against the current first-person heading. */
-  movementDirectionForStick(horizontal: number, vertical: number): ActionRequest['action'] & { type: 'move' } {
-    const x = Math.sin(this.targetYaw) * vertical - Math.cos(this.targetYaw) * horizontal;
-    const z = Math.cos(this.targetYaw) * vertical + Math.sin(this.targetYaw) * horizontal;
-    return { type: 'move', direction: directionFromForward(x, z), pickup: true };
-  }
-
   private enqueueCameraAction(kind: CameraCue): void {
     const last=this.cameraActions.at(-1);const now=performance.now();
     if (kind === 'attack') this.canvas.dataset.weaponAction = 'attack';
