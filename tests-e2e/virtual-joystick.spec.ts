@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 test.use({ hasTouch: true, viewport: { width: 390, height: 844 } });
 
-test('touch joystick turns the POV, moves forward, and stops on release', async ({ page, browserName }) => {
+test('diagonal stick drags choose one axis and stop on release', async ({ page, browserName }) => {
   test.skip(browserName === 'firefox', 'Playwright Firefox mouse emulation does not emit pointer events with hasTouch enabled.');
   await page.goto('/');
   await page.locator('#tools-toggle').click();
@@ -19,7 +19,7 @@ test('touch joystick turns the POV, moves forward, and stops on release', async 
   const centerY = box!.y + box!.height / 2;
   await page.mouse.move(centerX, centerY);
   await page.mouse.down();
-  await page.mouse.move(centerX + 35, centerY);
+  await page.mouse.move(centerX + 35, centerY - 25);
   await expect(stick).toHaveAttribute('data-direction', '0');
   await page.mouse.up();
   await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-pov-direction', 'E');
@@ -27,11 +27,33 @@ test('touch joystick turns the POV, moves forward, and stops on release', async 
   await expect(page.locator('#state-summary')).toContainText('Revision 0');
   await page.mouse.move(centerX, centerY);
   await page.mouse.down();
-  await page.mouse.move(centerX, centerY - 35);
+  await page.mouse.move(centerX + 25, centerY - 35);
   await expect(stick).toHaveAttribute('data-direction', '2');
   await page.mouse.up();
+  await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-pov-direction', 'E');
   await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-player-at', '6,5');
   await expect(stick).not.toHaveAttribute('data-direction');
   await page.waitForTimeout(350);
   await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-player-at', '6,5');
+});
+
+test('touch Attack button hits only a monster directly ahead', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('#tools-toggle').click();
+  await page.locator('#world-mode').selectOption('kestrel');
+  await page.locator('#new-game').dispatchEvent('click');
+  await page.locator('#turn-angle').selectOption('90');
+  await page.locator('#tools-toggle').click();
+  const attack = page.locator('#attack-front');
+  await expect(attack).toBeVisible();
+  await expect(attack).toBeDisabled();
+  await page.locator('h1').click();
+  await page.keyboard.press('d');
+  await expect(page.locator('#state-summary')).toContainText('Revision 1');
+  await page.locator('#turn-right').click();
+  await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-pov-direction', 'E');
+  await expect(attack).toBeEnabled();
+  await attack.click();
+  await expect(page.locator('#state-summary')).toContainText('Revision 2');
+  await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-weapon-action', 'attack');
 });

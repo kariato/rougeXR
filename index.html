@@ -38,7 +38,9 @@
       .actions button { min-height: 2.75rem; }
       .movement-stick { display: none; position: absolute; z-index: 4; left: max(.75rem, env(safe-area-inset-left)); bottom: calc(max(.75rem, env(safe-area-inset-bottom)) + 3.8rem); width: 5.5rem; height: 5.5rem; padding: 0; border: 2px solid #b9d9efb3; border-radius: 50%; background: #07111dbb; box-shadow: 0 0 0 .3rem #07111d66, inset 0 0 1rem #38bdf844; touch-action: none; user-select: none; -webkit-user-select: none; }
       .movement-stick-knob { display: block; width: 2.5rem; height: 2.5rem; margin: auto; border: 2px solid #e0f2fe; border-radius: 50%; background: #38bdf8bb; box-shadow: 0 2px 8px #0009; pointer-events: none; }
-      @media (any-pointer: coarse) { .movement-stick { display: grid; place-items: center; } }
+      .attack-button { display: none; position: absolute; z-index: 4; right: max(.75rem, env(safe-area-inset-right)); bottom: calc(max(.75rem, env(safe-area-inset-bottom)) + 4.15rem); width: 4.75rem; height: 4.75rem; padding: 0; border: 2px solid #fecaca; border-radius: 50%; background: #991b1be0; color: #fff; font-weight: 700; box-shadow: 0 0 0 .3rem #07111d66; touch-action: manipulation; }
+      .attack-button[hidden] { display: none; }
+      @media (any-pointer: coarse) { .movement-stick { display: grid; place-items: center; } .attack-button { display: grid; place-items: center; } }
       .tools-controls { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
       .tools-controls label { display: inline-flex; align-items: center; gap: .3rem; }
       button, select, input { color: #dbeafe; background: #1e293b; border: 1px solid #475569; border-radius: .35rem; padding: .45rem .8rem; }
@@ -72,6 +74,7 @@
           <div class="message" id="hud-message" aria-live="polite"></div>
           <div class="actions" aria-label="Primary actions"><button id="turn-left" type="button" aria-label="Turn POV left">⟲</button><button id="turn-right" type="button" aria-label="Turn POV right">⟳</button><button id="rest" type="button">Rest</button><button id="search" type="button">Search</button><button id="pickup" type="button">Pick up</button><button id="descend" type="button">Descend</button><button id="ascend" type="button">Ascend</button></div>
           <button id="movement-stick" class="movement-stick" type="button" aria-label="Move with virtual joystick"><span id="movement-stick-knob" class="movement-stick-knob" aria-hidden="true"></span></button>
+          <button id="attack-front" class="attack-button" type="button" aria-label="Attack monster in front" disabled>Attack</button>
         </section>
         <aside id="tools-panel" aria-label="Game tools" hidden>
           <section><h2>Setup</h2><div class="tools-controls"><select id="world-mode" aria-label="World type"><option value="generated">Generated</option><option value="kestrel">Kestrel fixture</option><option value="rooms">Two-room fixture</option></select><input id="seed" type="number" min="0" max="4294967295" value="12345" aria-label="Seed"><label for="turn-angle">POV turn</label><select id="turn-angle"><option value="15">15°</option><option value="30">30°</option><option value="45" selected>45°</option><option value="90">90°</option></select></div></section>

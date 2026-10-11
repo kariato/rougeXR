@@ -6,6 +6,8 @@ import { GameSession } from '../engine/session';
 import { CanvasGridView } from '../presentation/grid/canvas-view';
 import type { GameView } from '../presentation/game-view';
 import { ThreeGameView } from '../presentation/three/three-view';
+import { frontMonsterAttackRequest } from '../presentation/three/camera-model';
+import type { PlayerObservation } from '../engine/model/observation';
 import { XrSessionController, type XrSystemLike } from '../presentation/xr/session-controller';
 import { bindDesktopInput, bindPovArrowInput, bindViewTurnInput } from '../input/desktop';
 import { bindVirtualJoystick } from '../input/virtual-joystick';
@@ -39,6 +41,7 @@ const turnLeft = required<HTMLButtonElement>('#turn-left');
 const turnRight = required<HTMLButtonElement>('#turn-right');
 const movementStick = required<HTMLButtonElement>('#movement-stick');
 const movementStickKnob = required<HTMLElement>('#movement-stick-knob');
+const attackFront = required<HTMLButtonElement>('#attack-front');
 const turnAngle = required<HTMLSelectElement>('#turn-angle');
 const viewMode = required<HTMLSelectElement>('#view-mode');
 const cameraMode = required<HTMLSelectElement>('#camera-mode');
@@ -119,6 +122,17 @@ function required<T extends Element>(selector: string): T {
   return element;
 }
 
+function frontAttackRequest(observation: PlayerObservation) {
+  if (view !== threeView || cameraMode.value !== 'firstPerson') return null;
+  return frontMonsterAttackRequest(observation, threeView.movementDirectionForPov(true).direction);
+}
+
+function refreshAttackButton(observation: PlayerObservation = observe(session.exportState())): void {
+  attackFront.hidden = view !== threeView || cameraMode.value !== 'firstPerson';
+  attackFront.disabled = replayPlayer !== null || observation.pendingDecision !== null ||
+    observation.status.hp <= 0 || xrController.status() === 'active' || frontAttackRequest(observation) === null;
+}
+
 function render(): void {
   const state = session.exportState();
   const observation = observe(state);
@@ -151,6 +165,7 @@ function render(): void {
   const filter = eventFilter.value as EventFilter;
   messages.textContent = filterEvents(latestEvents, filter).map(event => event.type === 'message' ? event.text : event.type === 'visibleMovement' ? 'You move.' : event.type).join('\n') || 'No matching events.';
   const decisionPending = observation.pendingDecision !== null;
+  refreshAttackButton(observation);
   movementStick.disabled = replayPlayer !== null || decisionPending || state.timing.status !== 'playing' || xrController.status() === 'active';
   if (movementStick.disabled) stopMovementStick();
   inventory.replaceChildren(...observation.inventory.map(item => {
@@ -230,11 +245,17 @@ function render(): void {
 function turnCamera(degrees: number): boolean {
   if (view !== threeView || cameraMode.value !== 'firstPerson' || xrController.status() === 'active') return false;
   threeView.rotatePov(degrees);
+  refreshAttackButton();
   return true;
 }
 
 turnLeft.addEventListener('click', () => turnCamera(-Number(turnAngle.value)));
 turnRight.addEventListener('click', () => turnCamera(Number(turnAngle.value)));
+attackFront.addEventListener('click', () => {
+  if (attackFront.disabled) return;
+  const request = frontAttackRequest(observe(session.exportState()));
+  if (request) enqueue(request.action, request.expectedRevision);
+});
 bindViewTurnInput(window, () => Number(turnAngle.value), turnCamera);
 bindPovArrowInput(window, () => Number(turnAngle.value), turnCamera, forward => {
   if (view !== threeView || cameraMode.value !== 'firstPerson' || xrController.status() === 'active') return false;
@@ -443,6 +464,7 @@ actionQueue = actionQueue.then(restoreLatestAutosave);
 
 function updateXrControls(status: ReturnType<XrSessionController['status']>): void {
   if (status === 'active') { movementStick.disabled = true; stopMovementStick(); }
+  refreshAttackButton();
   xrToggle.disabled = status === 'checking' || status === 'unavailable';
   xrToggle.textContent = status === 'active' ? 'Exit XR' : status === 'available' ? 'Enter XR' : 'XR unavailable';
   xrStatus.textContent = status === 'active' ? 'Immersive session active.' : status === 'available' ? 'Immersive VR is available.' : 'Desktop mode is fully available; immersive VR is not supported here.';

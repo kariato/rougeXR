@@ -1,6 +1,6 @@
 export type StickVector = { horizontal: number; vertical: number };
 
-/** Bind one captured pointer to an eight-way, repeating turn-based movement control. */
+/** Bind one captured pointer to a four-direction, repeating turn-based control. */
 export function bindVirtualJoystick(button: HTMLButtonElement, knob: HTMLElement,
   move: (vector: StickVector) => void): () => void {
   let pointerId: number | null = null;
@@ -28,13 +28,21 @@ export function bindVirtualJoystick(button: HTMLButtonElement, knob: HTMLElement
     const horizontal = (event.clientX - box.left - radius) / radius;
     const vertical = (box.top + box.height / 2 - event.clientY) / radius;
     const distance = Math.hypot(horizontal, vertical);
-    const visualScale = distance > 0 ? Math.min(distance, 1) / distance : 0;
-    knob.style.transform = `translate(${horizontal * visualScale * radius * .43}px, ${-vertical * visualScale * radius * .43}px)`;
-    if (distance < .28) { active = null; octant = null; clearTimer(); button.removeAttribute('data-direction'); return; }
-    const nextOctant = (Math.round(Math.atan2(vertical, horizontal) / (Math.PI / 4)) + 8) % 8;
+    if (distance < .28) {
+      active = null; octant = null; clearTimer();
+      knob.style.transform = '';
+      button.removeAttribute('data-direction');
+      return;
+    }
+    const nextOctant = Math.abs(horizontal) > Math.abs(vertical)
+      ? horizontal > 0 ? 0 : 4
+      : vertical > 0 ? 2 : 6;
+    const travel = Math.min(distance, 1) * radius * .43;
+    knob.style.transform = `translate(${nextOctant === 0 ? travel : nextOctant === 4 ? -travel : 0}px, ${nextOctant === 2 ? -travel : nextOctant === 6 ? travel : 0}px)`;
     if (nextOctant === octant) return;
     octant = nextOctant;
-    active = { horizontal: Math.cos(nextOctant * Math.PI / 4), vertical: Math.sin(nextOctant * Math.PI / 4) };
+    active = { horizontal: nextOctant === 0 ? 1 : nextOctant === 4 ? -1 : 0,
+      vertical: nextOctant === 2 ? 1 : nextOctant === 6 ? -1 : 0 };
     button.dataset.direction = String(nextOctant);
     if (!button.disabled) move(active);
     repeat();
