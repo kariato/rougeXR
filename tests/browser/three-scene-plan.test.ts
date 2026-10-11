@@ -51,6 +51,20 @@ describe('desktop 3D scene plan', () => {
     expect(walls.some(wall => wall.axis === 'z')).toBe(false);
   });
 
+  it('paints the outside corner of a corridor bend without capping its undisclosed sides', () => {
+    const cells = [
+      { x: 1, z: 1, kind: 'passage', visibility: 'visible', theme: 'dungeon', condition: 0, dark: false },
+      { x: 1, z: 0, kind: 'passage', visibility: 'visible', theme: 'dungeon', condition: 0, dark: false },
+      { x: 2, z: 1, kind: 'passage', visibility: 'visible', theme: 'dungeon', condition: 0, dark: false },
+    ] as const;
+    const corner = buildCorridorWalls(cells).filter(wall => wall.length === .5);
+    expect(corner).toEqual(expect.arrayContaining([
+      expect.objectContaining({ x: .75, z: 1.47, axis: 'x' }),
+      expect.objectContaining({ x: .53, z: 1.25, axis: 'z' }),
+    ]));
+    expect(corner).toHaveLength(2);
+  });
+
   it('lights at most four currently visible torches and excludes remembered or reserved cells', () => {
     const visible = { visibility: 'visible' as const, appearance: { glyph: '-', terrainLabel: 'wallH', featureLabel: null }, visualRegion: null };
     const observation: PlayerObservation = {

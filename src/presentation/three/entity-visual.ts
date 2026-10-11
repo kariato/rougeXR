@@ -78,8 +78,14 @@ function createChestFallback(): THREE.Group {
   const body = new THREE.Mesh(new THREE.BoxGeometry(.52, .35, .38), wood); body.position.y = .19;
   const lid = new THREE.Mesh(new THREE.BoxGeometry(.55, .16, .42), wood); lid.position.y = .44;
   const band = new THREE.Mesh(new THREE.BoxGeometry(.09, .51, .045), brass); band.position.set(0, .27, .22);
+  lid.name = 'chest-lid';
   root.add(body, lid, band);
   return root;
+}
+
+export function setChestFallbackOpen(root: THREE.Object3D): void {
+  const lid = root.getObjectByName('chest-lid');
+  if (lid) { lid.rotation.x = -Math.PI / 3; lid.position.z = -.12; lid.position.y = .55; }
 }
 
 function createTorchFallback(): THREE.Group {

@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test('loads the visible treasure chest and wall torch in generated first-person play', async ({ page }) => {
+test('keeps the chest closed until clicked and open after a scene refresh', async ({ page }) => {
   const loaded = new Set<string>();
   const errors: Error[] = [];
   page.on('requestfinished', request => {
@@ -13,7 +13,12 @@ test('loads the visible treasure chest and wall torch in generated first-person 
   await page.locator('#new-game').click();
   await expect(page.locator('#dungeon-3d')).toBeVisible();
   await expect.poll(() => loaded.has('/assets/props/crate.glb'), { timeout: 20_000 }).toBe(true);
-  await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-chest-animation', 'open');
+  await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-chest-animation', 'closed');
+  await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-open-chests', '0');
+  await page.mouse.click(640, 500);
+  await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-open-chests', '1');
+  await page.locator('#rest').click();
+  await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-open-chests', '1');
   await expect.poll(() => loaded.has('/assets/props/torch.glb'), { timeout: 20_000 }).toBe(true);
   expect(errors).toEqual([]);
 });

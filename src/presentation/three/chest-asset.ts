@@ -7,9 +7,9 @@ const loader = new GLTFLoader();
 const cache = new AssetCache<GLTF>(url => new Promise((resolve, reject) => loader.load(url, resolve, undefined, reject)),
   value => disposeMeshes(value.scene));
 
-/** Loads the hollow treasure chest and plays its authored lid-opening clip once. */
+/** Loads a closed chest, or restores the open pose after a scene rebuild. */
 export async function loadChestInto(holder: THREE.Group, fallback: THREE.Object3D, generation: SceneGeneration,
-  token: number, onAttached: (mixer: THREE.AnimationMixer, duration: number) => void): Promise<void> {
+  token: number, opened: boolean, onAttached: (open: () => { mixer: THREE.AnimationMixer; duration: number }) => void): Promise<void> {
   try {
     const lease = await cache.acquire(assetUrl('assets/props/crate.glb?v=3'), {});
     if (!generation.isCurrent(token) || !holder.parent) { lease.release(); return; }
@@ -22,10 +22,11 @@ export async function loadChestInto(holder: THREE.Group, fallback: THREE.Object3
       object.material = Array.isArray(object.material) ? object.material.map(material => material.clone()) : object.material.clone();
     });
     const mixer = new THREE.AnimationMixer(instance);
-    const action = mixer.clipAction(clip); action.setLoop(THREE.LoopOnce, 1); action.clampWhenFinished = true; action.play();
+    const action = mixer.clipAction(clip); action.setLoop(THREE.LoopOnce, 1); action.clampWhenFinished = true;
+    if (opened) { action.play(); mixer.setTime(clip.duration); }
     lease.release();
     holder.remove(fallback); disposeMeshes(fallback); holder.add(instance);
-    onAttached(mixer, clip.duration);
+    onAttached(() => { action.reset(); action.play(); return { mixer, duration: clip.duration }; });
   } catch {
     // The closed primitive chest remains visible if the animated GLB cannot load.
   }

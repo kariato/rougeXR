@@ -5,7 +5,7 @@ import type { PlayerObservation } from '../../engine/model/observation';
 import type { GameView } from '../game-view';
 import { buildCorridorWalls, buildPrimitiveCells, selectLitTorches } from './scene-plan';
 import { deathFallProgress, frontMonsterAttackRequest, nearestVisibleHit, smoothToward, type CameraMode } from './camera-model';
-import { createActorVisual, createDecorationVisual, createItemVisual, type ActorVisual } from './entity-visual';
+import { createActorVisual, createDecorationVisual, createItemVisual, setChestFallbackOpen, type ActorVisual } from './entity-visual';
 import { SceneGeneration } from './asset-cache';
 import { loadPropInto } from './prop-asset';
 import { equippedWeaponAsset, type WeaponAsset } from './weapon-asset';
@@ -71,6 +71,8 @@ export class ThreeGameView implements GameView {
   private decorationMixers: THREE.AnimationMixer[] = [];
   private doorVisuals: DoorVisual[] = [];
   private readonly openedDoors = new Map<string, number>();
+  private readonly openedChests = new Set<string>();
+  private readonly chestOpeners = new Map<string, () => void>();
   private actorFacings = new Map<string, number>();
   private readonly corpses = new Map<string, CorpseRecord>();
   private cameraActions: Array<{ start: number; duration: number; kind: CameraCue }> = [];
@@ -220,7 +222,7 @@ export class ThreeGameView implements GameView {
     }
     const corridorWalls = buildCorridorWalls(primitiveCells);
     for (const wall of corridorWalls) {
-      const geometry = new THREE.BoxGeometry(wall.axis === 'x' ? 1 : .10, 1.8, wall.axis === 'z' ? 1 : .10);
+      const geometry = new THREE.BoxGeometry(wall.axis === 'x' ? (wall.length ?? 1) : .10, 1.8, wall.axis === 'z' ? (wall.length ?? 1) : .10);
       const mesh = new THREE.Mesh(geometry, this.roomMaterials.material(wall.theme, 'wall', wall.condition,
         wall.remembered, wall.dark, Math.round(wall.x * 2), Math.round(wall.z * 2)));
       mesh.position.set(wall.x, .9, wall.z); mesh.userData = { eligible: false, occludes: true }; this.world.add(mesh);
@@ -228,6 +230,8 @@ export class ThreeGameView implements GameView {
     this.canvas.dataset.corridorWalls = String(corridorWalls.length);
     this.canvas.dataset.visibleDoors = String(this.doorVisuals.length);
     this.canvas.dataset.openDoors = String(this.doorVisuals.filter(door => door.openedAt !== null).length);
+    this.canvas.dataset.openChests = String(this.openedChests.size);
+    this.canvas.dataset.chestAnimation = this.openedChests.size ? 'open' : 'closed';
 
     const reserved = new Set([`${observation.playerAt.x},${observation.playerAt.y}`,
       ...observation.entities.map(entity => `${entity.at.x},${entity.at.y}`),
@@ -239,7 +243,8 @@ export class ThreeGameView implements GameView {
       if (!activeCells.has(key) || reserved.has(key)) continue;
       const holder = new THREE.Group(); const fallback = createDecorationVisual(decoration.kind, decoration.theme, decoration.variant);
       holder.position.x = decoration.at.x; holder.position.z = decoration.at.y; holder.rotation.y = decoration.rotation * Math.PI / 2; holder.scale.multiplyScalar(decoration.scale);
-      holder.userData = { cell: { ...decoration.at }, eligible: false, occludes: false };
+      holder.userData = { cell: { ...decoration.at }, eligible: false, occludes: false,
+        ...(decoration.kind === 'crate' ? { chestToken: decoration.token } : {}) };
       if (decoration.kind === 'torch') {
         const mount = new THREE.Group(); mount.position.set(0, 1.10, .54); mount.add(fallback); holder.add(mount);
         if (litTorches.has(decoration.token)) {
@@ -255,12 +260,21 @@ export class ThreeGameView implements GameView {
       if (decoration.kind === 'coinScatter') void loadPropInto(assetUrl('assets/props/coinScatter.glb'), holder, fallback, this.generation, sceneToken);
       if (decoration.kind === 'bones') void loadPropInto(assetUrl('assets/props/bones.glb?v=2'), holder, fallback, this.generation, sceneToken, () => this.ensureAnimation());
       if (decoration.kind === 'mushroom') void loadPropInto(assetUrl('assets/props/mushroom.glb?v=2'), holder, fallback, this.generation, sceneToken, () => this.ensureAnimation());
-      if (decoration.kind === 'crate') void loadChestInto(holder, fallback, this.generation, sceneToken, (mixer, duration) => {
-        this.decorationMixers.push(mixer);
-        this.animationUntil = Math.max(this.animationUntil, performance.now() + duration * 1000);
-        this.canvas.dataset.chestAnimation = 'open';
-        this.ensureAnimation();
-      });
+      if (decoration.kind === 'crate') {
+        const opened = this.openedChests.has(decoration.token);
+        if (opened) setChestFallbackOpen(fallback);
+        this.chestOpeners.set(decoration.token, () => setChestFallbackOpen(fallback));
+        void loadChestInto(holder, fallback, this.generation, sceneToken, opened, open => {
+          this.chestOpeners.set(decoration.token, () => {
+            const { mixer, duration } = open();
+            this.decorationMixers.push(mixer);
+            this.animationUntil = Math.max(this.animationUntil, performance.now() + duration * 1000);
+            this.ensureAnimation();
+          });
+          if (!opened && this.openedChests.has(decoration.token)) this.chestOpeners.get(decoration.token)?.();
+          this.ensureAnimation();
+        });
+      }
       if (decoration.kind === 'urn') void loadPropInto(assetUrl('assets/props/urn.glb'), holder, fallback, this.generation, sceneToken);
     }
 
@@ -350,10 +364,13 @@ export class ThreeGameView implements GameView {
   resetPresentation(): void {
     this.clearCorpses();
     this.openedDoors.clear();
+    this.openedChests.clear();
     this.actorFacings.clear(); this.cameraActions = []; this.deathStartedAt = null; this.lastAnimatedRevision = -1;
     delete this.canvas.dataset.playerDeath;
     this.canvas.dataset.visibleCorpses = '0';
     this.canvas.dataset.visibleDoors = '0'; this.canvas.dataset.openDoors = '0';
+    this.canvas.dataset.openChests = '0';
+    this.canvas.dataset.chestAnimation = 'closed';
   }
 
   private attachCorpse(corpse: CorpseRecord): void {
@@ -526,6 +543,7 @@ export class ThreeGameView implements GameView {
   };
   private readonly onClick = (event: MouseEvent): void => {
     if (this.suppressClick) { this.suppressClick = false; return; }
+    if (event.button === 0 && this.tryOpenChest(event.clientX, event.clientY)) return;
     if (event.button === 0 && this.mode === 'firstPerson' && this.observation) {
       const forward = this.movementDirectionForPov(true);
       const attack = frontMonsterAttackRequest(this.observation, forward.direction);
@@ -544,6 +562,29 @@ export class ThreeGameView implements GameView {
     }));
     if (selected) this.canvas.dispatchEvent(new CustomEvent('rougexr-select-cell', { detail: selected }));
   };
+  private tryOpenChest(clientX: number, clientY: number): boolean {
+    if (this.mode !== 'firstPerson' || !this.observation) return false;
+    const bounds = this.canvas.getBoundingClientRect();
+    const pointer = new THREE.Vector2((clientX - bounds.left) / bounds.width * 2 - 1,
+      -((clientY - bounds.top) / bounds.height) * 2 + 1);
+    const ray = new THREE.Raycaster(); ray.setFromCamera(pointer, this.camera);
+    for (const hit of ray.intersectObjects(this.world.children, true)) {
+      const data = inheritedUserData(hit.object);
+      const token = data.chestToken;
+      if (typeof token === 'string' && hit.distance < 2.5) {
+        if (!this.openedChests.has(token)) {
+          this.openedChests.add(token);
+          this.chestOpeners.get(token)?.();
+          this.canvas.dataset.openChests = String(this.openedChests.size);
+          this.canvas.dataset.chestAnimation = 'open';
+          this.ensureAnimation();
+        }
+        return true;
+      }
+      if (data.occludes === true) break;
+    }
+    return false;
+  }
   private readonly clearCapturedInput = (): void => {
     if (this.pointerId !== null && this.canvas.hasPointerCapture(this.pointerId)) this.canvas.releasePointerCapture(this.pointerId);
     this.dragging = false; this.pointerId = null;
@@ -579,6 +620,7 @@ export class ThreeGameView implements GameView {
     this.monsterMixers = [];
     for (const mixer of this.decorationMixers) mixer.stopAllAction();
     this.decorationMixers = [];
+    this.chestOpeners.clear();
     for (const door of this.doorVisuals) door.mixer?.stopAllAction();
     this.doorVisuals = [];
     for (const child of [...this.world.children]) {
@@ -622,7 +664,7 @@ function createWeaponFallback(asset: WeaponAsset): THREE.Object3D {
 
 function inheritedUserData(object: THREE.Object3D): Record<string, unknown> {
   let current: THREE.Object3D | null = object;
-  while (current) { if (current.userData.cell) return current.userData as Record<string, unknown>; current = current.parent; }
+  while (current) { if (current.userData.cell || current.userData.occludes === true) return current.userData as Record<string, unknown>; current = current.parent; }
   return {};
 }
 

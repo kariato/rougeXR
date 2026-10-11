@@ -27,7 +27,7 @@ export function buildPrimitiveCells(observation: PlayerObservation, radius = Num
   return result;
 }
 
-export interface CorridorWall { x: number; z: number; axis: 'x' | 'z'; theme: RoomTheme; condition: 0 | 1 | 2; dark: boolean; remembered: boolean }
+export interface CorridorWall { x: number; z: number; axis: 'x' | 'z'; length?: number; theme: RoomTheme; condition: 0 | 1 | 2; dark: boolean; remembered: boolean }
 
 /** Close the disclosed sides of narrow passage cells; unknown level topology is never inspected. */
 export function buildCorridorWalls(cells: readonly PrimitiveCell[]): CorridorWall[] {
@@ -42,14 +42,22 @@ export function buildCorridorWalls(cells: readonly PrimitiveCell[]): CorridorWal
     const directions = [[0, -1], [1, 0], [0, 1], [-1, 0]] as const;
     const connectedAxes = new Set(directions.filter(([dx, dz]) => connected(cell.x + dx, cell.z + dz))
       .map(([dx]) => dx === 0 ? 'z' : 'x'));
+    const bend = directions.filter(([dx, dz]) => connected(cell.x + dx, cell.z + dz)).length === 2 && connectedAxes.size === 2;
     for (const [dx, dz] of directions) {
       if (connected(cell.x + dx, cell.z + dz)) continue;
       const neighborKnown = byPosition.has(`${cell.x + dx},${cell.z + dz}`);
       const sideAxis = dx === 0 ? 'z' : 'x';
       // An absent cell may be the still-undisclosed continuation ahead. Infer only
       // perpendicular side walls from a single known corridor axis; never cap fog.
-      if (!neighborKnown && (connectedAxes.size !== 1 || connectedAxes.has(sideAxis))) continue;
-      walls.push({ x: cell.x + dx * .47, z: cell.z + dz * .47, axis: dx === 0 ? 'x' : 'z', theme: cell.theme,
+      if (!neighborKnown && !bend && (connectedAxes.size !== 1 || connectedAxes.has(sideAxis))) continue;
+      // At a bend, paint only the outside half of an undisclosed side. The
+      // remaining half stays open in case it reveals a branching passage.
+      const cornerReturn = !neighborKnown && bend;
+      const otherMissing = directions.find(([otherDx, otherDz]) => (otherDx !== dx || otherDz !== dz)
+        && !connected(cell.x + otherDx, cell.z + otherDz));
+      walls.push({ x: cell.x + dx * .47 + (cornerReturn ? (otherMissing?.[0] ?? 0) * .25 : 0),
+        z: cell.z + dz * .47 + (cornerReturn ? (otherMissing?.[1] ?? 0) * .25 : 0),
+        axis: dx === 0 ? 'x' : 'z', ...(cornerReturn ? { length: .5 } : {}), theme: cell.theme,
         condition: cell.condition, dark: cell.dark, remembered: cell.visibility === 'remembered' });
     }
   }

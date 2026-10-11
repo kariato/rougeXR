@@ -19,6 +19,18 @@ describe('inventory pickup', () => {
     expect(session.debugEvents()).toContainEqual(expect.objectContaining({ type: 'itemCollected', itemId: 'e2', quantity: amount }));
   });
 
+  it('names a picked-up unidentified item by its visible appearance', () => {
+    const state = createTwoRoomFixture(71); const item = state.entities.e2;
+    if (item?.kind !== 'item') throw new Error('missing item');
+    item.category = 'potion'; item.definitionId = 'potion.healing'; item.quantity = 1;
+    transferItem(state, item.id, { kind: 'floor', levelId: state.level.id, at: state.player.at });
+    const appearance = state.identification.find(entry => entry.definitionId === item.definitionId)?.appearanceId;
+    const messages: string[] = [];
+    expect(collectAtPlayer(state, event => { if (event.type === 'sourceMessage') messages.push(event.text); }).resolved).toBe(true);
+    expect(messages).toContain(`Added ${appearance} potion to your pack.`);
+    expect(messages.join(' ')).not.toContain('healing');
+  });
+
   it('splits and merges compatible stacks while keeping order and identities valid', () => {
     const state = createTwoRoomFixture(); const item = state.entities.e2;
     if (item?.kind !== 'item') throw new Error('missing item');

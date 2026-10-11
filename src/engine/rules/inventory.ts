@@ -5,6 +5,7 @@ import type { EntityId, EquipmentSlot, ItemState, WorldState } from '../model/st
 import { IS_CURSED, IS_FOUND } from './flags';
 import { rnd } from '../random';
 import { applyRingEquip, applyRingRemove } from './rings';
+import { observedItemLabel } from '../identification';
 
 export const MAX_PACK_SLOTS = 23;
 export interface InventoryResult { resolved: boolean; consumedSlot: boolean; reason: string | null }
@@ -32,12 +33,14 @@ export function collectItem(state: WorldState, itemId: EntityId, emit: (event: R
     return { resolved: false, consumedSlot: false, reason: 'pack-full' };
   }
   const floorAt = { ...item.location.at }; item.flags |= IS_FOUND; transferItem(state, itemId, { kind: 'pack', owner: 'player' });
+  const pickupLabel = observedItemLabel(state, item);
+  const pickupQuantity = item.quantity;
   for (const id of state.level.monsterOrder) { const monster = state.entities[id]; if (monster?.kind === 'monster'
       && (monster.target?.kind === 'item' && monster.target.id === itemId || monster.target?.kind === 'position'
         && monster.target.at.x === floorAt.x && monster.target.at.y === floorAt.y)) monster.target = { kind: 'player' }; }
   const retainedId = existing && mergeStacks(state, existing, itemId) ? existing : itemId;
   emit({ type: 'itemCollected', itemId: retainedId, category: item.category, quantity: item.quantity });
-  emit({ type: 'sourceMessage', text: 'You now have an item in your pack.' });
+  emit({ type: 'sourceMessage', text: `Added ${pickupQuantity > 1 ? `${pickupQuantity} × ` : ''}${pickupLabel} to your pack.` });
   return { resolved: true, consumedSlot: false, reason: null };
 }
 
