@@ -19,8 +19,9 @@ export function buildPrimitiveCells(observation: PlayerObservation, radius = Num
     if (!cell || cell.visibility === 'unknown' || !cell.appearance) continue;
     const x = index % observation.width;
     const z = Math.floor(index / observation.width);
-    if (Math.abs(x - observation.playerAt.x) + Math.abs(z - observation.playerAt.y) > radius) continue;
     const terrain = cell.appearance.terrainLabel;
+    if (Math.abs(x - observation.playerAt.x) + Math.abs(z - observation.playerAt.y) > radius
+      && !(cell.visibility === 'visible' && (terrain === 'passage' || terrain === 'door'))) continue;
     result.push({ x, z, kind: terrain === 'wallH' || terrain === 'wallV' ? 'wall' : terrain === 'door' ? 'door' : terrain === 'passage' ? 'passage' : 'floor', visibility: cell.visibility,
       theme: cell.visualRegion?.theme ?? 'dungeon', condition: cell.visualRegion?.condition ?? 0, dark: cell.visualRegion?.dark ?? false });
   }

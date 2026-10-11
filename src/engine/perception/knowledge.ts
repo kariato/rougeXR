@@ -36,23 +36,50 @@ export function isPositionVisible(state: WorldState, at: Position): boolean {
   return true;
 }
 
+/** Disclose corridor geometry from its doorway, without extending creature sight. */
+function disclosedCorridor(state: WorldState): Set<number> {
+  const disclosed = new Set<number>();
+  if ((state.player.flags & IS_BLIND) !== 0) return disclosed;
+  const start = cellIndex(state.level, state.player.at);
+  const entrance = state.level.tiles[start];
+  if (!entrance || entrance.secret || (entrance.terrain !== 'passage' && entrance.terrain !== 'door')
+    || entrance.passageId === null) return disclosed;
+  const pending = [start]; disclosed.add(start);
+  while (pending.length) {
+    const index = pending.pop()!;
+    const at = positionAt(state.level, index);
+    for (const next of [{ x: at.x + 1, y: at.y }, { x: at.x - 1, y: at.y },
+      { x: at.x, y: at.y + 1 }, { x: at.x, y: at.y - 1 }]) {
+      if (!isPlayable(state.level, next)) continue;
+      const nextIndex = cellIndex(state.level, next);
+      const tile = state.level.tiles[nextIndex]!;
+      if (disclosed.has(nextIndex) || tile.secret || tile.passageId !== entrance.passageId
+        || (tile.terrain !== 'passage' && tile.terrain !== 'door')) continue;
+      disclosed.add(nextIndex); pending.push(nextIndex);
+    }
+  }
+  return disclosed;
+}
+
 export function updateKnowledge(state: WorldState): void {
   if (state.knowledge.levelId !== state.level.id || state.knowledge.remembered.length !== state.level.tiles.length) {
     state.knowledge = { levelId: state.level.id, remembered: Array.from({ length: state.level.tiles.length }, () => null) };
   }
+  const corridor = disclosedCorridor(state);
   for (let index = 0; index < state.level.tiles.length; index++) {
     const at = positionAt(state.level, index);
-    if (isPositionVisible(state, at)) state.knowledge.remembered[index] = appearanceFor(state.level.tiles[index]!);
+    if (corridor.has(index) || isPositionVisible(state, at)) state.knowledge.remembered[index] = appearanceFor(state.level.tiles[index]!);
   }
 }
 
 export function observe(state: WorldState): PlayerObservation {
+  const corridor = disclosedCorridor(state);
   const revealedTreasureRooms = new Set(Object.values(state.entities).flatMap(entity => {
     if (entity.kind !== 'item' || entity.location.kind !== 'floor' || !isPositionVisible(state, entity.location.at)) return [];
     const roomId = state.level.tiles[cellIndex(state.level, entity.location.at)]?.roomId; return roomId === null || roomId === undefined ? [] : [roomId];
   }));
   const cells = state.level.tiles.map((tile, index) => {
-    const visible = isPositionVisible(state, positionAt(state.level, index));
+    const visible = corridor.has(index) || isPositionVisible(state, positionAt(state.level, index));
     const remembered = state.knowledge.remembered[index] ?? null;
     const visibility: Visibility = visible ? 'visible' : remembered ? 'remembered' : 'unknown';
     const room = tile.roomId === null ? null : state.level.rooms.find(candidate => candidate.id === tile.roomId) ?? null;
@@ -73,7 +100,7 @@ export function observe(state: WorldState): PlayerObservation {
       return [{ token: `monster-${entity.id}`, at: { ...at }, appearance: hallucinating ? cosmicGlyph(state, entity.id, true) : entity.disguise ?? 'M',
         label: hallucinating ? 'cosmic creature' : ordinarilyVisible ? (entity.disguise ?? entity.definitionId) : 'detected monster' }];
     }
-    if (cells[cellIndex(state.level, at)]?.visibility !== 'visible') return [];
+    if (!isPositionVisible(state, at)) return [];
     return [{ token: `item-${entity.id}`, at: { ...at }, appearance: hallucinating ? cosmicGlyph(state, entity.id, false) : itemGlyph(entity),
       label: hallucinating ? 'cosmic object' : observedItemLabel(state, entity) }];
   });

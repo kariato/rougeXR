@@ -13,7 +13,32 @@ describe('player knowledge', () => {
     const view = observe(state);
     expect(view.cells[cellIndex(state.level, { x: 5, y: 5 })]?.visibility).toBe('remembered');
     expect(view.cells[cellIndex(state.level, { x: 12, y: 5 })]?.visibility).toBe('visible');
+    expect(view.cells[cellIndex(state.level, { x: 19, y: 5 })]?.visibility).toBe('visible');
+    expect(view.cells[cellIndex(state.level, { x: 20, y: 5 })]?.visibility).toBe('visible');
     expect(view.cells[cellIndex(state.level, { x: 23, y: 5 })]).toEqual({ visibility: 'unknown', appearance: null, visualRegion: null });
+  });
+  it('reveals the full corridor on its doorway while keeping distant creatures hidden', () => {
+    const state = createTwoRoomFixture();
+    state.player.at = { x: 11, y: 5 }; state.player.roomId = 0;
+    const monster = state.entities.e1;
+    if (monster?.kind !== 'monster') throw new Error('missing monster');
+    monster.at = { x: 18, y: 5 }; monster.roomId = null;
+    updateKnowledge(state);
+    const view = observe(state);
+    expect(view.cells[cellIndex(state.level, monster.at)]?.visibility).toBe('visible');
+    expect(view.entities.some(entity => entity.token === `monster-${monster.id}`)).toBe(false);
+    state.player.at = { x: 5, y: 5 }; updateKnowledge(state);
+    expect(observe(state).cells[cellIndex(state.level, { x: 18, y: 5 })]?.visibility).toBe('remembered');
+  });
+  it('stops corridor disclosure at a secret break', () => {
+    const state = createTwoRoomFixture();
+    state.player.at = { x: 12, y: 5 }; state.player.roomId = null;
+    const breakTile = state.level.tiles[cellIndex(state.level, { x: 14, y: 5 })]!;
+    breakTile.secret = true; breakTile.terrain = 'void';
+    state.knowledge.remembered.fill(null); updateKnowledge(state);
+    const view = observe(state);
+    expect(view.cells[cellIndex(state.level, { x: 13, y: 5 })]?.visibility).toBe('visible');
+    expect(view.cells[cellIndex(state.level, { x: 15, y: 5 })]?.visibility).toBe('unknown');
   });
   it('shows only the local neighborhood in a dark room and only the player cell while blind', () => {
     const state = createTwoRoomFixture(); state.level.rooms[0]!.dark = true;

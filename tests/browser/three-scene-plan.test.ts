@@ -26,6 +26,15 @@ describe('desktop 3D scene plan', () => {
     expect(buildPrimitiveCells(observation, 1).map(value => value.x)).toEqual([0, 1]);
   });
 
+  it('includes the far end of a visible corridor beyond the local render radius', () => {
+    const passage = { visibility: 'visible' as const, appearance: { glyph: '#', terrainLabel: 'passage', featureLabel: null }, visualRegion: null };
+    const unknown = { visibility: 'unknown' as const, appearance: null, visualRegion: null };
+    const observation: PlayerObservation = { revision: 0, width: 5, height: 1, playerAt: { x: 0, y: 0 },
+      cells: [passage, passage, passage, unknown, { ...passage, visibility: 'remembered' }], entities: [], decorations: [],
+      status: { hp: 1, maxHp: 1, gold: 0, depth: 1, hungerStage: 0 }, inventory: [], pendingDecision: null };
+    expect(buildPrimitiveCells(observation, 1).map(cell => cell.x)).toEqual([0, 1, 2]);
+  });
+
   it('adds side walls around disclosed corridor cells and leaves connected ends open', () => {
     const passage = { visibility: 'visible' as const, appearance: { glyph: '#', terrainLabel: 'passage', featureLabel: null }, visualRegion: null };
     const door = { visibility: 'visible' as const, appearance: { glyph: '+', terrainLabel: 'door', featureLabel: null }, visualRegion: null };
