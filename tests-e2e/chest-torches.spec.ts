@@ -15,8 +15,13 @@ test('keeps the chest closed until clicked and open after a scene refresh', asyn
   await expect.poll(() => loaded.has('/assets/props/crate.glb'), { timeout: 20_000 }).toBe(true);
   await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-chest-animation', 'closed');
   await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-open-chests', '0');
+  const goldBefore = Number(await page.locator('#hud-gold').textContent());
   await page.mouse.click(640, 500);
   await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-open-chests', '1');
+  await expect(page.locator('#hud-message')).toContainText('Contents:');
+  await expect.poll(async () => Number(await page.locator('#hud-gold').textContent())).toBeGreaterThan(goldBefore);
+  await expect(page.locator('#messages')).toContainText('gold pieces. Added to your gold.');
+  await expect(page.locator('#state-summary')).toContainText('Revision 1');
   await page.locator('#rest').click();
   await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-open-chests', '1');
   await expect.poll(() => loaded.has('/assets/props/torch.glb'), { timeout: 20_000 }).toBe(true);

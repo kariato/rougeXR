@@ -102,6 +102,7 @@ export function validateWorld(input: unknown): ValidationIssue[] {
         check(['rubble', 'pillar', 'urn', 'crate', 'mushroom', 'bones', 'coinScatter', 'torch'].includes(decoration.kind)
           && isPlayable(level, decoration.at) && level.tiles[decoration.at.y * level.width + decoration.at.x]?.roomId === room.id
           && integer(decoration.rotation) && decoration.rotation <= 3 && integer(decoration.variant)
+          && (decoration.opened === undefined || (decoration.kind === 'crate' && typeof decoration.opened === 'boolean'))
           && Number.isFinite(decoration.scale) && decoration.scale > 0, `room.${room.id}.design`, 'Invalid decoration');
       }
     }

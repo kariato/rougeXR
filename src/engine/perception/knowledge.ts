@@ -58,6 +58,18 @@ function disclosedCorridor(state: WorldState): Set<number> {
       disclosed.add(nextIndex); pending.push(nextIndex);
     }
   }
+  // Disclose solid boundaries of the connected corridor too. These cells supply
+  // geometry only; creature and item visibility still uses the ordinary look.
+  for (const index of [...disclosed]) {
+    const at = positionAt(state.level, index);
+    for (const [dx, dy] of [[0, -1], [1, 0], [0, 1], [-1, 0]] as const) {
+      const next = { x: at.x + dx, y: at.y + dy };
+      if (!isPlayable(state.level, next)) continue;
+      const tile = tileAt(state.level, next);
+      if (tile.terrain === 'void' || tile.terrain === 'wallH' || tile.terrain === 'wallV')
+        disclosed.add(cellIndex(state.level, next));
+    }
+  }
   return disclosed;
 }
 
@@ -114,6 +126,7 @@ export function observe(state: WorldState): PlayerObservation {
     if (room.design.theme === 'treasure' && !revealedTreasureRooms.has(room.id)) return [];
     const cell = cells[cellIndex(state.level, decoration.at)];
     return cell?.visibility === 'unknown' ? [] : [{ token: decoration.id, at: { ...decoration.at }, kind: decoration.kind,
+      ...(decoration.kind === 'crate' ? { opened: decoration.opened ?? false } : {}),
       rotation: decoration.rotation, variant: decoration.variant, scale: decoration.scale,
       theme: room.design.theme === 'treasure' && !revealedTreasureRooms.has(room.id) ? room.design.baseTheme : room.design.theme }];
   }));

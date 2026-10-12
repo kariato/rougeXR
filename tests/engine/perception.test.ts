@@ -30,6 +30,16 @@ describe('player knowledge', () => {
     state.player.at = { x: 5, y: 5 }; updateKnowledge(state);
     expect(observe(state).cells[cellIndex(state.level, { x: 18, y: 5 })]?.visibility).toBe('remembered');
   });
+  it('discloses corridor side boundaries without exposing the destination room', () => {
+    const state = createTwoRoomFixture();
+    state.player.at = { x: 12, y: 5 }; state.player.roomId = null;
+    state.knowledge.remembered.fill(null); updateKnowledge(state);
+    const view = observe(state);
+    expect(view.cells[cellIndex(state.level, { x: 18, y: 4 })]).toMatchObject({
+      visibility: 'visible', appearance: { terrainLabel: 'void' },
+    });
+    expect(view.cells[cellIndex(state.level, { x: 23, y: 5 })]?.visibility).toBe('unknown');
+  });
   it('stops corridor disclosure at a secret break', () => {
     const state = createTwoRoomFixture();
     state.player.at = { x: 12, y: 5 }; state.player.roomId = null;

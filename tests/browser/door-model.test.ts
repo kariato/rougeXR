@@ -24,9 +24,10 @@ describe('room-facing hinged doors', () => {
     expect(roomFacingForDoor(south, 0, 1)?.dz).toBe(1);
   });
 
-  it('does not infer an undisclosed room side', () => {
+  it('renders a disclosed entrance before the interior is visible', () => {
     const hidden = observation([cell('floor', 'room', 'unknown'), cell('door', 'room'), cell('passage', null)], 3, 1);
-    expect(roomFacingForDoor(hidden, 1, 0)).toBeNull();
+    expect(roomFacingForDoor(hidden, 1, 0)).toEqual({ dx: -1, dz: -0, yaw: -Math.PI / 2 });
+    expect(hidden.cells[0]?.visibility).toBe('unknown');
   });
 
   it('eases the one-time swing and holds its open pose', () => {

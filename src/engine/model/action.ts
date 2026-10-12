@@ -2,6 +2,7 @@ import type { Direction, EquipmentSlot, Position } from './state';
 
 export type GameAction =
   | { type: 'move'; direction: Direction; pickup: boolean }
+  | { type: 'openChest'; chestId: string }
   | { type: 'rest' }
   | { type: 'search' }
   | { type: 'pickup' }

@@ -4,7 +4,7 @@ import type { RoomTheme } from '../../engine/model/state';
 export interface PrimitiveCell {
   x: number;
   z: number;
-  kind: 'floor' | 'passage' | 'wall' | 'door';
+  kind: 'floor' | 'passage' | 'wall' | 'door' | 'void';
   visibility: Exclude<Visibility, 'unknown'>;
   theme: RoomTheme;
   condition: 0 | 1 | 2;
@@ -22,7 +22,7 @@ export function buildPrimitiveCells(observation: PlayerObservation, radius = Num
     const terrain = cell.appearance.terrainLabel;
     if (Math.abs(x - observation.playerAt.x) + Math.abs(z - observation.playerAt.y) > radius
       && !(cell.visibility === 'visible' && (terrain === 'passage' || terrain === 'door'))) continue;
-    result.push({ x, z, kind: terrain === 'wallH' || terrain === 'wallV' ? 'wall' : terrain === 'door' ? 'door' : terrain === 'passage' ? 'passage' : 'floor', visibility: cell.visibility,
+    result.push({ x, z, kind: terrain === 'void' ? 'void' : terrain === 'wallH' || terrain === 'wallV' ? 'wall' : terrain === 'door' ? 'door' : terrain === 'passage' ? 'passage' : 'floor', visibility: cell.visibility,
       theme: cell.visualRegion?.theme ?? 'dungeon', condition: cell.visualRegion?.condition ?? 0, dark: cell.visualRegion?.dark ?? false });
   }
   return result;
@@ -35,7 +35,7 @@ export function buildCorridorWalls(cells: readonly PrimitiveCell[]): CorridorWal
   const byPosition = new Map(cells.map(cell => [`${cell.x},${cell.z}`, cell]));
   const connected = (x: number, z: number): boolean => {
     const kind = byPosition.get(`${x},${z}`)?.kind;
-    return kind === 'passage' || kind === 'door';
+    return kind === 'passage' || kind === 'door' || kind === 'floor';
   };
   const walls: CorridorWall[] = [];
   for (const cell of cells) {

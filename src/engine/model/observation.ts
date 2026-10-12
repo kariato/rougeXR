@@ -14,7 +14,7 @@ export interface ObservedCell {
   visualRegion: { token: string; theme: RoomTheme; condition: 0 | 1 | 2; dark: boolean } | null;
 }
 
-export interface ObservedDecoration { token: string; at: Position; kind: DecorationKind; rotation: 0 | 1 | 2 | 3; variant: number; scale: number; theme: RoomTheme }
+export interface ObservedDecoration { opened?: boolean; token: string; at: Position; kind: DecorationKind; rotation: 0 | 1 | 2 | 3; variant: number; scale: number; theme: RoomTheme }
 
 export interface ObservedEntity {
   token: string;

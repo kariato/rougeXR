@@ -1,3 +1,4 @@
+import { openChest } from './rules/chests';
 import type { ActionRequest, ActionResolution, GameAction, PresentationEvent, RawEvent, RawEventInput, TraceEntry } from './model/action';
 import type { ScheduledEntry, WorldState } from './model/state';
 import type { ObservedEntity } from './model/observation';
@@ -205,6 +206,7 @@ function defaultAction(action: GameAction, context: RuleContext): RuleResult {
     result.events.forEach(context.emitRaw);
     return result;
   }
+  if (action.type === 'openChest') return openChest(context.state, action.chestId, context.emitRaw);
   if (action.type === 'search') return resolveSearch(context.state, context.emitRaw);
   if (action.type === 'pickup') return { ...collectAtPlayer(context.state, context.emitRaw), consumedSlot: true };
   if (action.type === 'drop') return dropItem(context.state, action.itemId, context.emitRaw);
@@ -226,6 +228,7 @@ function validRequest(value: unknown): value is ActionRequest {
   if (!Number.isSafeInteger(request.expectedRevision) || request.action === null || typeof request.action !== 'object') return false;
   const action = request.action as GameAction;
   if (action.type === 'rest' || action.type === 'search' || action.type === 'pickup' || action.type === 'descend' || action.type === 'ascend') return true;
+  if (action.type === 'openChest') return typeof action.chestId === 'string';
   if (action.type === 'move') return Object.hasOwn({ N: 1, NE: 1, E: 1, SE: 1, S: 1, SW: 1, W: 1, NW: 1 }, action.direction)
     && typeof action.pickup === 'boolean';
   if (action.type === 'throw' || action.type === 'zap') return typeof action.itemId === 'string' && Object.hasOwn({ N:1,NE:1,E:1,SE:1,S:1,SW:1,W:1,NW:1 }, action.direction);

@@ -16,6 +16,8 @@ test('loads a room-facing GLB doorway and keeps it open after crossing', async (
     await page.keyboard.press('d');
     await expect(page.locator('#state-summary')).toContainText(`Revision ${revision}`);
   }
+  // Entering the doorway also renders the entrance to the still-unvisited room.
+  await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-visible-doors', '2');
   // Entering the doorway discloses and renders the connected corridor at once.
   await expect.poll(async () => Number(await page.locator('#dungeon-3d').getAttribute('data-corridor-walls'))).toBeGreaterThan(2);
   await page.locator('#turn-angle').selectOption('90'); await page.locator('#turn-right').click();

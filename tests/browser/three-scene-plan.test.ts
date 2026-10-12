@@ -74,6 +74,32 @@ describe('desktop 3D scene plan', () => {
     expect(corner).toHaveLength(2);
   });
 
+  it('paints complete bend walls against disclosed empty space and leaves room entrances open', () => {
+    const base = { visibility: 'visible' as const, theme: 'dungeon' as const, condition: 0 as const, dark: false };
+    const cells = [
+      { ...base, x: 1, z: 1, kind: 'passage' as const },
+      { ...base, x: 1, z: 0, kind: 'passage' as const },
+      { ...base, x: 2, z: 1, kind: 'passage' as const },
+      { ...base, x: 0, z: 1, kind: 'void' as const },
+      { ...base, x: 1, z: 2, kind: 'void' as const },
+      { ...base, x: 3, z: 1, kind: 'floor' as const },
+    ];
+    const walls = buildCorridorWalls(cells);
+    expect(walls).toEqual(expect.arrayContaining([
+      expect.objectContaining({ x: .53, z: 1, axis: 'z' }),
+      expect.objectContaining({ x: 1, z: 1.47, axis: 'x' }),
+    ]));
+    expect(walls.some(wall => wall.x === 2.47 && wall.z === 1)).toBe(false);
+    expect(walls.some(wall => wall.length === .5)).toBe(false);
+  });
+
+  it('distinguishes disclosed void from walkable floor', () => {
+    const observation: PlayerObservation = { revision: 0, width: 1, height: 1, playerAt: { x: 0, y: 0 },
+      cells: [{ visibility: 'visible', appearance: { glyph: ' ', terrainLabel: 'void', featureLabel: null }, visualRegion: null }],
+      entities: [], decorations: [], status: { hp: 1, maxHp: 1, gold: 0, depth: 1, hungerStage: 0 }, inventory: [], pendingDecision: null };
+    expect(buildPrimitiveCells(observation)[0]?.kind).toBe('void');
+  });
+
   it('lights at most four currently visible torches and excludes remembered or reserved cells', () => {
     const visible = { visibility: 'visible' as const, appearance: { glyph: '-', terrainLabel: 'wallH', featureLabel: null }, visualRegion: null };
     const observation: PlayerObservation = {

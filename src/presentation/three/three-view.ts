@@ -136,6 +136,10 @@ export class ThreeGameView implements GameView {
   }
 
   update(observation: PlayerObservation, _events: PresentationEvent[]): void {
+    const previousOpened = new Set(this.openedChests);
+    this.openedChests.clear();
+    for (const decoration of observation.decorations) if (decoration.kind === 'crate' && decoration.opened)
+      this.openedChests.add(decoration.token);
     const sceneToken = this.generation.next();
     const freshEvents = observation.revision === this.lastAnimatedRevision ? [] : _events;
     if (observation.revision === 0 || freshEvents.some(event => event.type === 'levelViewReset')) {
@@ -195,6 +199,7 @@ export class ThreeGameView implements GameView {
     const primitiveCells = buildPrimitiveCells(observation, this.mode === 'tabletop' ? Number.POSITIVE_INFINITY : 14);
     const activeCells = new Set(primitiveCells.map(cell => `${cell.x},${cell.z}`));
     for (const cell of primitiveCells) {
+      if (cell.kind === 'void') continue;
       if (cell.kind === 'wall') {
         const geometry = cell.theme === 'cave' ? new THREE.DodecahedronGeometry(0.68, 0) : wallGeometry;
         const mesh = new THREE.Mesh(geometry, this.roomMaterials.material(cell.theme, 'wall', cell.condition, cell.visibility === 'remembered', cell.dark, cell.x, cell.z));
@@ -220,7 +225,11 @@ export class ThreeGameView implements GameView {
         }
       }
     }
-    const corridorWalls = buildCorridorWalls(primitiveCells);
+    // Use the complete disclosed topology before applying the render radius so
+    // culling never removes a neighbor and invents a wall or a gap.
+    const activePassages = new Set(primitiveCells.filter(cell => cell.kind === 'passage').map(cell => `${cell.x},${cell.z}`));
+    const corridorWalls = buildCorridorWalls(buildPrimitiveCells(observation)).filter(wall =>
+      activePassages.has(`${Math.round(wall.x)},${Math.round(wall.z)}`));
     for (const wall of corridorWalls) {
       const geometry = new THREE.BoxGeometry(wall.axis === 'x' ? (wall.length ?? 1) : .10, 1.8, wall.axis === 'z' ? (wall.length ?? 1) : .10);
       const mesh = new THREE.Mesh(geometry, this.roomMaterials.material(wall.theme, 'wall', wall.condition,
@@ -261,8 +270,8 @@ export class ThreeGameView implements GameView {
       if (decoration.kind === 'bones') void loadPropInto(assetUrl('assets/props/bones.glb?v=2'), holder, fallback, this.generation, sceneToken, () => this.ensureAnimation());
       if (decoration.kind === 'mushroom') void loadPropInto(assetUrl('assets/props/mushroom.glb?v=2'), holder, fallback, this.generation, sceneToken, () => this.ensureAnimation());
       if (decoration.kind === 'crate') {
-        const opened = this.openedChests.has(decoration.token);
-        if (opened) setChestFallbackOpen(fallback);
+        const opened = this.openedChests.has(decoration.token) && previousOpened.has(decoration.token);
+        if (this.openedChests.has(decoration.token)) setChestFallbackOpen(fallback);
         this.chestOpeners.set(decoration.token, () => setChestFallbackOpen(fallback));
         void loadChestInto(holder, fallback, this.generation, sceneToken, opened, open => {
           this.chestOpeners.set(decoration.token, () => {
@@ -572,13 +581,9 @@ export class ThreeGameView implements GameView {
       const data = inheritedUserData(hit.object);
       const token = data.chestToken;
       if (typeof token === 'string' && hit.distance < 2.5) {
-        if (!this.openedChests.has(token)) {
-          this.openedChests.add(token);
-          this.chestOpeners.get(token)?.();
-          this.canvas.dataset.openChests = String(this.openedChests.size);
-          this.canvas.dataset.chestAnimation = 'open';
-          this.ensureAnimation();
-        }
+        this.canvas.dispatchEvent(new CustomEvent<ActionRequest>('rougexr-action', {
+          detail: { expectedRevision: this.observation.revision, action: { type: 'openChest', chestId: token } },
+        }));
         return true;
       }
       if (data.occludes === true) break;
