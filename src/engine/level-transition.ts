@@ -23,14 +23,14 @@ export function ascendAtStairs(state: WorldState, emit: (event: RawEventInput) =
   if (!hasAmulet(state)) { emit({ type: 'sourceMessage', text: 'Your way is magically blocked.' }); return { resolved: false, consumedSlot: false, reason: 'amulet-required' }; }
   if (state.level.depth === 1) { state.timing.status = 'won'; emit({ type: 'sourceMessage', text: 'You escaped with the Amulet of Yendor!' });
     return { resolved: true, consumedSlot: true, reason: null }; }
-  replaceLevel(state, state.level.depth - 1, emit, 'stairs-up'); emit({ type: 'sourceMessage', text: 'You feel a wrenching sensation in your gut.' });
+  replaceLevel(state, state.level.depth - 1, emit, 'stairs-up'); emit({ type: 'sourceMessage', text: `You ascended to level ${state.level.depth}.` });
   return { resolved: true, consumedSlot: true, reason: null };
 }
 
 export function descendLevel(state: WorldState, emit: (event: RawEventInput) => void, cause: 'stairs' | 'trapDoor'): void {
   const fromDepth = state.level.depth;
   replaceLevel(state, fromDepth + 1, emit, cause); state.sourceState.maximumDepth = Math.max(state.sourceState.maximumDepth, state.level.depth);
-  emit({ type: 'sourceMessage', text: cause === 'trapDoor' ? 'You fell into a trap!' : 'You descend the stairs.' });
+  emit({ type: 'sourceMessage', text: cause === 'trapDoor' ? `You fell through a trapdoor to level ${state.level.depth}!` : `You descended to level ${state.level.depth}.` });
 }
 function replaceLevel(state: WorldState, targetDepth: number, emit: (event: RawEventInput) => void, cause: string): void {
   const fromDepth = state.level.depth; const amulet = hasAmulet(state);
@@ -44,4 +44,4 @@ function replaceLevel(state: WorldState, targetDepth: number, emit: (event: RawE
   state.knowledge = { levelId: state.level.id, remembered: Array.from({ length: state.level.tiles.length }, () => null) }; updateKnowledge(state);
   emit({ type: 'levelChanged', fromDepth, toDepth: state.level.depth, cause });
 }
-function hasAmulet(state: WorldState): boolean { return state.player.packOrder.some(id => state.entities[id]?.definitionId === 'amulet.yendor'); }
+export function hasAmulet(state: WorldState): boolean { return state.player.packOrder.some(id => state.entities[id]?.definitionId === 'amulet.yendor'); }

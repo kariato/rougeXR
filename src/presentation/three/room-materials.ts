@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { RoomTheme } from '../../engine/model/state';
 
-export const ROOM_MATERIAL_VERSION = 3;
+export const ROOM_MATERIAL_VERSION = 4;
 export type Surface = 'floor' | 'wall' | 'deadEnd';
 export interface RoomLook {
   floor: number; wall: number; grout: number; accent: number;
@@ -29,8 +29,45 @@ export function surfaceVariant(theme: RoomTheme, surface: Surface, x: number, y:
 
 function color(value: number): string { return `#${value.toString(16).padStart(6, '0')}`; }
 
+/** Periodic cobbles: edge-crossing stones are redrawn on the opposite edge. */
+function drawCobblestones(ctx: CanvasRenderingContext2D, theme: RoomTheme): void {
+  const look = ROOM_LOOKS[theme];
+  ctx.fillStyle = color(look.grout); ctx.fillRect(0, 0, 128, 128);
+  const base = new THREE.Color(look.floor);
+  const random = (row: number, col: number, salt: number): number => {
+    let value = Math.imul(row + 17, 73856093) ^ Math.imul(col + 29, 19349663) ^ Math.imul(salt + 1, 83492791);
+    value = Math.imul(value ^ value >>> 13, 1274126177);
+    return (value >>> 0) / 4294967296;
+  };
+  for (let row = 0; row < 4; row++) for (let col = 0; col < 4; col++) {
+    const cx = col * 32 + row % 2 * 16 + (random(row, col, 0) - .5) * 3;
+    const cy = row * 32 + (random(row, col, 1) - .5) * 3;
+    const width = 27 + random(row, col, 2) * 2, height = 26 + random(row, col, 3) * 3;
+    const shade = .83 + random(row, col, 4) * .32;
+    const stone = base.clone().multiplyScalar(shade);
+    for (const ox of [-128, 0, 128]) for (const oy of [-128, 0, 128]) {
+      const x = cx + ox - width / 2, y = cy + oy - height / 2;
+      // Rounded worn edges, soft upper bevel and dark recessed mortar.
+      ctx.fillStyle = stone.clone().multiplyScalar(.68).getStyle();
+      ctx.beginPath(); ctx.roundRect(x, y + 1, width, height, 6); ctx.fill();
+      const gradient = ctx.createLinearGradient(x, y, x + width * .6, y + height);
+      gradient.addColorStop(0, stone.clone().multiplyScalar(1.16).getStyle());
+      gradient.addColorStop(.24, stone.getStyle());
+      gradient.addColorStop(1, stone.clone().multiplyScalar(.84).getStyle());
+      ctx.fillStyle = gradient; ctx.beginPath(); ctx.roundRect(x + 1, y + 1, width - 2, height - 3, 5); ctx.fill();
+      // Low-contrast mineral grain, with no painted symbols or scratch marks.
+      for (let grain = 0; grain < 24; grain++) {
+        const gx = x + 5 + random(row, col, 10 + grain * 2) * (width - 10);
+        const gy = y + 5 + random(row, col, 11 + grain * 2) * (height - 10);
+        ctx.fillStyle = grain % 2 ? '#ffffff0a' : '#0000000d'; ctx.fillRect(gx, gy, .7, .7);
+      }
+    }
+  }
+}
+
 function drawPattern(ctx: CanvasRenderingContext2D, theme: RoomTheme, surface: Surface, variant: number): void {
   const look = ROOM_LOOKS[theme];
+  if (surface === 'floor') { drawCobblestones(ctx, theme); return; }
   if (surface === 'deadEnd') {
     // Rust-red sealed masonry with a pale crossed-stone motif, legible in dim light.
     ctx.fillStyle = '#763d2e'; ctx.fillRect(0, 0, 128, 128);
@@ -44,10 +81,10 @@ function drawPattern(ctx: CanvasRenderingContext2D, theme: RoomTheme, surface: S
     ctx.beginPath(); ctx.moveTo(28, 28); ctx.lineTo(100, 100); ctx.moveTo(100, 28); ctx.lineTo(28, 100); ctx.stroke();
     return;
   }
-  ctx.fillStyle = color(surface === 'floor' ? look.floor : look.wall); ctx.fillRect(0, 0, 128, 128);
+  ctx.fillStyle = color(look.wall); ctx.fillRect(0, 0, 128, 128);
   ctx.lineWidth = 3; ctx.strokeStyle = color(look.grout);
   if (theme === 'store') {
-    const horizontal = surface === 'floor';
+    const horizontal = false;
     for (let i = 1; i < 4; i++) { ctx.beginPath(); if (horizontal) { ctx.moveTo(0, i * 32); ctx.lineTo(128, i * 32); } else { ctx.moveTo(i * 32, 0); ctx.lineTo(i * 32, 128); } ctx.stroke(); }
     ctx.strokeStyle = color(look.accent); ctx.lineWidth = 1;
     for (let i = 0; i < 12; i++) { const offset = (i * 29 + variant * 17) % 128; ctx.beginPath(); if (horizontal) { ctx.moveTo(8, offset); ctx.bezierCurveTo(36, offset + 5, 72, offset - 5, 120, offset); } else { ctx.moveTo(offset, 8); ctx.bezierCurveTo(offset + 5, 36, offset - 5, 72, offset, 120); } ctx.stroke(); }
@@ -63,8 +100,6 @@ function drawPattern(ctx: CanvasRenderingContext2D, theme: RoomTheme, surface: S
     for (let row = 0; row < rows; row++) { const offset = ((row + variant) % 2) * 24; const y0 = row * 128 / rows; const y1 = (row + 1) * 128 / rows;
       for (let x = offset; x < 128; x += theme === 'crypt' ? 48 : 64) { ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x, y1); ctx.stroke(); } }
     ctx.strokeStyle = color(look.accent); ctx.lineWidth = theme === 'treasure' ? 3 : 1;
-    if (surface === 'floor') for (let i = 0; i < 4; i++) { const x = (i * 53 + variant * 23) % 128; const y = (i * 37 + variant * 41) % 128;
-      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + 8, y + (i % 2 ? -5 : 7)); ctx.lineTo(x + 15, y + 3); ctx.stroke(); }
     if (theme === 'crypt') { ctx.strokeStyle = color(look.accent); ctx.strokeRect(48, 43, 32, 40); ctx.beginPath(); ctx.moveTo(64, 50); ctx.lineTo(64, 76); ctx.moveTo(53, 63); ctx.lineTo(75, 63); ctx.stroke(); }
     if (theme === 'treasure') { ctx.strokeStyle = color(look.accent); ctx.strokeRect(46, 46, 36, 36); ctx.strokeRect(54, 54, 20, 20); }
   }
@@ -78,7 +113,8 @@ export class RoomMaterialCatalog {
   beginFrame(): void { this.frameMaterials.clear(); }
 
   material(theme: RoomTheme, surface: Surface, condition: number, remembered: boolean, dark: boolean, x: number, y: number): THREE.MeshStandardMaterial {
-    const variant = surfaceVariant(theme, surface, x, y);
+    // Floors share a periodic pattern; per-cell variants break the mortar at seams.
+    const variant = surface === 'floor' ? 0 : surfaceVariant(theme, surface, x, y);
     const key = `${ROOM_MATERIAL_VERSION}:${theme}:${surface}:${variant}`;
     const frameKey = `${key}:${condition}:${remembered}:${dark}`;
     const existing = this.frameMaterials.get(frameKey);
@@ -98,11 +134,12 @@ export class RoomMaterialCatalog {
       drawPattern(ctx, theme, surface, variant);
       texture = new THREE.CanvasTexture(canvas); texture.colorSpace = THREE.SRGBColorSpace;
       texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-      texture.anisotropy = 2;
+      texture.anisotropy = 8;
       this.textures.set(key, texture);
     }
     const brightness = (remembered ? .62 : 1) * (dark ? .76 : 1) * (1 - Math.min(2, condition) * .06);
-    const material = new THREE.MeshStandardMaterial({ map: texture, color: new THREE.Color().setRGB(brightness, brightness, brightness), roughness: theme === 'treasure' ? .82 : .95 });
+    const material = new THREE.MeshStandardMaterial({ map: texture, color: new THREE.Color().setRGB(brightness, brightness, brightness), roughness: surface === 'floor' ? .98 : theme === 'treasure' ? .82 : .95,
+      ...(surface === 'floor' ? { bumpMap: texture, bumpScale: .018 } : {}) });
     this.frameMaterials.set(frameKey, material);
     return material;
   }

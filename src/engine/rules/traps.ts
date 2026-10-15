@@ -45,7 +45,7 @@ function dartTrap(state: WorldState, emit: (event: RawEventInput) => void): void
   hurt(state, roll(state.rng, 1, 4), 'poisoned dart', emit); if (state.timing.status !== 'playing') return;
   const saves = roll(state.rng, 1, 20) >= 14 - Math.trunc(state.player.stats.level / 2);
   const sustained = wornRing(state, 'ring.sustain-strength');
-  if (!sustained && !saves) state.player.stats.strength = Math.max(0, state.player.stats.strength - 1);
+  if (!sustained && !saves) { state.player.poisonWeakened = true; state.player.stats.strength = Math.max(0, state.player.stats.strength - 1); }
   message(emit, 'A small dart just hit you in the shoulder.');
 }
 

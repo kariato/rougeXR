@@ -1,3 +1,5 @@
+import type { SpatialMenuCommand } from '../presentation/three/spatial-inventory';
+import { GameAudio } from '../presentation/audio/game-audio';
 import { cellIndex } from '../engine/grid';
 import { debugFixtureSnapshot, describeDebugCell, describeObservedCell } from '../engine/perception/fixture-observation';
 import { observe } from '../engine/perception/knowledge';
@@ -20,6 +22,19 @@ import { ReplayPlayer, type ReplayStepResult } from '../persistence/replay-playe
 import { IndexedDbSaveStore, storeLatestSafely } from '../persistence/indexed-db-save-store';
 import { createSelectedWorld, parseSeed, type WorldMode } from './world-selection';
 import { filterEvents, type EventFilter } from './event-filter';
+
+const gameAudio = new GameAudio();
+const soundToggle = document.querySelector<HTMLButtonElement>('#sound-toggle')!;
+const soundVolume = document.querySelector<HTMLInputElement>('#sound-volume')!;
+function refreshAudioControls(): void {
+  soundToggle.textContent = gameAudio.enabled ? 'Sound: On' : 'Sound: Off';
+  soundToggle.setAttribute('aria-pressed', String(gameAudio.enabled)); soundVolume.value = String(Math.round(gameAudio.volume * 100));
+}
+refreshAudioControls();
+soundToggle.addEventListener('click', () => { gameAudio.configure(!gameAudio.enabled); refreshAudioControls(); });
+soundVolume.addEventListener('input', () => { gameAudio.configure(gameAudio.enabled, Number(soundVolume.value) / 100); refreshAudioControls(); });
+window.addEventListener('pointerdown', () => { void gameAudio.unlock(); }, { passive: true });
+window.addEventListener('keydown', () => { void gameAudio.unlock(); }, { passive: true });
 
 const initialWorld = createSelectedWorld('generated', 12345);
 const issues = validateWorld(initialWorld);
@@ -136,6 +151,9 @@ function refreshAttackButton(observation: PlayerObservation = observe(session.ex
 function render(): void {
   const state = session.exportState();
   const observation = observe(state);
+  syncSpatialMenu();
+  const playedCues = gameAudio.update(observation, latestEvents);
+  if (playedCues.length) document.body.dataset.soundCues = playedCues.join(',');
   if (observation.status.hp <= 0) setToolsOpen(false);
   const debugSnapshot = debugFixtureSnapshot(state);
   const detections = latestEvents.flatMap(event => event.type === 'magicDetected' ? event.positions.map(at => ({ at, glyph: '*' }))
@@ -149,8 +167,13 @@ function render(): void {
   const weapon = observation.inventory.find(item => item.equippedSlot === 'weapon');
   hudWeapon.textContent = weapon ? weapon.label : 'Unarmed';
   const newestMessage = latestEvents.filter(event => event.type === 'message').at(-1);
-  if (newestMessage?.type === 'message') lastHudMessage = newestMessage.text;
+  if (latestEvents.some(event => event.type === 'levelViewReset')) {
+    lastHudMessage = latestEvents.flatMap(event => event.type === 'message' ? [event.text] : []).join(' ');
+  } else if (newestMessage?.type === 'message') lastHudMessage = newestMessage.text;
   hudMessage.textContent = lastHudMessage;
+  required<HTMLElement>('.hud').hidden = view === threeView;
+  hudMessage.hidden = view === threeView;
+  viewHost.dataset.spatialOpen = String(threeView.inventoryOpen);
   crosshair.hidden = view === gridView || cameraMode.value !== 'firstPerson';
   const currentCell = observation.cells[cellIndex(observation, observation.playerAt)];
   const currentFeature = currentCell?.visibility === 'visible' ? currentCell.appearance?.featureLabel : null;
@@ -158,8 +181,9 @@ function render(): void {
   const nearbyStairs = observation.cells.some((cell, index) => cell.visibility === 'visible'
     && cell.appearance?.featureLabel === 'stairs'
     && Math.hypot(index % observation.width - observation.playerAt.x, Math.floor(index / observation.width) - observation.playerAt.y) <= 2);
-  contextPrompt.textContent = currentFeature === 'stairs' ? 'Stairs down'
-    : nearbyStairs ? 'Spiral stairs down — step onto them to descend'
+  const stairsUp = observation.inventory.some(item => item.category === 'amulet');
+  contextPrompt.textContent = currentFeature === 'stairs' ? `Stairs ${stairsUp ? 'up' : 'down'}`
+    : nearbyStairs ? `Spiral stairs ${stairsUp ? 'up — step onto them to ascend' : 'down — step onto them to descend'}`
     : currentItem ? `Pick up ${currentItem.label}` : '';
   const lines = selectedIndex === null
     ? ['Click a cell to inspect it.']
@@ -287,7 +311,9 @@ viewMode.addEventListener('change', () => {
 cameraMode.addEventListener('change', () => { stopMovementStick(); threeView.setMode(cameraMode.value as 'firstPerson' | 'orbit' | 'tabletop'); render(); });
 xrToggle.addEventListener('click', () => { void xrController.toggle().then(updateXrControls).catch(error => { xrStatus.textContent = `XR failed: ${error instanceof Error ? error.message : String(error)}`; }); });
 threeView.canvas.addEventListener('rougexr-inventory-toggle', event => {
-  if ((event as CustomEvent<{ open: boolean }>).detail.open) setToolsOpen(false);
+  const open = (event as CustomEvent<{ open: boolean }>).detail.open;
+  viewHost.dataset.spatialOpen = String(open);
+  if (open) setToolsOpen(false);
 });
 threeView.canvas.addEventListener('rougexr-select-cell', event => {
   const position = (event as CustomEvent<{ x: number; y: number }>).detail;
@@ -346,11 +372,15 @@ replaySpeed.addEventListener('change', () => {
   scheduleReplayStep();
 });
 window.addEventListener('keydown', event => {
+  if (event.key.toLowerCase() === 'm' && !event.repeat && view === threeView
+    && !['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'].includes((event.target as HTMLElement)?.tagName)) {
+    event.preventDefault(); threeView.toggleMenu();
+  }
   if (event.key.toLowerCase() === 'i' && !event.repeat && view === threeView
     && !['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'].includes((event.target as HTMLElement)?.tagName)) {
     event.preventDefault(); threeView.toggleInventory();
   }
-  if (event.key === 'Escape' && threeView.inventoryOpen) threeView.toggleInventory();
+  if (event.key === 'Escape' && threeView.inventoryOpen) threeView.toggleMenu();
 });
 bindDesktopInput(window, action => {
   if (threeView.inventoryOpen) return;
@@ -378,6 +408,86 @@ function enqueue(action: GameAction, capturedRevision?: number, source?: 'xr' | 
     render();
   }).catch(error => { saveStatus.textContent = error instanceof Error ? error.message : String(error); });
 }
+const MANUAL_SAVE_KEY = 'rougexr.manual-save.v1';
+const NAMED_SAVES_KEY = 'rougexr.named-saves.v1';
+const saveNameInput = required<HTMLInputElement>('#save-name');
+const savedGames = required<HTMLSelectElement>('#saved-games');
+interface NamedCheckpoint { name: string; json: string }
+function readNamedCheckpoints(): NamedCheckpoint[] {
+  const text = localStorage.getItem(NAMED_SAVES_KEY);
+  if (text === null) return [];
+  const entries: unknown = JSON.parse(text);
+  if (!Array.isArray(entries) || entries.some(entry => !entry || typeof entry.name !== 'string' || typeof entry.json !== 'string'))
+    throw new Error('Saved game list is invalid.');
+  return entries;
+}
+function refreshSavedGames(selected?: string): void {
+  const entries = readNamedCheckpoints();
+  savedGames.replaceChildren(...entries.map(entry => {
+    const option = document.createElement('option'); option.value = entry.name; option.textContent = entry.name; return option;
+  }));
+  if (localStorage.getItem(MANUAL_SAVE_KEY) !== null) {
+    const legacy = document.createElement('option'); legacy.value = ''; legacy.textContent = 'Previous checkpoint'; savedGames.append(legacy);
+  }
+  if (!savedGames.options.length) {
+    const empty = document.createElement('option'); empty.value = ''; empty.textContent = 'No saved games'; savedGames.append(empty);
+  }
+  if (selected !== undefined) savedGames.value = selected;
+}
+try { refreshSavedGames(); } catch { /* Storage errors are reported on Save or Load. */ }
+savedGames.addEventListener('change', () => { if (savedGames.value) saveNameInput.value = savedGames.value; });
+function syncSpatialMenu(): void {
+  let names: string[] = [];
+  try { names = readNamedCheckpoints().map(entry => entry.name); if (localStorage.getItem(MANUAL_SAVE_KEY) !== null) names.push(''); } catch { /* Save controls report storage failures. */ }
+  threeView.configureMenu({ names, saveName: saveNameInput.value.trim() || 'My adventure', sound: gameAudio.enabled, volume: gameAudio.volume });
+}
+threeView.canvas.addEventListener('rougexr-menu-command', event => {
+  const command = (event as CustomEvent<SpatialMenuCommand>).detail;
+  void gameAudio.unlock();
+  if (command.type === 'name') { saveNameInput.value = command.name; syncSpatialMenu(); }
+  if (command.type === 'save') required<HTMLButtonElement>('#save-local').click();
+  if (command.type === 'load') { refreshSavedGames(command.name); required<HTMLButtonElement>('#restore-local').click(); }
+  if (command.type === 'restart') newGame.click();
+  if (command.type === 'sound') { soundToggle.click(); syncSpatialMenu(); }
+  if (command.type === 'volume') { gameAudio.configure(gameAudio.enabled, command.value); refreshAudioControls(); syncSpatialMenu(); }
+  if (command.type === 'map') {
+    cameraMode.value = cameraMode.value === 'tabletop' ? 'firstPerson' : 'tabletop';
+    cameraMode.dispatchEvent(new Event('change')); threeView.toggleMenu();
+  }
+});
+function checkpointMessage(text: string): void {
+  lastHudMessage = text; hudMessage.textContent = text; saveStatus.textContent = text;
+  threeView.showMessage(text); syncSpatialMenu();
+}
+required<HTMLButtonElement>('#save-local').addEventListener('click', () => {
+  actionQueue = actionQueue.then(() => {
+    const state = session.exportState();
+    const name = saveNameInput.value.trim();
+    if (!name) { checkpointMessage('Enter a name for your saved game.'); saveNameInput.focus(); return; }
+    const entries = readNamedCheckpoints().filter(entry => entry.name !== name);
+    entries.unshift({ name, json: serializeSave(state) });
+    localStorage.setItem(NAMED_SAVES_KEY, JSON.stringify(entries));
+    saveNameInput.value = name; refreshSavedGames(name);
+    checkpointMessage(`Game saved in this browser as “${name}” at level ${state.level.depth}.`);
+  }).catch(error => checkpointMessage(`Could not save game: ${error instanceof Error ? error.message : String(error)}`));
+});
+required<HTMLButtonElement>('#restore-local').addEventListener('click', () => {
+  stopMovementStick();
+  actionQueue = actionQueue.then(async () => {
+    const name = savedGames.value;
+    const text = name ? readNamedCheckpoints().find(entry => entry.name === name)?.json ?? null : localStorage.getItem(MANUAL_SAVE_KEY);
+    if (text === null) { checkpointMessage('No saved checkpoint in this browser. Use Save Game first.'); return; }
+    const parsed = parseSave(text);
+    if (!parsed.ok) { checkpointMessage('The saved checkpoint is invalid or incompatible. Your current game was kept.'); return; }
+    const candidate = restoreGame(parsed.value.state);
+    leaveReplayMode(); session = candidate; threeView.resetPresentation();
+    recorder = new ReplayRecorder(candidate.exportState()); selectedIndex = null; latestEvents = [];
+    resetDiagnostics(); seedInput.value = String(candidate.exportState().seed);
+    render(); await autosave(candidate.exportState());
+    checkpointMessage(`Restarted from your saved game${name ? ` “${name}”` : ''} on level ${candidate.exportState().level.depth}.`);
+  }).catch(error => checkpointMessage(`Could not load saved game: ${error instanceof Error ? error.message : String(error)}`));
+});
+
 saveButton.addEventListener('click', () => download('rougexr-save.json', serializeSave(session.exportState())));
 loadButton.addEventListener('click', () => loadFile.click());
 loadFile.addEventListener('change', () => {
@@ -437,7 +547,7 @@ function pauseReplay(): void {
 function leaveReplayMode(): void {
   pauseReplay(); replayPlayer = null; replayStatus.textContent = 'Live input enabled.';
 }
-function resetDiagnostics(): void { latestActionTiming = 'No action measured.'; replayDetails.textContent = 'No divergence.'; lastHudMessage = ''; }
+function resetDiagnostics(): void { gameAudio.reset(); latestActionTiming = 'No action measured.'; replayDetails.textContent = 'No divergence.'; lastHudMessage = ''; }
 function describeAction(action: GameAction): string {
   if (action.type === 'move') return `move ${action.direction}`;
   if ('itemId' in action) return `${action.type} ${action.itemId}`;

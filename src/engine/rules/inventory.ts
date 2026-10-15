@@ -87,6 +87,7 @@ export function equipItem(state: WorldState, itemId: EntityId, slot: EquipmentSl
   if (currentId) {
     const current = state.entities[currentId];
     if (current?.kind === 'item' && (current.flags & IS_CURSED) !== 0) {
+      current.curseKnown = true;
       emit({ type: 'sourceMessage', text: 'You cannot remove the cursed item.' });
       return { resolved: false, consumedSlot: false, reason: 'cursed' };
     }
@@ -105,6 +106,7 @@ export function unequipItem(state: WorldState, slot: EquipmentSlot, emit: (event
   if (!id) return { resolved: false, consumedSlot: false, reason: 'slot-empty' };
   const item = state.entities[id]; if (item?.kind !== 'item') throw new Error('Equipped item missing');
   if ((item.flags & IS_CURSED) !== 0) {
+    item.curseKnown = true;
     emit({ type: 'sourceMessage', text: 'You cannot remove the cursed item.' });
     return { resolved: false, consumedSlot: false, reason: 'cursed' };
   }

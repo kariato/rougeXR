@@ -41,6 +41,39 @@ describe('generated level transition', () => {
     expect(floating.exportState().player.at).toEqual(stairs);
   });
 
+  it('automatically ascends with the Amulet and escapes from level one', async () => {
+    const session = sessionOnStairs(502);
+    session.submit({ expectedRevision: 0, action: { type: 'descend' } });
+    let state = session.exportState();
+    const amuletId = allocateId(state);
+    state.entities[amuletId] = { kind: 'item', id: amuletId, definitionId: 'amulet.yendor', category: 'amulet',
+      location: { kind: 'pack', owner: 'player' }, quantity: 1, flags: 0, group: 0, label: null };
+    state.player.packOrder.push(amuletId);
+    for (const expectedDepth of [1, 1]) {
+      const stairs = state.level.stairs;
+      const options = [{ x: -1, y: 0, direction: 'E' }, { x: 1, y: 0, direction: 'W' },
+        { x: 0, y: -1, direction: 'S' }, { x: 0, y: 1, direction: 'N' }] as const;
+      const approach = options.find(offset => ['floor', 'door', 'passage'].includes(state.level.tiles[
+        cellIndex(state.level, { x: stairs.x + offset.x, y: stairs.y + offset.y })]?.terrain ?? 'void'))!;
+      state.player.at = { x: stairs.x + approach.x, y: stairs.y + approach.y };
+      state.player.roomId = state.level.tiles[cellIndex(state.level, state.player.at)]!.roomId;
+      for (const id of state.level.monsterOrder) {
+        const monster = state.entities[id]; if (monster?.kind === 'monster') { for (const item of monster.packOrder) delete state.entities[item]; delete state.entities[id]; }
+      }
+      state.level.monsterOrder = [];
+      const upward = new GameSession(state), recorder = new ReplayRecorder(upward.exportState());
+      const revision = upward.exportState().timing.revision;
+      const action = { type: 'move' as const, direction: approach.direction, pickup: true };
+      const result = upward.submit({ expectedRevision: revision, action });
+      expect(result.status).toBe('resolved');
+      state = upward.exportState(); expect(state.level.depth).toBe(expectedDepth);
+      expect(state.player.packOrder).toContain(amuletId);
+      await recorder.record(action, revision, state);
+      expect(await replay(recorder.bundle())).toEqual({ ok: true, completed: 1 });
+    }
+    expect(state.timing.status).toBe('won');
+  });
+
   it('places the Amulet at depth 26 and blocks ascent without it', () => {
     expect(Object.values(generateLevelContent(500, 26).entities)).toContainEqual(expect.objectContaining({ definitionId: 'amulet.yendor', category: 'amulet' }));
     const blocked = sessionOnStairs(500); expect(blocked.submit({ expectedRevision: 0, action: { type: 'ascend' } }))

@@ -9,9 +9,19 @@ Current implementation: the Phase 11 full-rules candidate and Phase 12 desktop 3
 
 In first person, press `[` to turn the POV left or `]` to turn right. First-person turning snaps in 90° steps to face doors and corridors squarely. Keyboard, touch, mouse drags, and on-screen turn buttons use the same cardinal headings. Camera turning does not advance Rogue time. Arrow keys and WASD still move in dungeon directions.
 
+Enter a Save name and press Save Game in the top toolbar to store a named JSON checkpoint in this browser’s local storage. Choose a name in Saved games and press Load Save to restore it. Different names keep separate checkpoints; saving the same name updates that checkpoint. Load Save restores that exact point, even after later turns, a new game, or reloading the page. This checkpoint is separate from automatic saves; Save JSON / Load JSON in Tools still support file export and import.
+
+Synthesized sound effects accompany footsteps, combat, pickups, doors, stairs, magic, death, and victory. Audio starts after a click or keypress. The toolbar Sound button mutes audio; Tools contains a volume slider. Both preferences persist in this browser.
+
+The in-world Menu button (or `M` on desktop) provides Search, Rest, Pick up, inventory, named saves with a ray-selectable keyboard, loading, map/POV switching, sound/volume, stairs, and confirmed restart. The menu remains accessible after death for loading or restarting. All controls accept desktop pointer clicks or VR controller trigger rays.
+
+Revealed traps have distinct labeled 3D models for trapdoors, bear traps, sleeping gas, arrows, teleportation, poison darts, rust spray, and mystery traps. Successful searches visibly expose secret doors/passages and mark discoveries with a short turquoise outline, rising sparks, and a chime; undiscovered traps remain hidden.
+
+An in-world status panel shows health, depth, gold, hunger, weapon, and active effects. Colored status badges cover poison-related strength loss, confusion, blindness, holding/traps, hunger, and known cursed equipment. Select the badges or Menu → Effects for explanations and recovery advice. Curses stay hidden until the item is identified or removal is attempted; discovered curses and poison weakness survive saving/loading. A second panel retains recent gameplay messages in the headset.
+
 The 3D Inventory button (or `I` on desktop) opens a spatial inventory panel with item models, selection, equipment and consumable actions, paging, and throw/zap directions. Desktop clicks and VR controller trigger rays use the same controls; movement is blocked while the panel is open. On death the view becomes black and white and a large in-scene DEAD panel appears.
 
-Disclosed stairs appear as a stone spiral stairwell with a brass handrail in 3D. Stepping onto stairs automatically descends one dungeon level (unless levitating); the Descend button and `>` remain available when already standing on stairs. Ascent with the Amulet uses Ascend or `<`.
+Disclosed stairs appear as a stone spiral stairwell with a brass handrail in 3D. Stepping onto stairs automatically descends one dungeon level before finding the Amulet, and ascends while carrying it (unless levitating). Ascending from level 1 with the Amulet wins; the Descend button and `>` remain available when already standing on stairs. Ascend / `<` and Descend / `>` also remain available when already standing on stairs.
 
 On touch screens, drag the circular movement stick at the lower left. In first person, up and down move forward and backward while left and right turn the POV in 90° steps. The stick snaps diagonal drags to the stronger axis, so only one action occurs at a time. In map, orbit, and tabletop views it moves in four dungeon directions. Release it to stop repeating input. The Attack button at the lower right enables when a disclosed monster is directly in front of the player.
 

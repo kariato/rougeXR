@@ -135,6 +135,7 @@ export function validateWorld(input: unknown): ValidationIssue[] {
         && integer(v.hp) && integer(v.maxHp, 1) && v.hp <= v.maxHp, path, 'Invalid combat stats');
       check(v.damage.every(d => integer(d.count) && integer(d.sides)), path, 'Invalid damage groups');
     };
+    check(s.player.poisonWeakened === undefined || typeof s.player.poisonWeakened === 'boolean', 'player.poisonWeakened', 'Invalid poison knowledge');
     stats(s.player.stats, 'player.stats');
     check(timing.status === 'dead' ? s.player.stats.hp === 0 : s.player.stats.hp > 0, 'player.stats.hp', 'HP does not match game status');
     const expected = new Map<string, string[]>([['floor', []], ['player', []], ['monsters', []]]);
@@ -152,6 +153,7 @@ export function validateWorld(input: unknown): ValidationIssue[] {
           || (entity.target.kind === 'position' && isPlayable(level, entity.target.at))
           || (entity.target.kind === 'item' && s.entities[entity.target.id]?.kind === 'item'), id, 'Invalid monster target');
       } else if (entity.kind === 'item') {
+        check(entity.curseKnown === undefined || typeof entity.curseKnown === 'boolean', id, 'Invalid curse knowledge');
         check(integer(entity.quantity, 1) && integer(entity.group) && (entity.label === null || typeof entity.label === 'string'), id, 'Invalid item quantity/group/label');
         check(['weapon', 'armor', 'stick', 'ring', 'potion', 'scroll', 'food', 'amulet', 'gold'].includes(entity.category), id, 'Invalid item category');
         if (entity.category === 'weapon') check(Number.isSafeInteger(entity.hitBonus) && Number.isSafeInteger(entity.damageBonus), id, 'Invalid weapon modifiers');

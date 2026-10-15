@@ -24,6 +24,7 @@ export type GameAction =
 export interface ActionRequest { expectedRevision: number; action: GameAction }
 export type PresentationEvent =
   | { type: 'message'; text: string }
+  | { type: 'visibleDiscovery'; at: Position; feature: string }
   | { type: 'visibleMovement'; token: string; from: Position; to: Position }
   | { type: 'visibleAttack'; attackerToken: string; defenderToken: string; attackerAt: Position; defenderAt: Position; hit: boolean }
   | { type: 'visibleDefeat'; token: string; at: Position; appearance: string | null; label: string | null }

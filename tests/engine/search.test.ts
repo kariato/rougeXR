@@ -14,6 +14,7 @@ describe('search', () => {
     expect(result).toMatchObject({ status: 'resolved', consumedSlot: true, ticksAdvanced: 1 });
     expect(session.exportState().level.tiles[cellIndex(state.level, at)]).toMatchObject({ terrain: 'door', secret: false });
     expect(result.events).toContainEqual({ type: 'message', text: 'You found a secret door.' });
+    expect(result.events).toContainEqual({ type: 'visibleDiscovery', at, feature: 'a secret door' });
   });
   it('reveals a hidden trap with the source one-in-two check', () => {
     const state = createTwoRoomFixture(); const at = { x: 6, y: 5 };

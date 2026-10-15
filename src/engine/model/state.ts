@@ -42,6 +42,7 @@ export interface MonsterState {
   packOrder: EntityId[];
 }
 interface ItemBase {
+  curseKnown?: boolean;
   kind: 'item'; id: EntityId; definitionId: string; location: ItemLocation;
   quantity: number; flags: number; group: number; label: string | null;
 }
@@ -54,6 +55,7 @@ export type ItemState = ItemBase & (
 );
 export type EntityState = MonsterState | ItemState;
 export interface PlayerState {
+  poisonWeakened?: boolean;
   at: Position; stats: CombatStats; flags: number; packOrder: EntityId[];
   equipment: { weapon: EntityId | null; armor: EntityId | null; leftRing: EntityId | null; rightRing: EntityId | null };
   roomId: number | null; gold: number; maximumStrength: number;

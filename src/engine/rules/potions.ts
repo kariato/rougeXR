@@ -69,7 +69,9 @@ function applyPoison(state: WorldState, entry: WorldState['identification'][numb
     emit({ type: 'sourceMessage', text: 'You feel momentarily sick.' });
     return;
   }
+  const strengthBefore = state.player.stats.strength;
   changeStrength(state, -(rnd(state.rng, 3) + 1));
+  if (state.player.stats.strength < strengthBefore) state.player.poisonWeakened = true;
   state.player.flags &= ~IS_HALLUCINATING;
   killDaemon(state.timing.scheduler, 'visuals');
   emit({ type: 'sourceMessage', text: 'You feel very sick now.' });
@@ -124,6 +126,7 @@ function applyHaste(state: WorldState, entry: WorldState['identification'][numbe
 }
 
 function applyRestoreStrength(state: WorldState, emit: (event: RawEventInput) => void): void {
+  state.player.poisonWeakened = false;
   let baseStrength = state.player.stats.strength;
   const modifiers: number[] = [];
   for (const slot of ['leftRing', 'rightRing'] as const) {
@@ -213,6 +216,7 @@ function changeStrength(state: WorldState, amount: number): void {
       baseStrength = clampStrength(baseStrength - ring.magnitude);
   }
   state.player.maximumStrength = Math.max(state.player.maximumStrength, baseStrength);
+  if (state.player.poisonWeakened && baseStrength >= state.player.maximumStrength) state.player.poisonWeakened = false;
 }
 
 function clampStrength(value: number): number { return Math.max(3, Math.min(31, value)); }

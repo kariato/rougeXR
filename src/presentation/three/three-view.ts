@@ -1,4 +1,9 @@
-import { SpatialInventory } from './spatial-inventory';
+import { createTrapVisual, observedTrapKind } from './trap-asset';
+import { DiscoveryFeedback } from './discovery-feedback';
+import { observedStatusEffects } from './status-effects';
+import { SpatialStatus, spatialStatusLines } from './spatial-status';
+import { WEAPON_ATTACK_DURATION, weaponAttackPose } from './weapon-motion';
+import { SpatialInventory, type SpatialMenuState } from './spatial-inventory';
 import { DeathPresentation } from './death-presentation';
 import { HitFeedback } from './hit-feedback';
 import { createStaircaseVisual } from './staircase-asset';
@@ -50,16 +55,20 @@ export class ThreeGameView implements GameView {
   private readonly weaponMount = new THREE.Group();
   private readonly world = new THREE.Group();
   private readonly corpseWorld = new THREE.Group();
+  private readonly spatialStatus = new SpatialStatus(() => this.spatialInventory.showEffects());
   private readonly deathPresentation = new DeathPresentation();
   private readonly spatialInventory = new SpatialInventory(() => {
     this.canvas.dataset.inventoryOpen = String(this.spatialInventory.open);
+    this.spatialStatus.setModalOpen(this.spatialInventory.open);
+    this.canvas.setAttribute('aria-description', this.spatialInventory.accessibleLabels.join('. '));
     this.canvas.dispatchEvent(new CustomEvent('rougexr-inventory-toggle', { detail: { open: this.spatialInventory.open } }));
     this.ensureAnimation();
   }, action => {
     if (this.observation) this.canvas.dispatchEvent(new CustomEvent<ActionRequest>('rougexr-action', {
       detail: { expectedRevision: this.observation.revision, action },
     }));
-  });
+  }, command => this.canvas.dispatchEvent(new CustomEvent('rougexr-menu-command', { detail: command })));
+  private readonly discoveryFeedback = new DiscoveryFeedback();
   private readonly hitFeedback = new HitFeedback();
   private readonly roomMaterials = new RoomMaterialCatalog();
   private readonly ambient = new THREE.HemisphereLight(0xa9c8e8, 0x18202a, 1.7);
@@ -92,6 +101,7 @@ export class ThreeGameView implements GameView {
   private actorFacings = new Map<string, number>();
   private readonly corpses = new Map<string, CorpseRecord>();
   private cameraActions: Array<{ start: number; duration: number; kind: CameraCue }> = [];
+  private weaponAttackStarted = -Infinity;
   private animationUntil = 0;
   private deathStartedAt: number | null = null;
   private lastAnimatedRevision = -1;
@@ -114,6 +124,7 @@ export class ThreeGameView implements GameView {
     this.scene.fog = new THREE.FogExp2(0x05080d, 0.055);
     this.scene.add(this.world);
     this.scene.add(this.hitFeedback.root);
+    this.scene.add(this.discoveryFeedback.root);
     this.world.add(this.corpseWorld);
     this.scene.add(this.ambient);
     this.lamp.position.set(0, 1.3, 0);
@@ -126,6 +137,7 @@ export class ThreeGameView implements GameView {
     this.hand.add(this.weaponMount);
     this.camera.add(this.hand);
     this.camera.add(this.spatialInventory.root);
+    this.camera.add(this.spatialStatus.root);
     this.camera.add(this.deathPresentation.label);
     this.scene.add(this.camera);
     for (let index = 0; index < 2; index++) {
@@ -163,6 +175,7 @@ export class ThreeGameView implements GameView {
     const freshEvents = observation.revision === this.lastAnimatedRevision ? [] : _events;
     if (observation.revision === 0 || freshEvents.some(event => event.type === 'levelViewReset')) {
       this.hitFeedback.reset();
+      this.discoveryFeedback.reset();
       this.actorFacings.clear();this.cameraActions=[];this.deathStartedAt=null;delete this.canvas.dataset.playerDeath;
     }
     const damageTaken = this.observation !== null && observation.revision !== this.lastAnimatedRevision
@@ -175,6 +188,10 @@ export class ThreeGameView implements GameView {
       this.animationUntil = Math.max(this.animationUntil, performance.now() + 500);
       this.ensureAnimation();
     }
+    this.discoveryFeedback.trigger(freshEvents, performance.now());
+    const discoveries = freshEvents.filter(event => event.type === 'visibleDiscovery');
+    if (discoveries.length) { this.animationUntil = Math.max(this.animationUntil, performance.now() + 1650); this.ensureAnimation(); }
+    this.canvas.dataset.discoveries = discoveries.map(event => `${event.feature}@${event.at.x},${event.at.y}`).join('|');
     const actorCues = new Map<string, ActorCue[]>();
     const addCue=(token:string,cue:ActorCue):void=>{const sequence=actorCues.get(token) ?? [];sequence.push(cue);actorCues.set(token,sequence);};
     for (const event of freshEvents) {
@@ -209,6 +226,10 @@ export class ThreeGameView implements GameView {
       if (corpse) { corpse.facing = this.actorFacings.get(event.token) ?? corpse.facing; if (corpse.holder) corpse.holder.rotation.y = corpse.facing; }
     }
     this.observation = observation;
+    this.spatialStatus.update(observation, freshEvents);
+    this.canvas.dataset.statusEffects = observedStatusEffects(observation).map(effect => `${effect.label}: ${effect.description}`).join(' | ');
+    this.canvas.dataset.spatialStatus = spatialStatusLines(observation).join(' | ');
+    this.canvas.dataset.spatialMessage = freshEvents.flatMap(event => event.type === 'message' ? [event.text] : []).join(' ');
     this.spatialInventory.update(observation);
     const dead = observation.status.hp <= 0;
     if (dead) this.hitFeedback.reset();
@@ -245,7 +266,7 @@ export class ThreeGameView implements GameView {
       } else {
         const feature = observation.cells[cell.z * observation.width + cell.x]?.appearance?.featureLabel;
         if (feature === 'stairs') {
-          const stairs = createStaircaseVisual();
+          const stairs = createStaircaseVisual(observation.inventory.some(item => item.category === 'amulet') ? 'up' : 'down');
           stairs.position.set(cell.x, 0, cell.z);
           stairs.userData = { cell: { x: cell.x, y: cell.z }, eligible: true, occludes: false };
           this.world.add(stairs);
@@ -253,6 +274,12 @@ export class ThreeGameView implements GameView {
         }
         const floor = new THREE.Mesh(floorGeometry, this.roomMaterials.material(cell.theme, 'floor', cell.condition, cell.visibility === 'remembered', cell.dark, cell.x, cell.z));
         floor.position.set(cell.x, 0, cell.z); floor.userData = { cell: { x: cell.x, y: cell.z }, eligible: true, occludes: false }; this.world.add(floor);
+        const trapKind = observedTrapKind(feature);
+        if (trapKind) {
+          const trap = createTrapVisual(trapKind); trap.position.set(cell.x, 0, cell.z);
+          trap.userData = { cell: { x: cell.x, y: cell.z }, eligible: true, occludes: false };
+          this.world.add(trap);
+        }
         if (cell.kind === 'door') {
           const facing = roomFacingForDoor(observation, cell.x, cell.z);
           if (facing) {
@@ -281,6 +308,7 @@ export class ThreeGameView implements GameView {
         wall.remembered, wall.dark, Math.round(wall.x * 2), Math.round(wall.z * 2)));
       mesh.position.set(wall.x, .9, wall.z); mesh.userData = { eligible: false, occludes: true }; this.world.add(mesh);
     }
+    this.canvas.dataset.visibleTraps = primitiveCells.flatMap(cell => { const kind = observedTrapKind(observation.cells[cell.z * observation.width + cell.x]?.appearance?.featureLabel); return kind ? [kind] : []; }).join(',');
     this.canvas.dataset.visibleStairs = String(primitiveCells.filter(cell => observation.cells[cell.z * observation.width + cell.x]?.appearance?.featureLabel === 'stairs').length);
     this.canvas.dataset.deadEndWalls = String(corridorWalls.filter(wall => wall.deadEnd).length);
     this.canvas.dataset.corridorWalls = String(corridorWalls.length);
@@ -386,6 +414,7 @@ export class ThreeGameView implements GameView {
   resize(width: number, height: number): void {
     this.width = Math.max(1, Math.floor(width));
     this.height = Math.max(1, Math.floor(height));
+    this.spatialStatus.root.scale.setScalar(Math.min(1, (width / height) * 1.25 * Math.tan(34 * Math.PI / 180) / .82));
     this.spatialInventory.root.scale.setScalar(Math.min(1, (width / height) * 1.3 * Math.tan(34 * Math.PI / 180) / .83));
     this.deathPresentation.label.scale.setScalar(Math.min(1, (width / height) * .9 * Math.tan(34 * Math.PI / 180) / .53));
     this.camera.aspect = this.width / this.height;
@@ -421,9 +450,12 @@ export class ThreeGameView implements GameView {
 
   resetPresentation(): void {
     this.spatialInventory.reset();
+    this.spatialStatus.reset();
+    this.discoveryFeedback.reset();
     this.clearCorpses();
     this.openedDoors.clear();
     this.openedChests.clear();
+    this.weaponAttackStarted = -Infinity;
     this.actorFacings.clear(); this.cameraActions = []; this.deathStartedAt = null; this.lastAnimatedRevision = -1;
     delete this.canvas.dataset.playerDeath;
     this.canvas.dataset.visibleCorpses = '0';
@@ -473,8 +505,10 @@ export class ThreeGameView implements GameView {
     for (const corpse of this.corpses.values()) this.finishCorpse(corpse);
     this.roomMaterials.dispose();
     this.hitFeedback.dispose();
+    this.discoveryFeedback.reset();
     this.spatialInventory.dispose();
     this.deathPresentation.dispose();
+    this.spatialStatus.dispose();
     this.canvas.removeEventListener('pointerdown', this.onPointerDown);
     this.canvas.removeEventListener('pointermove', this.onPointerMove);
     this.canvas.removeEventListener('pointerup', this.onPointerUp);
@@ -517,7 +551,12 @@ export class ThreeGameView implements GameView {
 
   private enqueueCameraAction(kind: CameraCue): void {
     const last=this.cameraActions.at(-1);const now=performance.now();
-    if (kind === 'attack') this.canvas.dataset.weaponAction = 'attack';
+    if (kind === 'attack') {
+      this.canvas.dataset.weaponAction = 'attack';
+      this.weaponAttackStarted = now;
+      this.animationUntil = Math.max(this.animationUntil, now + WEAPON_ATTACK_DURATION);
+      this.ensureAnimation();
+    }
     this.cameraActions.push({start:last ? Math.max(now,last.start+last.duration) : now,duration:kind==='hurt' ? 320 : 380,kind});
   }
 
@@ -525,7 +564,7 @@ export class ThreeGameView implements GameView {
     this.renderer.xr.enabled = session !== null;
     await this.renderer.xr.setSession(session as XRSession | null);
     for (const controller of this.xrControllers) controller.visible = session !== null;
-    if (session) this.renderer.setAnimationLoop(() => { this.deathPresentation.update((this.observation?.status.hp ?? 1) <= 0, this.scene); this.hitFeedback.update(performance.now(), this.camera); this.renderer.render(this.scene, this.camera); });
+    if (session) this.renderer.setAnimationLoop(() => { this.updateFirstPersonHand(performance.now()); this.deathPresentation.update((this.observation?.status.hp ?? 1) <= 0, this.scene, !this.spatialInventory.open); this.discoveryFeedback.update(performance.now()); this.hitFeedback.update(performance.now(), this.camera); this.world.traverse(object => { if (object.userData.faceCamera) object.quaternion.copy(this.camera.quaternion); }); this.renderer.render(this.scene, this.camera); });
     else { this.renderer.setAnimationLoop(null); this.xrIntent.reset(); this.placeCamera(); }
   }
 
@@ -560,15 +599,7 @@ export class ThreeGameView implements GameView {
     if (!observation) return;
     const player = observation.playerAt;
     if (this.mode === 'firstPerson') {
-      while (this.cameraActions[0] && performance.now()>=this.cameraActions[0].start+this.cameraActions[0].duration) this.cameraActions.shift();
-      const action=this.cameraActions[0];const progress=action ? (performance.now()-action.start)/action.duration : 1;
-      const pulse=action && progress>=0 && progress<1 ? Math.sin(Math.PI*progress) : 0;
-      const bob=pulse*(action?.kind==='hurt' ? -.11 : action?.kind==='rest' ? .015 : action?.kind==='interact' ? -.025 : -.06);
-      const death = deathFallProgress(this.deathStartedAt, performance.now());
-      this.hand.position.set(.36-pulse*(action?.kind==='consume' ? .15 : 0)+death*.22,-.34+pulse*(action?.kind==='consume' ? .12 : 0)-death*.72,
-        -.63-pulse*(action?.kind==='attack' ? .28 : action?.kind==='cast' ? .25 : action?.kind==='interact' ? .16 : action?.kind==='consume' ? -.17 : 0));
-      this.hand.rotation.x=pulse*(action?.kind==='attack' ? -.95 : action?.kind==='cast' ? -.7 : action?.kind==='interact' ? -.42 : action?.kind==='consume' ? .4 : action?.kind==='hurt' ? .2 : 0)+death*.85;
-      this.hand.rotation.y=pulse*(action?.kind==='attack' || action?.kind==='cast' ? -.35 : 0)+death*.4;
+      const { bob, death } = this.updateFirstPersonHand(performance.now());
       this.camera.position.set(player.x, 0.72+bob-death*.60, player.y);
       const horizontal = Math.cos(this.pitch);
       this.camera.lookAt(player.x + Math.sin(this.yaw) * horizontal, 0.72 + Math.sin(this.pitch)+death*.72, player.y + Math.cos(this.yaw) * horizontal);
@@ -581,9 +612,34 @@ export class ThreeGameView implements GameView {
       this.camera.position.set(targetX - Math.sin(this.yaw) * horizontal, 1.2 - Math.sin(this.pitch) * this.distance, targetZ - Math.cos(this.yaw) * horizontal);
       this.camera.lookAt(targetX, 0, targetZ);
     }
-    this.deathPresentation.update((this.observation?.status.hp ?? 1) <= 0, this.scene);
+    this.deathPresentation.update((this.observation?.status.hp ?? 1) <= 0, this.scene, !this.spatialInventory.open);
+    this.discoveryFeedback.root.scale.setScalar(this.worldScale);
+    this.discoveryFeedback.update(performance.now());
+    this.world.traverse(object => { if (object.userData.faceCamera) object.quaternion.copy(this.camera.quaternion); });
     this.hitFeedback.update(performance.now(), this.camera);
     this.renderer.render(this.scene, this.camera);
+  }
+
+  private updateFirstPersonHand(now: number): { bob: number; death: number } {
+    this.hand.visible = this.mode === 'firstPerson' && !this.spatialInventory.open && (this.observation?.status.hp ?? 1) > 0;
+    while (this.cameraActions[0] && performance.now()>=this.cameraActions[0].start+this.cameraActions[0].duration) this.cameraActions.shift();
+    const action=this.cameraActions[0];const progress=action ? (performance.now()-action.start)/action.duration : 1;
+    const pulse=action && progress>=0 && progress<1 ? Math.sin(Math.PI*progress) : 0;
+    const bob=pulse*(action?.kind==='hurt' ? -.11 : action?.kind==='rest' ? .015 : action?.kind==='interact' ? -.025 : -.06);
+    const death = deathFallProgress(this.deathStartedAt, performance.now());
+    this.hand.position.set(.36-pulse*(action?.kind==='consume' ? .15 : 0)+death*.22,-.34+pulse*(action?.kind==='consume' ? .12 : 0)-death*.72,
+      -.63-pulse*(action?.kind==='attack' ? .28 : action?.kind==='cast' ? .25 : action?.kind==='interact' ? .16 : action?.kind==='consume' ? -.17 : 0));
+    this.hand.rotation.x=pulse*(action?.kind==='attack' ? -.95 : action?.kind==='cast' ? -.7 : action?.kind==='interact' ? -.42 : action?.kind==='consume' ? .4 : action?.kind==='hurt' ? .2 : 0)+death*.85;
+    this.hand.rotation.y=pulse*(action?.kind==='attack' || action?.kind==='cast' ? -.35 : 0)+death*.4;
+    this.hand.rotation.z = 0;
+    const attackProgress = (now - this.weaponAttackStarted) / WEAPON_ATTACK_DURATION;
+    if (attackProgress >= 0 && attackProgress < 1 && death === 0) {
+      const pose = weaponAttackPose(attackProgress, this.equippedWeaponId);
+      this.hand.position.set(pose.x, pose.y, pose.z);
+      this.hand.rotation.set(pose.pitch, pose.yaw, pose.roll);
+    }
+    this.canvas.dataset.weaponPose = `${this.hand.position.x.toFixed(3)},${this.hand.position.y.toFixed(3)},${this.hand.position.z.toFixed(3)},${this.hand.rotation.z.toFixed(3)}`;
+    return { bob, death };
   }
 
   private readonly onPointerDown = (event: PointerEvent): void => {
@@ -619,6 +675,7 @@ export class ThreeGameView implements GameView {
     const uiBounds = this.canvas.getBoundingClientRect();
     const uiRay = new THREE.Raycaster(); uiRay.setFromCamera(new THREE.Vector2(
       (event.clientX - uiBounds.left) / uiBounds.width * 2 - 1, -((event.clientY - uiBounds.top) / uiBounds.height) * 2 + 1), this.camera);
+    if (this.spatialStatus.select(uiRay)) return;
     if (this.spatialInventory.select(uiRay) || (this.observation?.status.hp ?? 1) <= 0) return;
     if (event.button === 0 && this.tryOpenChest(event.clientX, event.clientY)) return;
     if (event.button === 0 && this.mode === 'firstPerson' && this.observation) {
@@ -673,7 +730,10 @@ export class ThreeGameView implements GameView {
   private commitXrIntent(controller: THREE.Object3D, select: boolean): void {
     const observation = this.observation; if (!observation) return;
     const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(controller.getWorldQuaternion(new THREE.Quaternion()));
-    if (select && this.spatialInventory.select(new THREE.Raycaster(controller.getWorldPosition(new THREE.Vector3()), forward.clone().normalize()))) return;
+    if (select) {
+      const uiRay = new THREE.Raycaster(controller.getWorldPosition(new THREE.Vector3()), forward.clone().normalize());
+      if (this.spatialStatus.select(uiRay) || this.spatialInventory.select(uiRay)) return;
+    }
     if (this.spatialInventory.open || observation.status.hp <= 0) return;
     if (select) {
       const origin = controller.getWorldPosition(new THREE.Vector3()); const ray = new THREE.Raycaster(origin, forward.clone().normalize());
@@ -689,6 +749,12 @@ export class ThreeGameView implements GameView {
   }
 
   get inventoryOpen(): boolean { return this.spatialInventory.open; }
+  configureMenu(state: SpatialMenuState): void { this.spatialInventory.configure(state); this.ensureAnimation(); }
+  toggleMenu(): void { this.spatialInventory.toggleMenu(); }
+  showMessage(text: string): void {
+    if (this.observation) this.spatialStatus.update(this.observation, [{ type: 'message', text }]);
+    this.canvas.dataset.spatialMessage = text; this.ensureAnimation();
+  }
   toggleInventory(): void { this.spatialInventory.toggle(); }
 
   private clearWorld(): void {
@@ -724,6 +790,12 @@ export class ThreeGameView implements GameView {
     const fallback = createWeaponFallback(asset);
     this.weaponMount.add(fallback);
     void loadPropInto(asset.url, this.weaponMount, fallback, this.weaponGeneration, this.weaponToken, () => {
+      this.weaponMount.traverse(object => {
+        object.renderOrder = 11;
+        if (object instanceof THREE.Mesh) for (const material of Array.isArray(object.material) ? object.material : [object.material]) {
+          material.depthTest = false; material.depthWrite = false;
+        }
+      });
       this.canvas.dataset.equippedWeaponModel = 'loaded';
       this.ensureAnimation();
     });
@@ -751,6 +823,6 @@ export function disposeObjectTree(root: THREE.Object3D): void {
     if (!(descendant instanceof THREE.Mesh)) return;
     descendant.geometry.dispose();
     const materials = Array.isArray(descendant.material) ? descendant.material : [descendant.material];
-    for (const material of materials) material.dispose();
+    for (const material of materials) { if (material.userData.ownedMap) (material as THREE.MeshBasicMaterial).map?.dispose(); material.dispose(); }
   });
 }

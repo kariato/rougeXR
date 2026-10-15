@@ -77,6 +77,8 @@ export class GameSession {
         const event = { ...input, ordinal: raw.length, actionSequence: draft.timing.actionSequence } as RawEvent;
         raw.push(event); const safe = projectEvent(draft, event); if (safe) events.push(safe);
         if (safe?.type === 'visibleMovement' && safe.token.startsWith('monster-')) combatPositions.set(safe.token.slice(8), { ...safe.to });
+        if (event.type === 'featureRevealed' && isPositionVisible(draft, event.at))
+          events.push({ type: 'visibleDiscovery', at: { ...event.at }, feature: event.feature });
         if (event.type === 'attackResolved') {
           const attackerEntity = draft.entities[event.attackerId];const defenderEntity = draft.entities[event.defenderId];
           const attacker = event.attackerId === 'player' ? draft.player.at : attackerEntity?.kind === 'monster' ? attackerEntity.at : combatPositions.get(event.attackerId);

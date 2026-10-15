@@ -13,6 +13,6 @@ function categoryOf(event: PresentationEvent | RawEvent): Exclude<EventFilter, '
     case 'visibleAttack': case 'visibleDefeat': case 'attackResolved': case 'hpChanged': case 'actorDefeated': return 'combat';
     case 'visiblePlayerAction': return 'movement';
     case 'inventoryUpdate': case 'itemCollected': case 'itemDropped': case 'equipmentChanged': case 'itemConsumed': case 'itemChargesChanged': case 'identityLearned': return 'inventory';
-    case 'levelViewReset': case 'levelChanged': case 'featureRevealed': case 'magicDetected': case 'itemsDetected': return 'world';
+    case 'visibleDiscovery': case 'levelViewReset': case 'levelChanged': case 'featureRevealed': case 'magicDetected': case 'itemsDetected': return 'world';
   }
 }

@@ -74,7 +74,9 @@ describe('inventory pickup', () => {
     expect(equipItem(state, weapon.id, 'armor', () => {})).toMatchObject({ reason: 'wrong-slot' });
     expect(equipItem(state, weapon.id, 'weapon', () => {})).toMatchObject({ resolved: true, consumedSlot: true });
     weapon.flags |= IS_CURSED; const before = structuredClone(state);
-    expect(unequipItem(state, 'weapon', () => {})).toMatchObject({ reason: 'cursed' }); expect(state).toEqual(before);
+    expect(unequipItem(state, 'weapon', () => {})).toMatchObject({ reason: 'cursed' });
+    // The failed attempt reveals the curse without changing equipment or combat state.
+    before.entities[weapon.id]!.curseKnown = true; expect(state).toEqual(before);
     expect(dropItem(state, weapon.id, () => {})).toMatchObject({ reason: 'equipped' }); expect(state).toEqual(before);
   });
 

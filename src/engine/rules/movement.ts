@@ -6,7 +6,7 @@ import { rnd } from '../random';
 import { attackMonster, wakeRoomMonsters } from './combat';
 import { IS_CONFUSED, IS_LEVITATING } from './flags';
 import { ACTIVE_TRAPS, DEFERRED_TRAPS, triggerTrap } from './traps';
-import { descendLevel } from '../level-transition';
+import { ascendAtStairs, hasAmulet, descendLevel } from '../level-transition';
 
 export { IS_CONFUSED } from './flags';
 
@@ -77,7 +77,11 @@ export function resolveMove(state: WorldState, direction: Direction, pickup: boo
     return { resolved: false, consumedSlot: false, reason: `unsupported-trap:${destinationFeature.trap}`, events, deferredPickup: null };
   }
   if (destinationFeature?.kind === 'stairs' && (state.player.flags & IS_LEVITATING) === 0) {
-    descendLevel(state, event => events.push(event), 'stairs');
+    if (hasAmulet(state)) {
+      state.player.at = { ...to };
+      state.player.roomId = tileAt(state.level, to).roomId;
+      ascendAtStairs(state, event => events.push(event));
+    } else descendLevel(state, event => events.push(event), 'stairs');
     return { resolved: true, consumedSlot: true, reason: null, events, deferredPickup: null };
   }
   transitionRegion(state, from, to);

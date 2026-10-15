@@ -25,6 +25,8 @@
       .shell-toolbar select, .shell-toolbar button { flex: 0 0 auto; }
       #tools-toggle { margin-left: auto; }
       .hud { position: absolute; z-index: 2; top: .75rem; left: .75rem; display: flex; gap: .65rem; flex-wrap: wrap; max-width: calc(100% - 1.5rem); padding: .5rem .7rem; border: 1px solid #94a3b866; border-radius: .4rem; color: white; background: #07111de8; text-shadow: 0 1px 2px #000; pointer-events: none; }
+      .hud[hidden], .message[hidden] { display: none; }
+      .map[data-spatial-open="true"] .actions, .map[data-spatial-open="true"] .movement-stick, .map[data-spatial-open="true"] .attack-button { visibility: hidden; }
       .hud strong { color: #f8fafc; }
       .crosshair { position: absolute; z-index: 2; left: 50%; top: 50%; width: 1.3rem; height: 1.3rem; transform: translate(-50%, -50%); pointer-events: none; }
       .crosshair::before, .crosshair::after { content: ''; position: absolute; background: #f8fafc; box-shadow: 0 0 3px #000; }
@@ -62,7 +64,12 @@
         <select id="view-mode" aria-label="View mode"><option value="3d">First person</option><option value="2d">Map</option></select>
         <select id="camera-mode" aria-label="Camera mode"><option value="firstPerson">First person</option><option value="orbit">Orbit</option><option value="tabletop">Tabletop</option></select>
         <button id="new-game" type="button">New Game</button>
+        <input id="save-name" type="text" maxlength="80" value="My adventure" aria-label="Save name" title="Use the same name to update a saved game">
+        <button id="save-local" type="button" title="Save a checkpoint in this browser">Save Game</button>
+        <select id="saved-games" aria-label="Saved games"><option value="">No saved games</option></select>
+        <button id="restore-local" type="button" title="Restart from your saved checkpoint">Load Save</button>
         <button id="xr-toggle" type="button" disabled>XR unavailable</button>
+        <button id="sound-toggle" type="button" aria-pressed="true">Sound: On</button>
         <button id="tools-toggle" type="button" aria-controls="tools-panel" aria-expanded="false">Tools</button>
       </header>
       <div class="layout">
@@ -77,6 +84,7 @@
           <button id="attack-front" class="attack-button" type="button" aria-label="Attack monster in front" disabled>Attack</button>
         </section>
         <aside id="tools-panel" aria-label="Game tools" hidden>
+          <section><h2>Audio</h2><label>Volume <input id="sound-volume" type="range" min="0" max="100" value="35" aria-label="Sound volume"></label></section>
           <section><h2>Setup</h2><div class="tools-controls"><select id="world-mode" aria-label="World type"><option value="generated">Generated</option><option value="kestrel">Kestrel fixture</option><option value="rooms">Two-room fixture</option></select><input id="seed" type="number" min="0" max="4294967295" value="12345" aria-label="Seed"><label for="turn-angle">POV turn</label><select id="turn-angle"><option value="90" selected>90° (square turns)</option></select></div></section>
           <section><h2>Inventory</h2><div id="inventory"></div></section>
           <section><h2>Save and diagnose</h2><div class="tools-controls"><button id="save" type="button">Save JSON</button><button id="load" type="button">Load JSON / Replay</button><button id="export-report" type="button">Export bug report</button><input id="load-file" type="file" accept="application/json,.json" hidden></div><p id="save-status">Ready for manual save.</p><p id="xr-status" aria-live="polite">Checking XR…</p></section>

@@ -1,7 +1,7 @@
 import { cellIndex, isPlayable, positionAt, tileAt } from '../grid';
 import type { CellAppearance, PlayerObservation, Visibility } from '../model/observation';
 import type { ItemState, Position, TileState, WorldState } from '../model/state';
-import { CAN_DETECT_MONSTERS, CAN_SEE_INVISIBLE, IS_BLIND, IS_HALLUCINATING, IS_INVISIBLE } from '../rules/flags';
+import { IS_CONFUSED, IS_HELD, IS_HASTED, IS_LEVITATING, CAN_DETECT_MONSTERS, CAN_SEE_INVISIBLE, IS_BLIND, IS_HALLUCINATING, IS_INVISIBLE } from '../rules/flags';
 import { canStepTerrain } from '../rules/movement';
 import { observedItemLabel } from '../identification';
 
@@ -120,6 +120,7 @@ export function observe(state: WorldState): PlayerObservation {
     const item = state.entities[id]; if (item?.kind !== 'item') throw new Error('Invalid player pack');
     const equippedSlot = Object.entries(state.player.equipment).find(([, equipped]) => equipped === id)?.[0] ?? null;
     return { token: item.id, label: observedItemLabel(state, item), quantity: item.quantity, category: item.category, equippedSlot,
+      knownCursed: (item.flags & 0o1) !== 0 && (item.curseKnown === true || (item.flags & 0o2) !== 0),
       assetKey: item.category === 'weapon' ? item.definitionId : null };
   });
   const decorations = state.level.rooms.flatMap(room => room.design.decorations.flatMap(decoration => {
@@ -130,10 +131,20 @@ export function observe(state: WorldState): PlayerObservation {
       rotation: decoration.rotation, variant: decoration.variant, scale: decoration.scale,
       theme: room.design.theme === 'treasure' && !revealedTreasureRooms.has(room.id) ? room.design.baseTheme : room.design.theme }];
   }));
+  const strengthModifier = [state.player.equipment.leftRing, state.player.equipment.rightRing].reduce<number>((sum, id) => {
+    const ring = id ? state.entities[id] : null;
+    return sum + (ring?.kind === 'item' && ring.category === 'ring' && ring.definitionId === 'ring.add-strength' ? ring.magnitude : 0);
+  }, 0);
+  const maximumStrength = Math.max(3, Math.min(31, state.player.maximumStrength + strengthModifier));
   return { revision: state.timing.revision, width: state.level.width, height: state.level.height,
     playerAt: { ...state.player.at }, cells, entities, decorations,
     status: { hp: state.player.stats.hp, maxHp: state.player.stats.maxHp, gold: state.player.gold, depth: state.level.depth,
-      hungerStage: state.timing.hungerStage }, inventory, pendingDecision: state.pendingDecision?.kind ?? null };
+      hungerStage: state.timing.hungerStage, strength: state.player.stats.strength, maximumStrength, conditions: [
+        [IS_BLIND, 'Blind'], [IS_CONFUSED, 'Confused'], [IS_HELD, 'Held'], [IS_LEVITATING, 'Levitating'],
+        [IS_HALLUCINATING, 'Hallucinating'], [IS_HASTED, 'Hasted'],
+      ].filter(([flag]) => (state.player.flags & (flag as number)) !== 0).map(([, label]) => label as string)
+        .concat(state.timing.noMove > 0 ? ['Trapped'] : [])
+        .concat(state.player.poisonWeakened && state.player.stats.strength < maximumStrength ? ['Poisoned'] : []) }, inventory, pendingDecision: state.pendingDecision?.kind ?? null };
 }
 
 function cosmicGlyph(state: WorldState, id: string, monster: boolean): string {

@@ -108,7 +108,7 @@ function applySpecialAttack(state: WorldState, monster: MonsterState, emit: Emit
     case 'I': state.player.flags &= ~IS_RUNNING; state.timing.noCommand += rnd(state.rng, 2) + 2;
       emit({ type: 'sourceMessage', text: 'You are frozen by the ice monster.' }); break;
     case 'R': if (!saveThrow(state, 0)) {
-      if (!wearing(state, 'ring.sustain-strength')) { state.player.stats.strength = Math.max(3, state.player.stats.strength - 1);
+      if (!wearing(state, 'ring.sustain-strength')) { state.player.poisonWeakened = true; state.player.stats.strength = Math.max(3, state.player.stats.strength - 1);
         emit({ type: 'sourceMessage', text: 'You feel a bite in your leg and now feel weaker.' }); }
       else emit({ type: 'sourceMessage', text: 'A bite momentarily weakens you.' });
     } break;

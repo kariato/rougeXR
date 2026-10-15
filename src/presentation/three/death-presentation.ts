@@ -16,8 +16,8 @@ export class DeathPresentation {
     this.label = new THREE.Mesh(new THREE.PlaneGeometry(.95, .356), new THREE.MeshBasicMaterial({ map: texture, depthTest: false, depthWrite: false, toneMapped: false }));
     this.label.position.set(0, 0, -.9); this.label.renderOrder = 300; this.label.visible = false;
   }
-  update(dead: boolean, world: THREE.Object3D): void {
-    this.grayscale.value = dead ? 1 : 0; this.label.visible = dead;
+  update(dead: boolean, world: THREE.Object3D, showLabel = true): void {
+    this.grayscale.value = dead ? 1 : 0; this.label.visible = dead && showLabel;
     world.traverse(object => {
       if (!(object instanceof THREE.Mesh) && !(object instanceof THREE.Line)) return;
       const materials = Array.isArray(object.material) ? object.material : [object.material];
