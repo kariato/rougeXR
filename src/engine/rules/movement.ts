@@ -1,5 +1,5 @@
 import { buildIndexes } from '../entities';
-import { cellIndex, isPlayable, tileAt } from '../grid';
+import { canOccupyFloor, cellIndex, isPlayable, tileAt } from '../grid';
 import type { RawEventInput } from '../model/action';
 import type { Direction, EntityId, Position, Terrain, WorldState } from '../model/state';
 import { rnd } from '../random';
@@ -28,8 +28,8 @@ export function canStepTerrain(terrain: Terrain): boolean {
 export function canMoveDiagonally(state: WorldState, from: Position, to: Position): boolean {
   if (!isPlayable(state.level, to)) return false;
   if (from.x === to.x || from.y === to.y) return true;
-  return canStepTerrain(tileAt(state.level, { x: from.x, y: to.y }).terrain)
-    && canStepTerrain(tileAt(state.level, { x: to.x, y: from.y }).terrain);
+  return canOccupyFloor(state.level, { x: from.x, y: to.y })
+    && canOccupyFloor(state.level, { x: to.x, y: from.y });
 }
 
 export function transitionRegion(state: WorldState, from: Position, to: Position): void {
@@ -94,5 +94,5 @@ export function resolveMove(state: WorldState, direction: Direction, pickup: boo
 }
 
 function isLegalDestination(state: WorldState, from: Position, to: Position): boolean {
-  return isPlayable(state.level, to) && canMoveDiagonally(state, from, to) && canStepTerrain(tileAt(state.level, to).terrain);
+  return isPlayable(state.level, to) && canMoveDiagonally(state, from, to) && canOccupyFloor(state.level, to);
 }

@@ -40,3 +40,35 @@ it('rejects missing and distant chests without awarding gold', () => {
   expect(distant.submit({ expectedRevision: state.timing.revision, action: { type: 'openChest', chestId: 'test-chest' } }).status).toBe('rejected');
   expect(distant.exportState().player.gold).toBe(0);
 });
+
+it('opens adjacent chests during movement, reports gold, and never collects twice', () => {
+  const session = setup();
+  const first = session.submit({ expectedRevision: 0, action: { type: 'move', direction: 'N', pickup: true } });
+  expect(first).toMatchObject({ consumedSlot: true, ticksAdvanced: 1 });
+  expect(first.events).toContainEqual(expect.objectContaining({ type: 'message', text: expect.stringContaining('Contents:') }));
+  const gold = session.exportState().player.gold;
+  expect(gold).toBeGreaterThan(0);
+  expect(observe(session.exportState()).decorations.find(d => d.token === 'test-chest')?.opened).toBe(true);
+  session.submit({ expectedRevision: 1, action: { type: 'move', direction: 'S', pickup: true } });
+  expect(session.exportState().player.gold).toBe(gold);
+  const parsed = parseSave(serializeSave(session.exportState())); if (!parsed.ok) throw new Error('Invalid save');
+  const restored = restoreGame(parsed.value.state);
+  restored.submit({ expectedRevision: 2, action: { type: 'move', direction: 'N', pickup: true } });
+  expect(restored.exportState().player.gold).toBe(gold);
+});
+
+it('does not open distant chests or collect merely by resting beside them', () => {
+  const session = setup();
+  session.submit({ expectedRevision: 0, action: { type: 'rest' } });
+  expect(session.exportState().player.gold).toBe(0);
+  session.submit({ expectedRevision: 1, action: { type: 'move', direction: 'W', pickup: true } });
+  expect(session.exportState().player.gold).toBe(0);
+});
+
+it('does not reach diagonally through a solid corner', () => {
+  const state = setup().exportState();
+  state.level.tiles[4 * state.level.width + 6]!.terrain = 'wallH';
+  const session = new GameSession(state);
+  session.submit({ expectedRevision: 0, action: { type: 'move', direction: 'N', pickup: true } });
+  expect(session.exportState().player.gold).toBe(0);
+});

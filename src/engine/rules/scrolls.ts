@@ -3,11 +3,10 @@ import type { RawEventInput } from '../model/action';
 import type { EntityId, ItemState, WorldState } from '../model/state';
 import { rnd } from '../random';
 import { allocateId, buildIndexes } from '../entities';
-import { cellIndex, isPlayable, tileAt } from '../grid';
+import { canOccupyFloor, cellIndex, isPlayable, tileAt } from '../grid';
 import { instantiateMonster, randomMonster } from '../generation/monsters';
 import { CAN_CONFUSE_MONSTER, IS_CURSED, IS_HELD, IS_PROTECTED, IS_RUNNING } from './flags';
 import type { InventoryResult } from './inventory';
-import { canStepTerrain } from './movement';
 import { teleportPlayer as relocatePlayer } from './teleport';
 
 const SUPPORTED = new Set(['scroll.monster-confusion', 'scroll.magic-mapping', 'scroll.hold-monster', 'scroll.sleep',
@@ -58,7 +57,7 @@ function createMonster(state: WorldState, emit: (event: RawEventInput) => void):
   const indexes = buildIndexes(state); let selected: { x: number; y: number } | null = null; let count = 0;
   for (let y = state.player.at.y - 1; y <= state.player.at.y + 1; y++) for (let x = state.player.at.x - 1; x <= state.player.at.x + 1; x++) {
     const at = { x, y }; if ((x === state.player.at.x && y === state.player.at.y) || !isPlayable(state.level, at)
-      || !canStepTerrain(tileAt(state.level, at).terrain) || indexes.monsters.has(cellIndex(state.level, at))
+      || !canOccupyFloor(state.level, at) || indexes.monsters.has(cellIndex(state.level, at))
       || indexes.objects.has(cellIndex(state.level, at))) continue;
     if (rnd(state.rng, ++count) === 0) selected = at;
   }

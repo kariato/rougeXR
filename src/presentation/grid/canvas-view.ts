@@ -1,4 +1,4 @@
-import { cellIndex, positionAt } from '../../engine/grid';
+import { cellIndex, isSolidDecoration, positionAt } from '../../engine/grid';
 import type { DebugSnapshot, PlayerObservation } from '../../engine/model/observation';
 import type { Position } from '../../engine/model/state';
 import type { PresentationEvent } from '../../engine/model/action';
@@ -57,6 +57,11 @@ export class CanvasGridView implements GameView {
       context.fillRect(x, y, cellSize, cellSize);
       context.fillStyle = cell.visibility === 'visible' ? '#dbeafe' : '#64748b';
       context.fillText(cell.appearance?.glyph ?? ' ', x + cellSize / 2, y + cellSize / 2);
+    }
+    for (const prop of observation.decorations) if (isSolidDecoration(prop.kind)) {
+      const glyph = ({ crate: '□', rubble: '▲', pillar: '●', urn: 'U', mushroom: '♠' } as Record<string, string>)[prop.kind]!;
+      const visible = observation.cells[cellIndex(observation, prop.at)]?.visibility === 'visible';
+      this.drawGlyph(context, prop.at, glyph, visible ? '#d6aa6e' : '#73634e', observation);
     }
     for (const entity of observation.entities) this.drawGlyph(context, entity.at, entity.appearance, '#fbbf24', observation);
     for (const detection of detections) this.drawGlyph(context, detection.at, detection.glyph, '#c084fc', observation);

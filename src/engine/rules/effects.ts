@@ -3,7 +3,7 @@ import type { WorldState } from '../model/state';
 import { rnd, roll } from '../random';
 import { CAN_DETECT_MONSTERS, CAN_SEE_INVISIBLE, IS_BLIND, IS_CONFUSED, IS_HALLUCINATING, IS_HASTED, IS_LEVITATING } from './flags';
 import { allocateId, buildIndexes } from '../entities';
-import { cellIndex, supportsOccupant } from '../grid';
+import { cellIndex, canOccupyFloor } from '../grid';
 import { instantiateMonster, randomMonster } from '../generation/monsters';
 import { IS_RUNNING } from './flags';
 import { extinguish, killDaemon, scheduleFuse, startDaemon } from '../scheduler';
@@ -73,7 +73,7 @@ function createWanderer(state: WorldState): void { const indexes = buildIndexes(
   for (let attempts = 0; attempts < 10000; attempts++) { let room = state.level.rooms[rnd(state.rng, state.level.rooms.length)]!;
     while (room.kind === 'gone') room = state.level.rooms[rnd(state.rng, state.level.rooms.length)]!; if (room.id === state.player.roomId || room.width <= 2 || room.height <= 2) continue;
     const candidate = { x: room.origin.x + rnd(state.rng, room.width - 2) + 1, y: room.origin.y + rnd(state.rng, room.height - 2) + 1 };
-    if (!supportsOccupant(state.level, candidate) || indexes.monsters.has(cellIndex(state.level, candidate)) || indexes.objects.has(cellIndex(state.level, candidate))) continue;
+    if (!canOccupyFloor(state.level, candidate) || indexes.monsters.has(cellIndex(state.level, candidate)) || indexes.objects.has(cellIndex(state.level, candidate))) continue;
     at = candidate; roomId = room.id; break;
   }
   if (roomId === null) throw new Error('Unable to place wandering monster'); const id = allocateId(state);

@@ -1,5 +1,5 @@
 import { buildIndexes, splitStack, transferItem } from '../entities';
-import { cellIndex, isPlayable, tileAt } from '../grid';
+import { canOccupyFloor, cellIndex, isPlayable, tileAt } from '../grid';
 import type { RawEventInput } from '../model/action';
 import type { Direction, EntityId, ItemState, Position, WorldState } from '../model/state';
 import { rnd } from '../random';
@@ -42,7 +42,7 @@ function fall(state: WorldState, itemId: EntityId, impact: Position): boolean {
   const objects = buildIndexes(state).objects; let chosen: Position|null=null; let count=0;
   for(let y=impact.y-1;y<=impact.y+1;y++) for(let x=impact.x-1;x<=impact.x+1;x++){ const at={x,y};
     if ((x===state.player.at.x&&y===state.player.at.y)||!isPlayable(state.level,at)||objects.has(cellIndex(state.level,at))) continue;
-    const terrain=tileAt(state.level,at).terrain; if(terrain!=='floor'&&terrain!=='passage') continue; if(rnd(state.rng,++count)===0) chosen=at; }
+    const terrain=tileAt(state.level,at).terrain; if((terrain!=='floor'&&terrain!=='passage')||!canOccupyFloor(state.level,at)) continue; if(rnd(state.rng,++count)===0) chosen=at; }
   if(!chosen)return false; const item=state.entities[itemId]; if(item?.kind!=='item')throw new Error('Thrown item missing');
   item.location={kind:'pack',owner:'player'}; state.player.packOrder.push(itemId); transferItem(state,itemId,{kind:'floor',levelId:state.level.id,at:chosen}); return true;
 }

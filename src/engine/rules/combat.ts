@@ -1,7 +1,7 @@
 import { MONSTER_DEFINITIONS, STRENGTH_DAMAGE_BONUS, STRENGTH_HIT_BONUS } from '../../definitions/combat';
 import { WEAPON_DAMAGE } from '../../definitions/objects';
 import { allocateId, buildIndexes, transferItem } from '../entities';
-import { cellIndex, isPlayable, tileAt } from '../grid';
+import { canOccupyFloor, cellIndex, isPlayable, tileAt } from '../grid';
 import type { RawEventInput } from '../model/action';
 import type { CombatStats, EntityId, ItemState, MonsterState, Position, WorldState } from '../model/state';
 import { rnd, roll } from '../random';
@@ -224,7 +224,7 @@ function findDrop(state: WorldState, origin: Position): Position | null {
   const objects = buildIndexes(state).objects;
   for (let x = origin.x - 1; x <= origin.x + 1; x++) for (let y = origin.y - 1; y <= origin.y + 1; y++) {
     const at = { x, y };
-    if (isPlayable(state.level, at) && canStepTerrain(tileAt(state.level, at).terrain)
+    if (canOccupyFloor(state.level, at)
       && !objects.has(cellIndex(state.level, at))) return at;
   }
   return null;
@@ -271,7 +271,7 @@ function chaseOnce(state: WorldState, monster: MonsterState, emit: EmitRaw): voi
   for (let x = monster.at.x - 1; x <= monster.at.x + 1; x++) for (let y = monster.at.y - 1; y <= monster.at.y + 1; y++) {
     const at = { x, y };
     if ((x === monster.at.x && y === monster.at.y) || !isPlayable(state.level, at)
-      || !canStepTerrain(tileAt(state.level, at).terrain) || !canMoveDiagonally(state, monster.at, at)) continue;
+      || !canOccupyFloor(state.level, at) || !canMoveDiagonally(state, monster.at, at)) continue;
     const occupied = indexes.monsters.get(cellIndex(state.level, at));
     if (occupied && occupied !== monster.id) continue;
     const floorItemId = indexes.objects.get(cellIndex(state.level, at)); const floorItem = floorItemId ? state.entities[floorItemId] : null;
@@ -301,7 +301,7 @@ function routeDistance(state: WorldState, start: Position, goal: Position, monst
   const queue: Array<{ at: Position; distance: number }> = [{ at: start, distance: 0 }]; const seen = new Set([cellIndex(state.level, start)]);
   for (let cursor = 0; cursor < queue.length; cursor++) { const current = queue[cursor]!; if (current.at.x === goal.x && current.at.y === goal.y) return current.distance;
     for (let x = current.at.x - 1; x <= current.at.x + 1; x++) for (let y = current.at.y - 1; y <= current.at.y + 1; y++) { const at = { x, y };
-      if ((x === current.at.x && y === current.at.y) || !isPlayable(state.level, at) || !canStepTerrain(tileAt(state.level, at).terrain)
+      if ((x === current.at.x && y === current.at.y) || !isPlayable(state.level, at) || !canOccupyFloor(state.level, at)
         || !canMoveDiagonally(state, current.at, at)) continue; const index = cellIndex(state.level, at); const occupant = monsters.get(index);
       if (seen.has(index) || (occupant && occupant !== self)) continue; seen.add(index); queue.push({ at, distance: current.distance + 1 });
     }

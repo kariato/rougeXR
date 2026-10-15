@@ -1,5 +1,5 @@
 import { buildIndexes } from '../entities';
-import { cellIndex, isPlayable, supportsOccupant, tileAt } from '../grid';
+import { cellIndex, isPlayable, canOccupyFloor, tileAt } from '../grid';
 import type { RawEventInput } from '../model/action';
 import type { Direction, EntityId, ItemState, Position, WorldState } from '../model/state';
 import { rnd, roll } from '../random';
@@ -60,7 +60,7 @@ function relocateTarget(state:WorldState,direction:Direction,toPlayer:boolean):v
   if(toPlayer){const vector=VECTORS[direction];monster.at={x:state.player.at.x+vector.x,y:state.player.at.y+vector.y};monster.roomId=state.level.tiles[cellIndex(state.level,monster.at)]!.roomId;}
   else{const indexes=buildIndexes(state);for(let tries=0;tries<10000;tries++){let room=state.level.rooms[rnd(state.rng,state.level.rooms.length)]!;while(room.kind==='gone')room=state.level.rooms[rnd(state.rng,state.level.rooms.length)]!;
     const at={x:room.origin.x+rnd(state.rng,room.width-2)+1,y:room.origin.y+rnd(state.rng,room.height-2)+1};const occupied=indexes.monsters.get(cellIndex(state.level,at));
-    if(!supportsOccupant(state.level,at)||(occupied&&occupied!==id)||(at.x===state.player.at.x&&at.y===state.player.at.y))continue;monster.at=at;monster.roomId=state.level.tiles[cellIndex(state.level,at)]!.roomId;break;}}
+    if(!canOccupyFloor(state.level,at)||(occupied&&occupied!==id)||(at.x===state.player.at.x&&at.y===state.player.at.y))continue;monster.at=at;monster.roomId=state.level.tiles[cellIndex(state.level,at)]!.roomId;break;}}
   monster.flags|=IS_RUNNING;monster.target={kind:'player'};
 }
 function elementalBolt(state:WorldState,direction:Direction,effect:string,emit:(event:RawEventInput)=>void):void{learn(state,effect,emit);let vector={...VECTORS[direction]};let at={...state.player.at};let returning=false;let traveled=0;let bounces=0;

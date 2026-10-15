@@ -1,4 +1,4 @@
-import { openChest } from './rules/chests';
+import { openAdjacentChests, openChest } from './rules/chests';
 import type { ActionRequest, ActionResolution, GameAction, PresentationEvent, RawEvent, RawEventInput, TraceEntry } from './model/action';
 import type { ScheduledEntry, WorldState } from './model/state';
 import type { ObservedEntity } from './model/observation';
@@ -211,6 +211,8 @@ function defaultAction(action: GameAction, context: RuleContext): RuleResult {
   if (action.type === 'move') {
     const result = resolveMove(context.state, action.direction, action.pickup);
     result.events.forEach(context.emitRaw);
+    if (result.events.some(event => event.type === 'actorMoved' && event.actorId === 'player'))
+      openAdjacentChests(context.state, context.emitRaw);
     return result;
   }
   if (action.type === 'openChest') return openChest(context.state, action.chestId, context.emitRaw);

@@ -124,7 +124,6 @@ export function observe(state: WorldState): PlayerObservation {
       assetKey: item.category === 'weapon' ? item.definitionId : null };
   });
   const decorations = state.level.rooms.flatMap(room => room.design.decorations.flatMap(decoration => {
-    if (room.design.theme === 'treasure' && !revealedTreasureRooms.has(room.id)) return [];
     const cell = cells[cellIndex(state.level, decoration.at)];
     return cell?.visibility === 'unknown' ? [] : [{ token: decoration.id, at: { ...decoration.at }, kind: decoration.kind,
       ...(decoration.kind === 'crate' ? { opened: decoration.opened ?? false } : {}),

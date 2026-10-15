@@ -6,7 +6,7 @@ import { buildPassages } from './passages';
 import { buildRooms } from './rooms';
 import { instantiateMonster, randomMonster } from './monsters';
 import { generateObject } from './objects';
-import { clearDecorationApproaches, redesignRoom } from './room-design';
+import { clearDecorationApproaches, clearBlockingDecorations, redesignRoom } from './room-design';
 
 export interface GeneratedLevelContent {
   profile: 'full-rules'; rng: RandomState; nextEntitySerial: number; noFood: number; nextGroup: number;
@@ -76,6 +76,7 @@ export function generateLevelContentFromRandom(rng: RandomState, depth: number, 
   const playerRoomId = layout.tiles[index(playerAt)]!.roomId;
   const level: LevelState = { id: depth, depth, width: GRID_WIDTH, height: GRID_HEIGHT, tiles: layout.tiles, rooms: layout.rooms,
     passages: layout.passages, stairs, monsterOrder, floorObjectOrder };
+  clearBlockingDecorations(level, playerAt, entities);
   return { profile: 'full-rules', rng, nextEntitySerial: serial, noFood: objectContext.noFood, nextGroup: objectContext.nextGroup, level, entities, playerAt, playerRoomId };
 }
 

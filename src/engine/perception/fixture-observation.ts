@@ -47,6 +47,10 @@ export function describeObservedCell(observation: PlayerObservation, index: numb
   for (const entity of observation.entities.filter(candidate => candidate.at.x === at.x && candidate.at.y === at.y)) {
     lines.push(`Visible entity: ${entity.label}`);
   }
+  for (const prop of observation.decorations.filter(candidate => candidate.at.x === at.x && candidate.at.y === at.y)) {
+    const name = prop.kind === 'crate' ? (prop.opened ? 'Open chest' : 'Chest') : prop.kind === 'pillar' ? 'Column' : prop.kind;
+    lines.push(`Prop: ${name}`);
+  }
   if (at.x === observation.playerAt.x && at.y === observation.playerAt.y) lines.push('Player');
   return lines;
 }

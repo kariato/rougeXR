@@ -1,6 +1,7 @@
 import type { RawEventInput } from '../model/action';
 import type { WorldState } from '../model/state';
-import { observe } from '../perception/knowledge';
+import { canMoveDiagonally } from './movement';
+import { isPositionVisible, observe } from '../perception/knowledge';
 import { rnd } from '../random';
 import type { RuleResult } from '../session';
 
@@ -20,4 +21,16 @@ export function openChest(state: WorldState, chestId: string, emit: (event: RawE
   state.player.gold += gold;
   emit({ type: 'sourceMessage', text: `You open the chest. Contents: ${gold} gold pieces. Added to your gold.` });
   return { resolved: true, consumedSlot: true, reason: null };
+}
+
+/** Walking beside a reachable chest collects it as part of that movement turn. */
+export function openAdjacentChests(state: WorldState, emit: (event: RawEventInput) => void): void {
+  if (state.timing.status !== 'playing') return;
+  for (const room of state.level.rooms) for (const chest of room.design.decorations) {
+    if (chest.kind !== 'crate' || chest.opened) continue;
+    const dx = Math.abs(chest.at.x - state.player.at.x), dy = Math.abs(chest.at.y - state.player.at.y);
+    if (dx > 1 || dy > 1 || !isPositionVisible(state, chest.at)
+      || !canMoveDiagonally(state, state.player.at, chest.at)) continue;
+    openChest(state, chest.id, emit);
+  }
 }

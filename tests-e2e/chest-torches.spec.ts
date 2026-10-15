@@ -27,3 +27,22 @@ test('keeps the chest closed until clicked and open after a scene refresh', asyn
   await expect.poll(() => loaded.has('/assets/props/torch.glb'), { timeout: 20_000 }).toBe(true);
   expect(errors).toEqual([]);
 });
+
+test('walking beside a chest opens it and immediately awards its contents', async ({ page }) => {
+  await page.goto('/'); await page.locator('#welcome-new').click();
+  const json = await page.evaluate(async () => {
+    const { createTwoRoomFixture } = await import('/src/debug/fixtures.ts');
+    const { GameSession } = await import('/src/engine/session.ts');
+    const { serializeSave } = await import('/src/persistence/save.ts');
+    const state = createTwoRoomFixture(); state.level.monsterOrder = []; delete state.entities.e1;
+    state.level.rooms[0]!.design.decorations.push({ id: 'auto-chest', kind: 'crate', at: { x: 6, y: 5 }, rotation: 0, variant: 0, scale: 1 });
+    return serializeSave(new GameSession(state).exportState());
+  });
+  await page.locator('#load-file').setInputFiles({ name: 'chest.json', mimeType: 'application/json', buffer: Buffer.from(json) });
+  await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-open-chests', '0');
+  await page.locator('h1').click(); await page.keyboard.press('k');
+  await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-open-chests', '1');
+  await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-spatial-message', /Contents:.*gold pieces/);
+  expect(Number(await page.locator('#hud-gold').textContent())).toBeGreaterThan(0);
+  await expect(page.locator('#state-summary')).toContainText('Tick 1 · Revision 1');
+});

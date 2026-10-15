@@ -1,4 +1,4 @@
-import type { LevelState, Position, TileState } from './model/state';
+import type { DecorationKind, LevelState, Position, TileState } from './model/state';
 
 export const GRID_WIDTH = 80;
 export const GRID_HEIGHT = 24;
@@ -27,4 +27,15 @@ export function tileAt(level: LevelState, at: Position): TileState {
 export function supportsOccupant(level: LevelState, at: Position): boolean {
   if (!isPlayable(level, at)) return false;
   return ['floor', 'door', 'passage'].includes(tileAt(level, at).terrain);
+}
+
+export function isSolidDecoration(kind: DecorationKind): boolean {
+  return ['crate', 'rubble', 'pillar', 'urn', 'mushroom'].includes(kind);
+}
+export function solidDecorationAt(level: LevelState, at: Position): boolean {
+  return level.rooms.some(room => room.design.decorations.some(prop =>
+    isSolidDecoration(prop.kind) && prop.at.x === at.x && prop.at.y === at.y));
+}
+export function canOccupyFloor(level: LevelState, at: Position): boolean {
+  return supportsOccupant(level, at) && !solidDecorationAt(level, at);
 }

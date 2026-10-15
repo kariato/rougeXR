@@ -1,8 +1,9 @@
-import type { DecorationKind, RoomDesign, RoomState, RoomTheme } from '../model/state';
+import { cellIndex, isSolidDecoration, supportsOccupant } from '../grid';
+import type { EntityState, LevelState, Position, DecorationKind, RoomDesign, RoomState, RoomTheme } from '../model/state';
 
 type RoomShape = Pick<RoomState, 'id' | 'origin' | 'width' | 'height' | 'kind' | 'dark'>;
 
-/** Creates cosmetic room metadata without consuming the source gameplay RNG. */
+/** Creates room props and visual metadata without consuming the source gameplay RNG. */
 export function createRoomDesign(room: RoomShape, depth: number, forcedTheme?: RoomTheme): RoomDesign {
   if (room.kind === 'gone') return { token: visualToken(room, depth), theme: 'none', baseTheme: 'none', condition: conditionFor(depth), decorations: [] };
   const seed = hashWords(depth, room.id, room.origin.x, room.origin.y, room.width, room.height);
@@ -81,4 +82,40 @@ function hashWords(...values: number[]): number {
   let value = 0x811c9dc5;
   for (const input of values) { value ^= input >>> 0; value = Math.imul(value, 0x01000193); value ^= value >>> 13; }
   return value >>> 0;
+}
+
+/** Keep source spawns and routes intact while making physical props solid. No RNG draws. */
+export function clearBlockingDecorations(level: LevelState, playerAt: Position, entities: Record<string, EntityState>): void {
+  const reserved = new Set([cellIndex(level, playerAt)]);
+  for (const entity of Object.values(entities)) {
+    const at = entity.kind === 'monster' ? entity.at : entity.location.kind === 'floor' ? entity.location.at : null;
+    if (at) reserved.add(cellIndex(level, at));
+  }
+  const floor = new Set(level.tiles.flatMap((tile, index) => ['floor', 'door', 'passage'].includes(tile.terrain) ? [index] : []));
+  const blocked = new Set<number>();
+  const preservesConnections = (index: number): boolean => {
+    const x = index % level.width, y = Math.floor(index / level.width);
+    const neighbors = [{ x: x - 1, y }, { x: x + 1, y }, { x, y: y - 1 }, { x, y: y + 1 }]
+      .filter(at => supportsOccupant(level, at) && !blocked.has(cellIndex(level, at))).map(at => cellIndex(level, at));
+    if (neighbors.length <= 1) return true;
+    const pending = [neighbors[0]!], seen = new Set(pending);
+    for (let cursor = 0; cursor < pending.length; cursor++) {
+      if (neighbors.every(next => seen.has(next))) return true;
+      const current = pending[cursor]!, cx = current % level.width, cy = Math.floor(current / level.width);
+      for (const at of [{ x: cx - 1, y: cy }, { x: cx + 1, y: cy }, { x: cx, y: cy - 1 }, { x: cx, y: cy + 1 }]) {
+        if (!supportsOccupant(level, at)) continue;
+        const next = cellIndex(level, at);
+        if (!blocked.has(next) && !seen.has(next)) { seen.add(next); pending.push(next); }
+      }
+    }
+    return neighbors.every(next => seen.has(next));
+  };
+  for (const room of level.rooms) room.design.decorations = room.design.decorations.filter(prop => {
+    if (!isSolidDecoration(prop.kind)) return true;
+    const index = cellIndex(level, prop.at);
+    if (reserved.has(index) || blocked.has(index) || level.tiles[index]!.feature || !floor.has(index)) return false;
+    blocked.add(index);
+    if (preservesConnections(index)) return true;
+    blocked.delete(index); return false;
+  });
 }
