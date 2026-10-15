@@ -100,6 +100,23 @@ describe('desktop 3D scene plan', () => {
     expect(buildPrimitiveCells(observation)[0]?.kind).toBe('void');
   });
 
+  it('marks only the facing end cap of a fully disclosed dead end', () => {
+    const base = { visibility: 'visible' as const, theme: 'dungeon' as const, condition: 0 as const, dark: false };
+    const cells = [
+      { ...base, x: 2, z: 2, kind: 'passage' as const },
+      { ...base, x: 1, z: 2, kind: 'passage' as const },
+      { ...base, x: 3, z: 2, kind: 'void' as const },
+      { ...base, x: 2, z: 1, kind: 'void' as const },
+      { ...base, x: 2, z: 3, kind: 'void' as const },
+    ];
+    expect(buildCorridorWalls(cells).filter(wall => wall.deadEnd)).toEqual([
+      expect.objectContaining({ x: expect.closeTo(2.47), z: 2, axis: 'z' }),
+    ]);
+    // Unknown terrain and room entrances must never receive an end marker.
+    expect(buildCorridorWalls(cells.filter(cell => cell.x !== 3)).some(wall => wall.deadEnd)).toBe(false);
+    expect(buildCorridorWalls(cells.map(cell => cell.x === 3 ? { ...cell, kind: 'door' as const } : cell)).some(wall => wall.deadEnd)).toBe(false);
+  });
+
   it('lights at most four currently visible torches and excludes remembered or reserved cells', () => {
     const visible = { visibility: 'visible' as const, appearance: { glyph: '-', terrainLabel: 'wallH', featureLabel: null }, visualRegion: null };
     const observation: PlayerObservation = {

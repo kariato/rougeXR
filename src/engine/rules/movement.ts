@@ -4,7 +4,7 @@ import type { RawEventInput } from '../model/action';
 import type { Direction, EntityId, Position, Terrain, WorldState } from '../model/state';
 import { rnd } from '../random';
 import { attackMonster, wakeRoomMonsters } from './combat';
-import { IS_CONFUSED } from './flags';
+import { IS_CONFUSED, IS_LEVITATING } from './flags';
 import { ACTIVE_TRAPS, DEFERRED_TRAPS, triggerTrap } from './traps';
 import { descendLevel } from '../level-transition';
 
@@ -75,6 +75,10 @@ export function resolveMove(state: WorldState, direction: Direction, pickup: boo
   if (destinationFeature?.kind === 'trap' && !destinationFeature.revealed && DEFERRED_TRAPS.has(destinationFeature.trap)) {
     events.push({ type: 'sourceMessage', text: `${destinationFeature.trap} traps require level generation.` });
     return { resolved: false, consumedSlot: false, reason: `unsupported-trap:${destinationFeature.trap}`, events, deferredPickup: null };
+  }
+  if (destinationFeature?.kind === 'stairs' && (state.player.flags & IS_LEVITATING) === 0) {
+    descendLevel(state, event => events.push(event), 'stairs');
+    return { resolved: true, consumedSlot: true, reason: null, events, deferredPickup: null };
   }
   transitionRegion(state, from, to);
   state.player.at = to;

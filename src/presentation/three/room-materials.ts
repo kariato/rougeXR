@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import type { RoomTheme } from '../../engine/model/state';
 
-export const ROOM_MATERIAL_VERSION = 2;
-export type Surface = 'floor' | 'wall';
+export const ROOM_MATERIAL_VERSION = 3;
+export type Surface = 'floor' | 'wall' | 'deadEnd';
 export interface RoomLook {
   floor: number; wall: number; grout: number; accent: number;
   sky: number; ground: number; lamp: number; fog: number;
@@ -31,6 +31,19 @@ function color(value: number): string { return `#${value.toString(16).padStart(6
 
 function drawPattern(ctx: CanvasRenderingContext2D, theme: RoomTheme, surface: Surface, variant: number): void {
   const look = ROOM_LOOKS[theme];
+  if (surface === 'deadEnd') {
+    // Rust-red sealed masonry with a pale crossed-stone motif, legible in dim light.
+    ctx.fillStyle = '#763d2e'; ctx.fillRect(0, 0, 128, 128);
+    ctx.strokeStyle = '#231e1a'; ctx.lineWidth = 4;
+    for (let row = 0; row < 4; row++) {
+      ctx.beginPath(); ctx.moveTo(0, row * 32); ctx.lineTo(128, row * 32); ctx.stroke();
+      for (let x = row % 2 * 32; x < 128; x += 64) { ctx.beginPath(); ctx.moveTo(x, row * 32); ctx.lineTo(x, (row + 1) * 32); ctx.stroke(); }
+    }
+    ctx.strokeStyle = '#e2c18b'; ctx.lineWidth = 9;
+    ctx.strokeRect(9, 9, 110, 110);
+    ctx.beginPath(); ctx.moveTo(28, 28); ctx.lineTo(100, 100); ctx.moveTo(100, 28); ctx.lineTo(28, 100); ctx.stroke();
+    return;
+  }
   ctx.fillStyle = color(surface === 'floor' ? look.floor : look.wall); ctx.fillRect(0, 0, 128, 128);
   ctx.lineWidth = 3; ctx.strokeStyle = color(look.grout);
   if (theme === 'store') {
@@ -75,7 +88,7 @@ export class RoomMaterialCatalog {
       const canvas = document.createElement('canvas'); canvas.width = canvas.height = 128;
       const ctx = canvas.getContext('2d');
       if (!ctx) {
-        const fallback = new THREE.Color(surface === 'floor' ? ROOM_LOOKS[theme].floor : ROOM_LOOKS[theme].wall);
+        const fallback = new THREE.Color(surface === 'deadEnd' ? 0x763d2e : surface === 'floor' ? ROOM_LOOKS[theme].floor : ROOM_LOOKS[theme].wall);
         const brightness = (remembered ? .62 : 1) * (dark ? .76 : 1) * (1 - Math.min(2, condition) * .06);
         fallback.multiplyScalar(brightness);
         const material = new THREE.MeshStandardMaterial({ color: fallback, roughness: .95 });

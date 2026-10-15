@@ -136,6 +136,7 @@ function refreshAttackButton(observation: PlayerObservation = observe(session.ex
 function render(): void {
   const state = session.exportState();
   const observation = observe(state);
+  if (observation.status.hp <= 0) setToolsOpen(false);
   const debugSnapshot = debugFixtureSnapshot(state);
   const detections = latestEvents.flatMap(event => event.type === 'magicDetected' ? event.positions.map(at => ({ at, glyph: '*' }))
     : event.type === 'itemsDetected' ? event.positions.map(at => ({ at, glyph: event.glyph })) : []);
@@ -154,7 +155,12 @@ function render(): void {
   const currentCell = observation.cells[cellIndex(observation, observation.playerAt)];
   const currentFeature = currentCell?.visibility === 'visible' ? currentCell.appearance?.featureLabel : null;
   const currentItem = observation.entities.find(entity => entity.at.x === observation.playerAt.x && entity.at.y === observation.playerAt.y);
-  contextPrompt.textContent = currentItem ? `Pick up ${currentItem.label}` : currentFeature === 'stairs' ? 'Stairs here' : '';
+  const nearbyStairs = observation.cells.some((cell, index) => cell.visibility === 'visible'
+    && cell.appearance?.featureLabel === 'stairs'
+    && Math.hypot(index % observation.width - observation.playerAt.x, Math.floor(index / observation.width) - observation.playerAt.y) <= 2);
+  contextPrompt.textContent = currentFeature === 'stairs' ? 'Stairs down'
+    : nearbyStairs ? 'Spiral stairs down — step onto them to descend'
+    : currentItem ? `Pick up ${currentItem.label}` : '';
   const lines = selectedIndex === null
     ? ['Click a cell to inspect it.']
     : [...describeObservedCell(observation, selectedIndex), ...(reveal.checked ? describeDebugCell(debugSnapshot, selectedIndex) : [])];
@@ -280,6 +286,9 @@ viewMode.addEventListener('change', () => {
 });
 cameraMode.addEventListener('change', () => { stopMovementStick(); threeView.setMode(cameraMode.value as 'firstPerson' | 'orbit' | 'tabletop'); render(); });
 xrToggle.addEventListener('click', () => { void xrController.toggle().then(updateXrControls).catch(error => { xrStatus.textContent = `XR failed: ${error instanceof Error ? error.message : String(error)}`; }); });
+threeView.canvas.addEventListener('rougexr-inventory-toggle', event => {
+  if ((event as CustomEvent<{ open: boolean }>).detail.open) setToolsOpen(false);
+});
 threeView.canvas.addEventListener('rougexr-select-cell', event => {
   const position = (event as CustomEvent<{ x: number; y: number }>).detail;
   const observation = observe(session.exportState());
@@ -336,7 +345,15 @@ replaySpeed.addEventListener('change', () => {
   if (!replayPlaying) return;
   scheduleReplayStep();
 });
+window.addEventListener('keydown', event => {
+  if (event.key.toLowerCase() === 'i' && !event.repeat && view === threeView
+    && !['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'].includes((event.target as HTMLElement)?.tagName)) {
+    event.preventDefault(); threeView.toggleInventory();
+  }
+  if (event.key === 'Escape' && threeView.inventoryOpen) threeView.toggleInventory();
+});
 bindDesktopInput(window, action => {
+  if (threeView.inventoryOpen) return;
   if (replayPlayer) { replayStatus.textContent = 'Live input is locked during replay. Start a New Game to exit.'; return; }
   enqueue(action);
 });
@@ -346,6 +363,7 @@ function submit(action: GameAction): void {
 }
 function enqueue(action: GameAction, capturedRevision?: number, source?: 'xr' | 'mouse'): void {
   actionQueue = actionQueue.then(async () => {
+    if (threeView.inventoryOpen && ['move', 'rest', 'search', 'pickup', 'descend', 'ascend'].includes(action.type)) return;
     const expectedRevision = capturedRevision ?? session.exportState().timing.revision;
     const started = performance.now();
     const resolution = session.submit({ expectedRevision, action }); latestEvents = resolution.events;

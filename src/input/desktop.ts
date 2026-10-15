@@ -31,7 +31,7 @@ export function actionForKeyboardEvent(event: KeyboardInput): GameAction | null 
 
 /** Camera-only input; the engine never receives a turn action. */
 export function viewTurnForKeyboardEvent(event: KeyboardInput, stepDegrees: number): number | null {
-  if (event.repeat || isEditableTarget(event.target) || ![15, 30, 45, 90].includes(stepDegrees)) return null;
+  if (event.repeat || isEditableTarget(event.target) || stepDegrees !== 90) return null;
   if (event.key === '[') return -stepDegrees;
   if (event.key === ']') return stepDegrees;
   return null;

@@ -28,7 +28,7 @@ export function buildPrimitiveCells(observation: PlayerObservation, radius = Num
   return result;
 }
 
-export interface CorridorWall { x: number; z: number; axis: 'x' | 'z'; length?: number; theme: RoomTheme; condition: 0 | 1 | 2; dark: boolean; remembered: boolean }
+export interface CorridorWall { deadEnd?: boolean; x: number; z: number; axis: 'x' | 'z'; length?: number; theme: RoomTheme; condition: 0 | 1 | 2; dark: boolean; remembered: boolean }
 
 /** Close the disclosed sides of narrow passage cells; unknown level topology is never inspected. */
 export function buildCorridorWalls(cells: readonly PrimitiveCell[]): CorridorWall[] {
@@ -43,6 +43,8 @@ export function buildCorridorWalls(cells: readonly PrimitiveCell[]): CorridorWal
     const directions = [[0, -1], [1, 0], [0, 1], [-1, 0]] as const;
     const connectedAxes = new Set(directions.filter(([dx, dz]) => connected(cell.x + dx, cell.z + dz))
       .map(([dx]) => dx === 0 ? 'z' : 'x'));
+    const neighbors = directions.filter(([dx, dz]) => connected(cell.x + dx, cell.z + dz));
+    const confirmedEnd = neighbors.length === 1 && directions.every(([dx, dz]) => byPosition.has(`${cell.x + dx},${cell.z + dz}`));
     const bend = directions.filter(([dx, dz]) => connected(cell.x + dx, cell.z + dz)).length === 2 && connectedAxes.size === 2;
     for (const [dx, dz] of directions) {
       if (connected(cell.x + dx, cell.z + dz)) continue;
@@ -58,7 +60,7 @@ export function buildCorridorWalls(cells: readonly PrimitiveCell[]): CorridorWal
         && !connected(cell.x + otherDx, cell.z + otherDz));
       walls.push({ x: cell.x + dx * .47 + (cornerReturn ? (otherMissing?.[0] ?? 0) * .25 : 0),
         z: cell.z + dz * .47 + (cornerReturn ? (otherMissing?.[1] ?? 0) * .25 : 0),
-        axis: dx === 0 ? 'x' : 'z', ...(cornerReturn ? { length: .5 } : {}), theme: cell.theme,
+        axis: dx === 0 ? 'x' : 'z', ...(confirmedEnd && neighbors[0]![0] === -dx && neighbors[0]![1] === -dz ? { deadEnd: true } : {}), ...(cornerReturn ? { length: .5 } : {}), theme: cell.theme,
         condition: cell.condition, dark: cell.dark, remembered: cell.visibility === 'remembered' });
     }
   }

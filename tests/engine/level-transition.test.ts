@@ -14,6 +14,33 @@ function sessionOnStairs(seed: number): GameSession {
 }
 
 describe('generated level transition', () => {
+  it('descends once when stepping onto stairs and preserves carried equipment', () => {
+    const state = createNewGame(501);
+    const stairs = state.level.stairs;
+    const offsets = [{ x: -1, y: 0, direction: 'E' }, { x: 1, y: 0, direction: 'W' },
+      { x: 0, y: -1, direction: 'S' }, { x: 0, y: 1, direction: 'N' }] as const;
+    const approach = offsets.find(offset => ['floor', 'door', 'passage'].includes(
+      state.level.tiles[cellIndex(state.level, { x: stairs.x + offset.x, y: stairs.y + offset.y })]?.terrain ?? 'void'))!;
+    state.player.at = { x: stairs.x + approach.x, y: stairs.y + approach.y };
+    state.player.roomId = state.level.tiles[cellIndex(state.level, state.player.at)]!.roomId;
+    for (const id of state.level.monsterOrder) {
+      const monster = state.entities[id]; if (monster?.kind === 'monster') { for (const item of monster.packOrder) delete state.entities[item]; delete state.entities[id]; }
+    }
+    state.level.monsterOrder = [];
+    const session = new GameSession(state), recorderState = session.exportState();
+    const result = session.submit({ expectedRevision: 0, action: { type: 'move', direction: approach.direction, pickup: true } });
+    expect(result).toMatchObject({ status: 'resolved', consumedSlot: true, revision: 1 });
+    expect(result.events).toContainEqual({ type: 'levelViewReset' });
+    expect(session.exportState().level.depth).toBe(2);
+    expect(session.exportState().player.equipment).toEqual(recorderState.player.equipment);
+    expect(validateWorld(session.exportState())).toEqual([]);
+    state.player.flags |= IS_LEVITATING;
+    const floating = new GameSession(state);
+    floating.submit({ expectedRevision: 0, action: { type: 'move', direction: approach.direction, pickup: true } });
+    expect(floating.exportState().level.depth).toBe(1);
+    expect(floating.exportState().player.at).toEqual(stairs);
+  });
+
   it('places the Amulet at depth 26 and blocks ascent without it', () => {
     expect(Object.values(generateLevelContent(500, 26).entities)).toContainEqual(expect.objectContaining({ definitionId: 'amulet.yendor', category: 'amulet' }));
     const blocked = sessionOnStairs(500); expect(blocked.submit({ expectedRevision: 0, action: { type: 'ascend' } }))

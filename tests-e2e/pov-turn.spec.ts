@@ -9,6 +9,13 @@ test('keyboard POV turning changes the scene without advancing Rogue time', asyn
   const canvas = page.locator('#dungeon-3d');
   const before = await canvas.screenshot();
   await page.locator('h1').click();
+  await expect(page.locator('#turn-angle')).toHaveValue('90');
+  const headings = [];
+  for (let i = 0; i < 4; i++) {
+    await page.keyboard.press(']');
+    headings.push(await canvas.getAttribute('data-pov-direction'));
+  }
+  expect(headings).toEqual(['E', 'S', 'W', 'N']);
   await page.keyboard.press(']');
   await expect.poll(async () => (await canvas.screenshot()).equals(before), { timeout: 10_000 }).toBe(false);
   await expect(page.locator('#state-summary')).toContainText('Tick 0 · Revision 0');

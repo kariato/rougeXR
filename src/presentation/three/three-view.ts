@@ -1,10 +1,14 @@
+import { SpatialInventory } from './spatial-inventory';
+import { DeathPresentation } from './death-presentation';
+import { HitFeedback } from './hit-feedback';
+import { createStaircaseVisual } from './staircase-asset';
 import { assetUrl } from "../../asset-url";
 import * as THREE from 'three';
 import type { PresentationEvent } from '../../engine/model/action';
 import type { PlayerObservation } from '../../engine/model/observation';
 import type { GameView } from '../game-view';
 import { buildCorridorWalls, buildPrimitiveCells, selectLitTorches } from './scene-plan';
-import { deathFallProgress, frontMonsterAttackRequest, nearestVisibleHit, smoothToward, type CameraMode } from './camera-model';
+import { snapCardinalYaw, deathFallProgress, frontMonsterAttackRequest, nearestVisibleHit, smoothToward, type CameraMode } from './camera-model';
 import { createActorVisual, createDecorationVisual, createItemVisual, setChestFallbackOpen, type ActorVisual } from './entity-visual';
 import { SceneGeneration } from './asset-cache';
 import { loadPropInto } from './prop-asset';
@@ -46,6 +50,17 @@ export class ThreeGameView implements GameView {
   private readonly weaponMount = new THREE.Group();
   private readonly world = new THREE.Group();
   private readonly corpseWorld = new THREE.Group();
+  private readonly deathPresentation = new DeathPresentation();
+  private readonly spatialInventory = new SpatialInventory(() => {
+    this.canvas.dataset.inventoryOpen = String(this.spatialInventory.open);
+    this.canvas.dispatchEvent(new CustomEvent('rougexr-inventory-toggle', { detail: { open: this.spatialInventory.open } }));
+    this.ensureAnimation();
+  }, action => {
+    if (this.observation) this.canvas.dispatchEvent(new CustomEvent<ActionRequest>('rougexr-action', {
+      detail: { expectedRevision: this.observation.revision, action },
+    }));
+  });
+  private readonly hitFeedback = new HitFeedback();
   private readonly roomMaterials = new RoomMaterialCatalog();
   private readonly ambient = new THREE.HemisphereLight(0xa9c8e8, 0x18202a, 1.7);
   private readonly lamp = new THREE.PointLight(0xffd7a0, 12, 9, 1.7);
@@ -54,6 +69,7 @@ export class ThreeGameView implements GameView {
   private mode: CameraMode = 'firstPerson';
   private observation: PlayerObservation | null = null;
   private yaw = Math.PI;
+  private dragYawPixels = 0;
   private targetYaw = Math.PI;
   private pitch = 0;
   private targetPitch = 0;
@@ -97,6 +113,7 @@ export class ThreeGameView implements GameView {
     this.scene.background = new THREE.Color(0x05080d);
     this.scene.fog = new THREE.FogExp2(0x05080d, 0.055);
     this.scene.add(this.world);
+    this.scene.add(this.hitFeedback.root);
     this.world.add(this.corpseWorld);
     this.scene.add(this.ambient);
     this.lamp.position.set(0, 1.3, 0);
@@ -108,6 +125,8 @@ export class ThreeGameView implements GameView {
     this.weaponMount.rotation.set(-0.9, 0, -0.12);
     this.hand.add(this.weaponMount);
     this.camera.add(this.hand);
+    this.camera.add(this.spatialInventory.root);
+    this.camera.add(this.deathPresentation.label);
     this.scene.add(this.camera);
     for (let index = 0; index < 2; index++) {
       const controller = this.renderer.xr.getController(index);
@@ -143,7 +162,18 @@ export class ThreeGameView implements GameView {
     const sceneToken = this.generation.next();
     const freshEvents = observation.revision === this.lastAnimatedRevision ? [] : _events;
     if (observation.revision === 0 || freshEvents.some(event => event.type === 'levelViewReset')) {
+      this.hitFeedback.reset();
       this.actorFacings.clear();this.cameraActions=[];this.deathStartedAt=null;delete this.canvas.dataset.playerDeath;
+    }
+    const damageTaken = this.observation !== null && observation.revision !== this.lastAnimatedRevision
+      && observation.revision > 0 && !freshEvents.some(event => event.type === 'levelViewReset')
+      && observation.status.hp < this.observation.status.hp;
+    this.hitFeedback.trigger(freshEvents, damageTaken, performance.now());
+    this.canvas.dataset.hitFeedback = freshEvents.some(event => event.type === 'visibleAttack' && event.hit && event.attackerToken === 'player') ? 'impact' : 'none';
+    this.canvas.dataset.damageFeedback = damageTaken ? 'red-flash' : 'none';
+    if (damageTaken || freshEvents.some(event => event.type === 'visibleAttack' && event.hit)) {
+      this.animationUntil = Math.max(this.animationUntil, performance.now() + 500);
+      this.ensureAnimation();
     }
     const actorCues = new Map<string, ActorCue[]>();
     const addCue=(token:string,cue:ActorCue):void=>{const sequence=actorCues.get(token) ?? [];sequence.push(cue);actorCues.set(token,sequence);};
@@ -157,7 +187,7 @@ export class ThreeGameView implements GameView {
         this.actorFacings.set(event.defenderToken,Math.atan2(event.attackerAt.x-event.defenderAt.x,event.attackerAt.y-event.defenderAt.y));
         addCue(event.attackerToken,'attack');
         if (event.hit) addCue(event.defenderToken,'hurt');
-        if (event.attackerToken === 'player') { this.targetYaw=towardDefender;this.enqueueCameraAction('attack'); }
+        if (event.attackerToken === 'player') { this.targetYaw=snapCardinalYaw(towardDefender);this.enqueueCameraAction('attack'); }
         else if (event.defenderToken === 'player' && event.hit) this.enqueueCameraAction('hurt');
       } else if (event.type === 'visibleDefeat') {
         addCue(event.token,'death');
@@ -179,6 +209,13 @@ export class ThreeGameView implements GameView {
       if (corpse) { corpse.facing = this.actorFacings.get(event.token) ?? corpse.facing; if (corpse.holder) corpse.holder.rotation.y = corpse.facing; }
     }
     this.observation = observation;
+    this.spatialInventory.update(observation);
+    const dead = observation.status.hp <= 0;
+    if (dead) this.hitFeedback.reset();
+    this.canvas.style.filter = dead ? 'grayscale(1)' : '';
+    this.canvas.dataset.dead = String(dead);
+    this.canvas.dataset.inventoryOpen = String(this.spatialInventory.open);
+    this.canvas.setAttribute('aria-label', dead ? 'DEAD — your journey ends here' : 'First-person dungeon view');
     this.updateHandWeapon(observation);
     this.canvas.dataset.playerAt = `${observation.playerAt.x},${observation.playerAt.y}`;
     this.canvas.dataset.povDirection = directionFromForward(Math.sin(this.targetYaw), Math.cos(this.targetYaw));
@@ -190,7 +227,7 @@ export class ThreeGameView implements GameView {
     this.ambient.intensity = 1.25;
     this.lamp.color.setHex(look.lamp);
     this.lamp.intensity = 5;
-    this.scene.background = new THREE.Color(look.fog);
+    this.scene.background = new THREE.Color(observation.status.hp <= 0 ? 0x101010 : look.fog);
     if (this.scene.fog instanceof THREE.FogExp2) this.scene.fog.color.setHex(look.fog);
     const floorGeometry = new THREE.PlaneGeometry(TILE, TILE);
     floorGeometry.rotateX(-Math.PI / 2);
@@ -206,6 +243,14 @@ export class ThreeGameView implements GameView {
         if (cell.theme === 'cave') mesh.scale.set(0.9, 1.35 + cell.condition * 0.08, 0.9);
         mesh.position.set(cell.x, 0.9, cell.z); mesh.userData = { cell: { x: cell.x, y: cell.z }, eligible: false, occludes: true }; this.world.add(mesh);
       } else {
+        const feature = observation.cells[cell.z * observation.width + cell.x]?.appearance?.featureLabel;
+        if (feature === 'stairs') {
+          const stairs = createStaircaseVisual();
+          stairs.position.set(cell.x, 0, cell.z);
+          stairs.userData = { cell: { x: cell.x, y: cell.z }, eligible: true, occludes: false };
+          this.world.add(stairs);
+          continue;
+        }
         const floor = new THREE.Mesh(floorGeometry, this.roomMaterials.material(cell.theme, 'floor', cell.condition, cell.visibility === 'remembered', cell.dark, cell.x, cell.z));
         floor.position.set(cell.x, 0, cell.z); floor.userData = { cell: { x: cell.x, y: cell.z }, eligible: true, occludes: false }; this.world.add(floor);
         if (cell.kind === 'door') {
@@ -232,10 +277,12 @@ export class ThreeGameView implements GameView {
       activePassages.has(`${Math.round(wall.x)},${Math.round(wall.z)}`));
     for (const wall of corridorWalls) {
       const geometry = new THREE.BoxGeometry(wall.axis === 'x' ? (wall.length ?? 1) : .10, 1.8, wall.axis === 'z' ? (wall.length ?? 1) : .10);
-      const mesh = new THREE.Mesh(geometry, this.roomMaterials.material(wall.theme, 'wall', wall.condition,
+      const mesh = new THREE.Mesh(geometry, this.roomMaterials.material(wall.theme, wall.deadEnd ? 'deadEnd' : 'wall', wall.condition,
         wall.remembered, wall.dark, Math.round(wall.x * 2), Math.round(wall.z * 2)));
       mesh.position.set(wall.x, .9, wall.z); mesh.userData = { eligible: false, occludes: true }; this.world.add(mesh);
     }
+    this.canvas.dataset.visibleStairs = String(primitiveCells.filter(cell => observation.cells[cell.z * observation.width + cell.x]?.appearance?.featureLabel === 'stairs').length);
+    this.canvas.dataset.deadEndWalls = String(corridorWalls.filter(wall => wall.deadEnd).length);
     this.canvas.dataset.corridorWalls = String(corridorWalls.length);
     this.canvas.dataset.visibleDoors = String(this.doorVisuals.length);
     this.canvas.dataset.openDoors = String(this.doorVisuals.filter(door => door.openedAt !== null).length);
@@ -331,7 +378,7 @@ export class ThreeGameView implements GameView {
       if (corpse.holder) corpse.holder.visible = true;
     }
     this.canvas.dataset.visibleCorpses = String([...this.corpses.values()].filter(corpse => corpse.holder?.visible).length);
-    if (actorCues.size) { this.animationUntil = performance.now() + 1100; this.ensureAnimation(); }
+    if (actorCues.size) { this.animationUntil = Math.max(this.animationUntil, performance.now() + 1100); this.ensureAnimation(); }
 
     this.placeCamera();
   }
@@ -339,6 +386,8 @@ export class ThreeGameView implements GameView {
   resize(width: number, height: number): void {
     this.width = Math.max(1, Math.floor(width));
     this.height = Math.max(1, Math.floor(height));
+    this.spatialInventory.root.scale.setScalar(Math.min(1, (width / height) * 1.3 * Math.tan(34 * Math.PI / 180) / .83));
+    this.deathPresentation.label.scale.setScalar(Math.min(1, (width / height) * .9 * Math.tan(34 * Math.PI / 180) / .53));
     this.camera.aspect = this.width / this.height;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(this.width, this.height, false);
@@ -371,6 +420,7 @@ export class ThreeGameView implements GameView {
   }
 
   resetPresentation(): void {
+    this.spatialInventory.reset();
     this.clearCorpses();
     this.openedDoors.clear();
     this.openedChests.clear();
@@ -422,6 +472,9 @@ export class ThreeGameView implements GameView {
     this.clearWorld();
     for (const corpse of this.corpses.values()) this.finishCorpse(corpse);
     this.roomMaterials.dispose();
+    this.hitFeedback.dispose();
+    this.spatialInventory.dispose();
+    this.deathPresentation.dispose();
     this.canvas.removeEventListener('pointerdown', this.onPointerDown);
     this.canvas.removeEventListener('pointermove', this.onPointerMove);
     this.canvas.removeEventListener('pointerup', this.onPointerUp);
@@ -437,6 +490,7 @@ export class ThreeGameView implements GameView {
 
   setMode(mode: CameraMode): void {
     this.mode = mode;
+    if (mode === 'firstPerson') this.targetYaw = snapCardinalYaw(this.targetYaw);
     this.hand.visible = mode === 'firstPerson';
     if (this.actorVisuals[0]) this.actorVisuals[0].root.visible = mode !== 'firstPerson';
     this.targetPitch = mode === 'tabletop' ? -0.9 : mode === 'orbit' ? -0.2 : 0;
@@ -447,8 +501,9 @@ export class ThreeGameView implements GameView {
 
   /** Rotate the first-person camera without changing player position or engine time. */
   rotatePov(degrees: number): void {
-    if (this.mode !== 'firstPerson' || !Number.isFinite(degrees)) return;
-    this.targetYaw -= degrees * Math.PI / 180;
+    if (this.spatialInventory.open || this.mode !== 'firstPerson' || !Number.isFinite(degrees)) return;
+    if (degrees === 0) return;
+    this.targetYaw = snapCardinalYaw(this.targetYaw) - Math.sign(degrees) * Math.PI / 2;
     this.actorFacings.set('player', this.targetYaw);
     this.canvas.dataset.povDirection = directionFromForward(Math.sin(this.targetYaw), Math.cos(this.targetYaw));
     this.ensureAnimation();
@@ -470,7 +525,7 @@ export class ThreeGameView implements GameView {
     this.renderer.xr.enabled = session !== null;
     await this.renderer.xr.setSession(session as XRSession | null);
     for (const controller of this.xrControllers) controller.visible = session !== null;
-    if (session) this.renderer.setAnimationLoop(() => this.renderer.render(this.scene, this.camera));
+    if (session) this.renderer.setAnimationLoop(() => { this.deathPresentation.update((this.observation?.status.hp ?? 1) <= 0, this.scene); this.hitFeedback.update(performance.now(), this.camera); this.renderer.render(this.scene, this.camera); });
     else { this.renderer.setAnimationLoop(null); this.xrIntent.reset(); this.placeCamera(); }
   }
 
@@ -526,17 +581,26 @@ export class ThreeGameView implements GameView {
       this.camera.position.set(targetX - Math.sin(this.yaw) * horizontal, 1.2 - Math.sin(this.pitch) * this.distance, targetZ - Math.cos(this.yaw) * horizontal);
       this.camera.lookAt(targetX, 0, targetZ);
     }
+    this.deathPresentation.update((this.observation?.status.hp ?? 1) <= 0, this.scene);
+    this.hitFeedback.update(performance.now(), this.camera);
     this.renderer.render(this.scene, this.camera);
   }
 
   private readonly onPointerDown = (event: PointerEvent): void => {
     this.suppressClick = false;
+    this.dragYawPixels = 0;
     this.dragging = true; this.pointerId = event.pointerId; this.canvas.setPointerCapture(event.pointerId);
   };
   private readonly onPointerMove = (event: PointerEvent): void => {
-    if (!this.dragging || event.pointerId !== this.pointerId) return;
+    if (this.spatialInventory.open || !this.dragging || event.pointerId !== this.pointerId) return;
     if (Math.abs(event.movementX) + Math.abs(event.movementY) > 1) this.suppressClick = true;
-    this.targetYaw -= event.movementX * 0.006;
+    if (this.mode === 'firstPerson') {
+      this.dragYawPixels += event.movementX;
+      if (Math.abs(this.dragYawPixels) >= 40) {
+        this.rotatePov(Math.sign(this.dragYawPixels) * 90);
+        this.dragYawPixels = 0;
+      }
+    } else this.targetYaw -= event.movementX * 0.006;
     this.targetPitch = Math.max(-1.35, Math.min(1.1, this.targetPitch - event.movementY * 0.004));
     this.ensureAnimation();
   };
@@ -552,6 +616,10 @@ export class ThreeGameView implements GameView {
   };
   private readonly onClick = (event: MouseEvent): void => {
     if (this.suppressClick) { this.suppressClick = false; return; }
+    const uiBounds = this.canvas.getBoundingClientRect();
+    const uiRay = new THREE.Raycaster(); uiRay.setFromCamera(new THREE.Vector2(
+      (event.clientX - uiBounds.left) / uiBounds.width * 2 - 1, -((event.clientY - uiBounds.top) / uiBounds.height) * 2 + 1), this.camera);
+    if (this.spatialInventory.select(uiRay) || (this.observation?.status.hp ?? 1) <= 0) return;
     if (event.button === 0 && this.tryOpenChest(event.clientX, event.clientY)) return;
     if (event.button === 0 && this.mode === 'firstPerson' && this.observation) {
       const forward = this.movementDirectionForPov(true);
@@ -605,6 +673,8 @@ export class ThreeGameView implements GameView {
   private commitXrIntent(controller: THREE.Object3D, select: boolean): void {
     const observation = this.observation; if (!observation) return;
     const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(controller.getWorldQuaternion(new THREE.Quaternion()));
+    if (select && this.spatialInventory.select(new THREE.Raycaster(controller.getWorldPosition(new THREE.Vector3()), forward.clone().normalize()))) return;
+    if (this.spatialInventory.open || observation.status.hp <= 0) return;
     if (select) {
       const origin = controller.getWorldPosition(new THREE.Vector3()); const ray = new THREE.Raycaster(origin, forward.clone().normalize());
       const selected = nearestVisibleHit(ray.intersectObjects(this.world.children, true).map(hit => {
@@ -617,6 +687,9 @@ export class ThreeGameView implements GameView {
     const request = this.xrIntent.commit(directionFromForward(forward.x, forward.z), observation.revision, performance.now());
     if (request) this.canvas.dispatchEvent(new CustomEvent<ActionRequest>('rougexr-xr-action', { detail: request }));
   }
+
+  get inventoryOpen(): boolean { return this.spatialInventory.open; }
+  toggleInventory(): void { this.spatialInventory.toggle(); }
 
   private clearWorld(): void {
     for (const visual of this.actorVisuals) visual.mixer.stopAllAction();

@@ -44,3 +44,8 @@ export function frontMonsterAttackRequest(observation: PlayerObservation, direct
   if (!observation.entities.some(entity => entity.token.startsWith('monster-') && entity.at.x === target.x && entity.at.y === target.y)) return null;
   return { expectedRevision: observation.revision, action: { type: 'move', direction, pickup: true } };
 }
+
+/** Align first-person headings with the dungeon's four cardinal directions. */
+export function snapCardinalYaw(yaw: number): number {
+  return Math.round(yaw / (Math.PI / 2)) * (Math.PI / 2);
+}
