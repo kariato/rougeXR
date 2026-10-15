@@ -7,7 +7,7 @@ test('loads a room-facing GLB doorway and keeps it open after crossing', async (
   const rogueResponses: number[] = [];
   page.on('response', response => { if (response.url().includes('/assets/props/door.glb')) assetResponses.push(response.status()); });
   page.on('response', response => { if (response.url().includes('/assets/creatures/rogue.glb')) rogueResponses.push(response.status()); });
-  await page.goto('/'); await page.locator('#tools-toggle').click();
+  await page.goto('/'); await page.locator('#welcome-new').click(); await page.locator('#tools-toggle').click();
   await page.locator('#world-mode').selectOption('rooms'); await page.locator('#new-game').click();
   await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-visible-doors', '1');
   await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-open-doors', '0');

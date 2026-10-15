@@ -11,7 +11,7 @@ async function openMenu(page: import('@playwright/test').Page) {
 }
 test('uses in-world naming, save/load, search, sound and confirmed restart', async ({ page }) => {
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
-  await page.goto('/'); await page.locator('#new-game').click();
+  await page.goto('/'); await page.locator('#welcome-new').click(); await page.locator('#new-game').click();
   await openMenu(page);
   await click3d(page, 0, .06); // Save name
   await click3d(page, .48, -.4); // Clear
@@ -40,7 +40,7 @@ test('uses in-world naming, save/load, search, sound and confirmed restart', asy
 });
 
 test('keeps the spatial menu accessible after death', async ({ page }) => {
-  await page.goto('/'); await page.locator('#tools-toggle').click();
+  await page.goto('/'); await page.locator('#welcome-new').click(); await page.locator('#tools-toggle').click();
   const save = await page.evaluate(async () => {
     const { createTwoRoomFixture } = await import('/src/debug/fixtures.ts');
     const { GameSession } = await import('/src/engine/session.ts');
@@ -51,8 +51,8 @@ test('keeps the spatial menu accessible after death', async ({ page }) => {
   });
   await page.locator('#load-file').setInputFiles({ name: 'dead.json', mimeType: 'application/json', buffer: Buffer.from(save) });
   await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-dead', 'true');
-  await click3d(page, .53, -.48); // Menu button
   await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-inventory-open', 'true');
-  await click3d(page, -.48, -.36); await click3d(page, -.36, 0); // Restart and confirm
+  await expect(page.locator('#dungeon-3d')).toHaveAttribute('aria-description', /DEAD.*Restart.*Load Save/s);
+  await click3d(page, -.36, -.34); // Restart from the results panel
   await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-dead', 'false');
 });

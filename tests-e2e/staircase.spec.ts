@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 test('shows spiral stairs and descends when the player steps onto them', async ({ page }) => {
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
-  await page.goto('/'); await page.locator('#tools-toggle').click();
+  await page.goto('/'); await page.locator('#welcome-new').click(); await page.locator('#tools-toggle').click();
   const save = await page.evaluate(async () => {
     const { createTwoRoomFixture } = await import('/src/debug/fixtures.ts');
     const { GameSession } = await import('/src/engine/session.ts');
@@ -30,7 +30,7 @@ test('shows spiral stairs and descends when the player steps onto them', async (
 });
 
 test('shows upward stairs and automatically returns with the Amulet', async ({ page }) => {
-  await page.goto('/'); await page.locator('#tools-toggle').click();
+  await page.goto('/'); await page.locator('#welcome-new').click(); await page.locator('#tools-toggle').click();
   const save = await page.evaluate(async () => {
     const { createTwoRoomFixture } = await import('/src/debug/fixtures.ts');
     const { GameSession } = await import('/src/engine/session.ts');

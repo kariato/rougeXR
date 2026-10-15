@@ -35,6 +35,7 @@ export function validateWorld(input: unknown): ValidationIssue[] {
     check(!!s.sourceState && integer(s.sourceState.flytrapHits) && integer(s.sourceState.nextGroup, 2)
       && integer(s.sourceState.maximumDepth, 1) && s.sourceState.maximumDepth >= s.level.depth, 'sourceState', 'Invalid source counters');
     const timing = s.timing;
+    check(timing.deathCause === undefined || (typeof timing.deathCause === 'string' && timing.deathCause.length <= 200), 'timing.deathCause', 'Invalid death cause');
     check([timing.revision, timing.actionSequence, timing.tick, timing.noCommand, timing.noMove, timing.noFood, timing.quiet, timing.between, timing.hungerStage]
       .every(value => integer(value)), 'timing', 'Invalid timing counter');
     check(Number.isSafeInteger(timing.foodLeft) && timing.hungerStage <= 3, 'timing', 'Invalid hunger state');

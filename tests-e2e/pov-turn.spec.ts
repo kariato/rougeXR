@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 test('keyboard POV turning changes the scene without advancing Rogue time', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/'); await page.locator('#welcome-new').click();
   await page.locator('#tools-toggle').click();
   await page.locator('#world-mode').selectOption('rooms');
   await page.locator('#new-game').click();

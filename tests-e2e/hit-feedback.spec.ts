@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 test('renders hit impacts and damage flashes and lets them fade', async ({ page }) => {
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
-  await page.goto('/');
+  await page.goto('/'); await page.locator('#welcome-new').click();
   const result = await page.evaluate(async () => {
     const { ThreeGameView } = await import('/src/presentation/three/three-view.ts');
     const { createTwoRoomFixture } = await import('/src/debug/fixtures.ts');

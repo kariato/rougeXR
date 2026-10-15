@@ -103,6 +103,11 @@ export class GameSession {
             combatPositions.set(event.actorId,{...at});combatAppearances.set(event.actorId,visible);
           }
         } else if (event.type === 'actorDefeated') {
+          if (event.actorId === 'player' && !draft.timing.deathCause) {
+            const killer = draft.entities[event.byActorId];
+            draft.timing.deathCause = killer?.kind === 'monster'
+              ? killer.definitionId.replace(/^monster\./, '').replaceAll('-', ' ') : event.byActorId;
+          }
           const at = event.actorId === 'player' ? draft.player.at : combatPositions.get(event.actorId);
           const appearance=combatAppearances.get(event.actorId);
           if (at && isPositionVisible(draft, at)) events.push({ type: 'visibleDefeat', token: event.actorId === 'player' ? 'player' : `monster-${event.actorId}`,

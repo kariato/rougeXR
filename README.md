@@ -29,7 +29,7 @@ Phase 13 now includes optional immersive-VR session entry, tracked controller ra
 
 Phase 14 first-person presentation has begun: every generated room stores a deterministic visual theme and non-blocking decoration plan at creation time. All eight current decoration kinds, all nine collectible item categories, all nine wieldable weapon types, and all 26 Rogue monsters now have original Blender GLBs loaded from disclosed observations with primitive fallbacks. The equipped weapon appears in the first-person hand and follows the resolved attack/action motion. The historical `crate` prop is now a decorative treasure chest, and ordinary rooms place inward-facing wall torches at creation time; at most four currently visible torches provide local presentation light. The browser opens with a dominant first-person viewport, compact observation-backed HUD, and collapsible tools panel. Room surfaces vary deterministically with dungeon stone, cave rock, crypt masonry, store wood, and treasure inlay patterns and theme-aware lighting. Remaining visual work consolidates creature assets and combat clips, builds structural room silhouettes and authored environment kits, and adds event-driven combat feedback. Only disclosed cells and entities reach the renderer.
 
-Phase 10 browser debugging is complete. Versioned saves autosave to IndexedDB after completed actions and restore on startup; storage failures leave gameplay and manual JSON downloads available. Imported replay bundles can be restarted, stepped one action at a time, played, paused, and viewed at selectable speeds while live game input is locked. Replay history is capped at 1,000 actions and advances its verified checkpoint as older entries rotate out. Browser diagnostics include event-category filters, action timing, and first-divergence action and hash details.
+Phase 10 browser debugging is complete. Versioned saves autosave to IndexedDB after completed actions and can be selected as Latest autosave on the welcome screen; storage failures leave gameplay and manual JSON downloads available. Imported replay bundles can be restarted, stepped one action at a time, played, paused, and viewed at selectable speeds while live game input is locked. Replay history is capped at 1,000 actions and advances its verified checkpoint as older entries rotate out. Browser diagnostics include event-category filters, action timing, and first-divergence action and hash details.
 
 Run `npx playwright install chromium firefox` once, then `npm run test:browser` for the Chromium and Firefox smoke matrix.
 
@@ -50,3 +50,11 @@ To check that build locally, run `GITHUB_PAGES=true npm run build` and
 - [Rules ledger](documents/rules-ledger.md)
 - [Historical FreeBSD Rogue comparison](documents/freebsd-rogue-review.md)
 - [Original ideas](documents/ideas.txt)
+
+### Endings and discoveries
+
+Death and escape now open an in-world results panel, also available on the map. Death records its cause in saved games; both endings show the deepest level reached, gold, experience, turns, and a score (gold + experience, with a 1,000-point escape bonus). Restart starts a fresh adventure; Load Save offers the browser’s named checkpoints. Older death saves without a recorded cause display “An unknown dungeon danger.”
+
+Equipment uses readable names such as “Mace” and “Ring mail,” including older saves with internal IDs as labels. Custom item names remain intact. Menu → Discoveries (or Tools → Discoveries) lists identified potions, scrolls, rings, and wands/staves with their randomized appearances. The list retains knowledge after items are used or dropped and never reveals unlearned identities.
+
+On launch, a welcome screen offers **Start New Game** or **Load Saved Game**. The save selector includes named browser checkpoints, a legacy checkpoint if present, and the latest automatic save. Nothing restores until you choose it. Missing, unavailable, or incompatible saves leave the new-game option available.

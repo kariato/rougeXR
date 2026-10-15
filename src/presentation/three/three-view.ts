@@ -236,7 +236,8 @@ export class ThreeGameView implements GameView {
     this.canvas.style.filter = dead ? 'grayscale(1)' : '';
     this.canvas.dataset.dead = String(dead);
     this.canvas.dataset.inventoryOpen = String(this.spatialInventory.open);
-    this.canvas.setAttribute('aria-label', dead ? 'DEAD — your journey ends here' : 'First-person dungeon view');
+    this.canvas.setAttribute('aria-description', this.spatialInventory.accessibleLabels.join('. '));
+    this.canvas.setAttribute('aria-label', observation.ending ? `${observation.ending.outcome === 'won' ? 'VICTORY' : 'DEAD'} — ${observation.ending.cause}. Depth ${observation.ending.depth}, Gold ${observation.ending.gold}, Score ${observation.ending.score}` : 'First-person dungeon view');
     this.updateHandWeapon(observation);
     this.canvas.dataset.playerAt = `${observation.playerAt.x},${observation.playerAt.y}`;
     this.canvas.dataset.povDirection = directionFromForward(Math.sin(this.targetYaw), Math.cos(this.targetYaw));
@@ -734,7 +735,7 @@ export class ThreeGameView implements GameView {
       const uiRay = new THREE.Raycaster(controller.getWorldPosition(new THREE.Vector3()), forward.clone().normalize());
       if (this.spatialStatus.select(uiRay) || this.spatialInventory.select(uiRay)) return;
     }
-    if (this.spatialInventory.open || observation.status.hp <= 0) return;
+    if (this.spatialInventory.open || observation.ending || observation.status.hp <= 0) return;
     if (select) {
       const origin = controller.getWorldPosition(new THREE.Vector3()); const ray = new THREE.Raycaster(origin, forward.clone().normalize());
       const selected = nearestVisibleHit(ray.intersectObjects(this.world.children, true).map(hit => {

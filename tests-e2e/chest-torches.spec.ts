@@ -7,7 +7,7 @@ test('keeps the chest closed until clicked and open after a scene refresh', asyn
     if (request.url().includes('/assets/props/')) loaded.add(new URL(request.url()).pathname);
   });
   page.on('pageerror', error => errors.push(error));
-  await page.goto('/');
+  await page.goto('/'); await page.locator('#welcome-new').click();
   await page.locator('#tools-toggle').click();
   await page.locator('#seed').fill('12345');
   await page.locator('#new-game').click();

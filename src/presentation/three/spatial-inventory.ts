@@ -28,7 +28,7 @@ export class SpatialInventory {
   readonly root = new THREE.Group();
   open = false;
   private readonly generation = new SceneGeneration();
-  private menuMode: 'inventory' | 'menu' | 'keyboard' | 'load' | 'restart' | 'effects' = 'inventory';
+  private menuMode: 'inventory' | 'menu' | 'keyboard' | 'load' | 'restart' | 'effects' | 'discoveries' | 'ending' = 'inventory';
   private settings: SpatialMenuState = { names: [], saveName: 'My adventure', sound: true, volume: .35 };
   private draftName = '';
   private selected: string | null = null;
@@ -39,17 +39,19 @@ export class SpatialInventory {
     this.root.position.z = -1.3;
   }
   update(observation: PlayerObservation): void {
+    const newEnding = observation.ending && !this.observation?.ending;
     this.observation = observation;
+    if (newEnding) { this.open = true; this.menuMode = 'ending'; this.page = 0; this.changed(); }
     if (observation.status.hp <= 0 && this.menuMode === 'inventory') { this.open = false; this.menuMode = 'menu'; }
     this.draw();
   }
-  toggle(): void { if (!this.observation || this.observation.status.hp <= 0) return; this.open = !this.open; this.menuMode = 'inventory'; this.draw(); this.changed(); }
+  toggle(): void { if (!this.observation || this.observation.ending || this.observation.status.hp <= 0) return; this.open = !this.open; this.menuMode = 'inventory'; this.draw(); this.changed(); }
   showEffects(): void { this.open = true; this.navigate('effects'); }
   configure(settings: SpatialMenuState): void { this.settings = settings; if (this.open && this.menuMode !== 'inventory') this.draw(); }
-  toggleMenu(): void { this.open = !this.open; this.menuMode = 'menu'; this.page = 0; this.draw(); this.changed(); }
+  toggleMenu(): void { this.open = !this.open; this.menuMode = this.observation?.ending ? 'ending' : 'menu'; this.page = 0; this.draw(); this.changed(); }
   private navigate(mode: typeof this.menuMode): void { this.menuMode = mode; this.page = 0; this.draw(); this.changed(); }
   private act(action: GameAction): void { this.open = false; this.draw(); this.changed(); this.submit(action); }
-  reset(): void { this.open = false; this.selected = null; this.page = 0; this.menuMode = 'inventory'; this.draw(); }
+  reset(): void { this.open = false; this.selected = null; this.page = 0; this.menuMode = 'inventory'; this.observation = null; this.draw(); }
   private clear(): void {
     this.generation.next();
     for (const child of [...this.root.children]) {
@@ -67,8 +69,9 @@ export class SpatialInventory {
   private button(text: string, x: number, y: number, width: number, height: number, run?: () => void, selected = false): void {
     const canvas = document.createElement('canvas'); canvas.width = Math.round(width / height * 96); canvas.height = 96;
     const ctx = canvas.getContext('2d')!;
-    ctx.fillStyle = selected ? '#235b70' : '#101c2c'; ctx.fillRect(0, 0, canvas.width, 96);
-    ctx.strokeStyle = selected ? '#a5f3fc' : '#6a8ca8'; ctx.lineWidth = 4; ctx.strokeRect(2, 2, canvas.width - 4, 92);
+    const celebration = text.includes('VICTORY');
+    ctx.fillStyle = celebration ? '#6b4a10' : selected ? '#235b70' : '#101c2c'; ctx.fillRect(0, 0, canvas.width, 96);
+    ctx.strokeStyle = celebration ? '#ffd66b' : selected ? '#a5f3fc' : '#6a8ca8'; ctx.lineWidth = 4; ctx.strokeRect(2, 2, canvas.width - 4, 92);
     ctx.fillStyle = '#ffffff'; ctx.font = '32px sans-serif'; ctx.textBaseline = 'middle';
     let label = text; while (ctx.measureText(label).width > canvas.width - 36 && label.length > 1) label = label.slice(0, -2) + '…';
     if (text.includes('\n')) {
@@ -80,6 +83,8 @@ export class SpatialInventory {
         else line += (line ? ' ' : '') + word;
       }
       lines.push(line); lines.slice(0, 2).forEach((value, index) => ctx.fillText(value, 18, 37 + index * 28));
+    } else if (text === 'DEAD' || celebration) {
+      ctx.font = 'bold 64px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(text, canvas.width / 2, 48);
     } else ctx.fillText(label, 18, 48);
     const texture = new THREE.CanvasTexture(canvas); texture.colorSpace = THREE.SRGBColorSpace;
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(width, height), new THREE.MeshBasicMaterial({ map: texture, depthTest: false, depthWrite: false, toneMapped: false }));
@@ -89,7 +94,7 @@ export class SpatialInventory {
   private draw(): void {
     this.clear(); const generationToken = this.generation.next(); const observation = this.observation; if (!observation) return;
     if (!this.open) {
-      if (observation.status.hp > 0) this.button('Inventory [I]', -.53, -.48, .34, .095, () => this.toggle());
+      if (!observation.ending && observation.status.hp > 0) this.button('Inventory [I]', -.53, -.48, .34, .095, () => this.toggle());
       this.button('Menu [M]', .53, -.48, .34, .095, () => this.toggleMenu()); return;
     }
     if (this.menuMode !== 'inventory') { this.drawMenu(); return; }
@@ -144,7 +149,31 @@ export class SpatialInventory {
     }
   }
   private drawMenu(): void {
-    this.button('GAME MENU', 0, .49, 1.4, .09);
+    const ending = this.observation?.ending;
+    if (this.menuMode === 'ending' && ending) {
+      const won = ending.outcome === 'won';
+      this.button(won ? '★ VICTORY! ★' : 'DEAD', 0, .49, 1.4, .15, undefined, won);
+      this.button(won ? ending.cause : `Killed by: ${ending.cause}`, 0, .3, 1.4, .12);
+      this.button(`Depth reached: ${ending.depth}    Gold: ${ending.gold}`, 0, .14, 1.4, .1);
+      this.button(`Experience: ${ending.experience}    Turns: ${ending.turns}`, 0, .01, 1.4, .1);
+      this.button(`Score: ${ending.score}\nGold + experience${won ? ' + 1,000 escape bonus' : ''}`, 0, -.15, 1.4, .16);
+      this.button('Restart', -.36, -.34, .65, .11, () => this.command({ type: 'restart' }));
+      this.button('Load Save', .36, -.34, .65, .11, () => this.navigate('load'));
+      this.button('Discoveries', 0, -.49, 1.4, .1, () => this.navigate('discoveries'));
+      return;
+    }
+    this.button(this.menuMode === 'discoveries' ? 'DISCOVERIES — identified magic' : 'GAME MENU', 0, .49, 1.4, .09);
+    this.button(ending ? 'Results' : 'Discoveries', -.5, .59, .4, .075, () => this.navigate(ending ? 'ending' : 'discoveries'));
+    if (this.menuMode === 'discoveries') {
+      const entries = this.observation?.discoveries ?? [];
+      if (!entries.length) this.button('No magic identified yet.\nUse or identify items to learn their properties.', 0, .2, 1.4, .16);
+      entries.slice(this.page * 4, this.page * 4 + 4).forEach((entry, index) =>
+        this.button(`${entry.name}\nAppearance: ${entry.appearance}`, 0, .3 - index * .175, 1.4, .16));
+      this.button('Previous', -.48, -.47, .43, .09, () => { this.page = Math.max(0, this.page - 1); this.draw(); this.changed(); });
+      this.button('Back', 0, -.47, .43, .09, () => this.navigate(ending ? 'ending' : 'menu'));
+      this.button('Next', .48, -.47, .43, .09, () => { this.page = Math.min(Math.max(0, Math.ceil(entries.length / 4) - 1), this.page + 1); this.draw(); this.changed(); });
+      return;
+    }
     this.button('Effects', .55, .59, .3, .075, () => this.showEffects());
     if (this.menuMode === 'effects') {
       const effects = this.observation ? observedStatusEffects(this.observation) : [];
@@ -152,7 +181,7 @@ export class SpatialInventory {
       effects.slice(this.page * 4, this.page * 4 + 4).forEach((effect, index) =>
         this.button(`${effect.icon} ${effect.label}\n${effect.description}`, 0, .3 - index * .175, 1.4, .16));
       this.button('Previous', -.48, -.47, .43, .09, () => { this.page = Math.max(0, this.page - 1); this.draw(); this.changed(); });
-      this.button('Back', 0, -.47, .43, .09, () => this.navigate('menu'));
+      this.button('Back', 0, -.47, .43, .09, () => this.navigate(ending ? 'ending' : 'menu'));
       this.button('Next', .48, -.47, .43, .09, () => { this.page = Math.min(Math.max(0, Math.ceil(effects.length / 4) - 1), this.page + 1); this.draw(); this.changed(); });
       return;
     }
@@ -178,10 +207,10 @@ export class SpatialInventory {
       names.slice(this.page * 5, this.page * 5 + 5).forEach((name, index) =>
         this.button(name || 'Previous checkpoint', 0, .34 - index * .13, 1.4, .11, () => this.command({ type: 'load', name })));
       this.button('Previous', -.48, -.4, .43, .09, () => { this.page = Math.max(0, this.page - 1); this.draw(); this.changed(); });
-      this.button('Back', 0, -.4, .43, .09, () => this.navigate('menu'));
+      this.button('Back', 0, -.4, .43, .09, () => this.navigate(ending ? 'ending' : 'menu'));
       this.button('Next', .48, -.4, .43, .09, () => { this.page = Math.min(Math.max(0, Math.ceil(names.length / 5) - 1), this.page + 1); this.draw(); this.changed(); }); return;
     }
-    const alive = (this.observation?.status.hp ?? 0) > 0;
+    const alive = !ending && (this.observation?.status.hp ?? 0) > 0;
     if (alive) {
       this.button('Search', -.36, .34, .65, .1, () => this.act({ type: 'search' }));
       this.button('Rest', .36, .34, .65, .1, () => this.act({ type: 'rest' }));

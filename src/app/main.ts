@@ -23,6 +23,9 @@ import { IndexedDbSaveStore, storeLatestSafely } from '../persistence/indexed-db
 import { createSelectedWorld, parseSeed, type WorldMode } from './world-selection';
 import { filterEvents, type EventFilter } from './event-filter';
 
+const welcome = document.querySelector<HTMLDialogElement>('#welcome')!;
+welcome.addEventListener('cancel', event => event.preventDefault());
+function closeWelcome(): void { if (welcome.open) { welcome.close(); required<HTMLElement>('h1').focus(); } }
 const gameAudio = new GameAudio();
 const soundToggle = document.querySelector<HTMLButtonElement>('#sound-toggle')!;
 const soundVolume = document.querySelector<HTMLInputElement>('#sound-volume')!;
@@ -96,6 +99,11 @@ const threeView = new ThreeGameView();
 let view: GameView = threeView;
 const xrSystem = (navigator as Navigator & { xr?: XrSystemLike }).xr ?? null;
 const xrController = new XrSessionController(xrSystem, session => threeView.setXrSession(session));
+required<HTMLButtonElement>('#ending-restart').addEventListener('click', () => newGame.click());
+required<HTMLButtonElement>('#ending-load').addEventListener('click', () => {
+  required<HTMLSelectElement>('#saved-games').value = required<HTMLSelectElement>('#ending-saves').value;
+  required<HTMLButtonElement>('#restore-local').click();
+});
 const saveStore = new IndexedDbSaveStore();
 let session = new GameSession(initialWorld);
 let recorder = new ReplayRecorder(session.exportState());
@@ -152,6 +160,26 @@ function render(): void {
   const state = session.exportState();
   const observation = observe(state);
   syncSpatialMenu();
+  const endingPanel = required<HTMLElement>('#ending-panel');
+  endingPanel.hidden = !observation.ending || view === threeView;
+  if (observation.ending) {
+    const ending = observation.ending;
+    endingPanel.dataset.outcome = ending.outcome;
+    required<HTMLElement>('#ending-title').textContent = ending.outcome === 'won' ? '★ VICTORY! ★' : 'DEAD';
+    required<HTMLElement>('#ending-cause').textContent = ending.outcome === 'won' ? ending.cause : `Killed by: ${ending.cause}`;
+    required<HTMLElement>('#ending-stats').textContent = `Depth reached: ${ending.depth} · Gold: ${ending.gold} · Experience: ${ending.experience} · Turns: ${ending.turns}`;
+    required<HTMLElement>('#ending-score').textContent = `Score: ${ending.score} (gold + experience${ending.outcome === 'won' ? ' + 1,000 escape bonus' : ''})`;
+    const choices = required<HTMLSelectElement>('#ending-saves');
+    const previous = choices.value;
+    choices.replaceChildren(...Array.from(required<HTMLSelectElement>('#saved-games').options, option => option.cloneNode(true)));
+    if (Array.from(choices.options).some(option => option.value === previous)) choices.value = previous;
+    required<HTMLButtonElement>('#ending-load').disabled = required<HTMLButtonElement>('#restore-local').disabled;
+  }
+  const discoveries = required<HTMLElement>('#discoveries');
+  discoveries.replaceChildren(...(observation.discoveries ?? []).map(entry => {
+    const row = document.createElement('p'); row.textContent = `${entry.name} — ${entry.appearance}`; return row;
+  }));
+  if (!discoveries.children.length) discoveries.textContent = 'No magic identified yet. Use or identify items to learn their properties.';
   const playedCues = gameAudio.update(observation, latestEvents);
   if (playedCues.length) document.body.dataset.soundCues = playedCues.join(',');
   if (observation.status.hp <= 0) setToolsOpen(false);
@@ -349,6 +377,7 @@ newGame.addEventListener('click', () => {
     const validation = validateWorld(state);
     if (validation.length) throw new Error(`New world validation failed: ${JSON.stringify(validation)}`);
     session = new GameSession(state); threeView.resetPresentation(); recorder = new ReplayRecorder(state); selectedIndex = null; latestEvents = []; resetDiagnostics();
+    closeWelcome();
     saveStatus.textContent = `Started ${mode} world with seed ${seed}.`; render();
     await autosave(state);
   }).catch(error => { saveStatus.textContent = error instanceof Error ? error.message : String(error); });
@@ -372,11 +401,11 @@ replaySpeed.addEventListener('change', () => {
   scheduleReplayStep();
 });
 window.addEventListener('keydown', event => {
-  if (event.key.toLowerCase() === 'm' && !event.repeat && view === threeView
+  if (!welcome.open && event.key.toLowerCase() === 'm' && !event.repeat && view === threeView
     && !['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'].includes((event.target as HTMLElement)?.tagName)) {
     event.preventDefault(); threeView.toggleMenu();
   }
-  if (event.key.toLowerCase() === 'i' && !event.repeat && view === threeView
+  if (!welcome.open && event.key.toLowerCase() === 'i' && !event.repeat && view === threeView
     && !['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'].includes((event.target as HTMLElement)?.tagName)) {
     event.preventDefault(); threeView.toggleInventory();
   }
@@ -393,6 +422,7 @@ function submit(action: GameAction): void {
 }
 function enqueue(action: GameAction, capturedRevision?: number, source?: 'xr' | 'mouse'): void {
   actionQueue = actionQueue.then(async () => {
+    if (welcome.open) return;
     if (threeView.inventoryOpen && ['move', 'rest', 'search', 'pickup', 'descend', 'ascend'].includes(action.type)) return;
     const expectedRevision = capturedRevision ?? session.exportState().timing.revision;
     const started = performance.now();
@@ -564,20 +594,44 @@ async function autosave(state: ReturnType<GameSession['exportState']>): Promise<
   const result = await storeLatestSafely(saveStore, serializeSave(state));
   if (!result.ok) saveStatus.textContent = `Autosave unavailable: ${result.error} Manual save remains available.`;
 }
-async function restoreLatestAutosave(): Promise<void> {
+interface WelcomeCheckpoint { name: string; json: string }
+const welcomeCheckpoints: WelcomeCheckpoint[] = [];
+async function prepareWelcome(): Promise<void> {
+  const status = required<HTMLElement>('#welcome-status');
+  const problems: string[] = [];
   try {
-    const text = await saveStore.loadLatest();
-    if (text === null) { saveStatus.textContent = 'No autosave found. Ready for manual save.'; return; }
-    const parsed = parseSave(text);
-    if (!parsed.ok) { saveStatus.textContent = `Autosave rejected: ${parsed.errors[0]?.message ?? 'invalid save'}. Started a new game.`; return; }
-    const candidate = restoreGame(parsed.value.state);
-    session = candidate; threeView.resetPresentation(); recorder = new ReplayRecorder(candidate.exportState()); selectedIndex = null; latestEvents = []; resetDiagnostics();
-    seedInput.value = String(candidate.exportState().seed);
-    saveStatus.textContent = `Restored autosave at revision ${candidate.exportState().timing.revision}.`; render();
-  } catch (error) {
-    saveStatus.textContent = `Autosave unavailable: ${error instanceof Error ? error.message : String(error)} Manual save remains available.`;
-  }
+    welcomeCheckpoints.push(...readNamedCheckpoints());
+    const legacy = localStorage.getItem(MANUAL_SAVE_KEY);
+    if (legacy !== null) welcomeCheckpoints.push({ name: 'Previous checkpoint', json: legacy });
+  } catch { problems.push('Named saves could not be read.'); }
+  try {
+    const json = await saveStore.loadLatest();
+    if (json !== null) welcomeCheckpoints.push({ name: 'Latest autosave', json });
+  } catch { problems.push('Autosave storage is unavailable.'); }
+  const choices = required<HTMLSelectElement>('#welcome-saves');
+  choices.replaceChildren(...welcomeCheckpoints.map((entry, index) => {
+    const option = document.createElement('option'); option.value = String(index); option.textContent = entry.name; return option;
+  }));
+  choices.disabled = welcomeCheckpoints.length === 0;
+  required<HTMLButtonElement>('#welcome-load').disabled = choices.disabled;
+  if (choices.disabled) choices.add(new Option('No saved games in this browser', ''));
+  status.textContent = [welcomeCheckpoints.length ? 'Choose a saved adventure, or start a new one.' : 'Your first adventure awaits. Start a new game.', ...problems].join(' ');
 }
+required<HTMLButtonElement>('#welcome-new').addEventListener('click', () => newGame.click());
+required<HTMLButtonElement>('#welcome-load').addEventListener('click', () => {
+  actionQueue = actionQueue.then(() => {
+    const checkpoint = welcomeCheckpoints[Number(required<HTMLSelectElement>('#welcome-saves').value)];
+    if (!checkpoint) return;
+    const parsed = parseSave(checkpoint.json);
+    if (!parsed.ok) { required<HTMLElement>('#welcome-status').textContent = 'This saved game is invalid or incompatible. Choose another save or start a new game.'; return; }
+    const candidate = restoreGame(parsed.value.state);
+    leaveReplayMode(); session = candidate; threeView.resetPresentation();
+    recorder = new ReplayRecorder(candidate.exportState()); selectedIndex = null; latestEvents = []; resetDiagnostics();
+    seedInput.value = String(candidate.exportState().seed);
+    try { if (readNamedCheckpoints().some(entry => entry.name === checkpoint.name)) { saveNameInput.value = checkpoint.name; refreshSavedGames(checkpoint.name); } } catch { /* An autosave can still load when named-save storage is unavailable. */ }
+    closeWelcome(); render(); checkpointMessage(`Loaded “${checkpoint.name}” on level ${candidate.exportState().level.depth}.`);
+  }).catch(error => { required<HTMLElement>('#welcome-status').textContent = `Could not load this adventure: ${error instanceof Error ? error.message : String(error)}`; });
+});
 let resizeFrame: number | null = null;
 new ResizeObserver(entries => {
   if (resizeFrame !== null) cancelAnimationFrame(resizeFrame);
@@ -588,7 +642,8 @@ new ResizeObserver(entries => {
 view.mount(viewHost);
 render();
 void xrController.detect().then(updateXrControls);
-actionQueue = actionQueue.then(restoreLatestAutosave);
+welcome.showModal();
+actionQueue = actionQueue.then(prepareWelcome);
 
 function updateXrControls(status: ReturnType<XrSessionController['status']>): void {
   if (status === 'active') { movementStick.disabled = true; stopMovementStick(); }

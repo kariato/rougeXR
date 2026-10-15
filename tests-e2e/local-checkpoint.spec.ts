@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 const key = 'rougexr.named-saves.v1';
 
 test('stores JSON and restores the exact checkpoint after playing, a new game, and reload', async ({ page }) => {
-  await page.goto('/'); await page.locator('#tools-toggle').click();
+  await page.goto('/'); await page.locator('#welcome-new').click(); await page.locator('#tools-toggle').click();
   await page.locator('#seed').fill('5150'); await page.locator('#new-game').click();
   await page.locator('#rest').click(); await expect(page.locator('#state-summary')).toContainText('Revision 1');
   await page.locator('#save-local').click(); await expect(page.locator('#hud-message')).toContainText('Game saved in this browser');
@@ -11,7 +11,7 @@ test('stores JSON and restores the exact checkpoint after playing, a new game, a
   expect(JSON.parse(JSON.parse(saved!)[0].json).format).toBe('rougexr-save');
   await page.locator('#rest').click(); await expect(page.locator('#state-summary')).toContainText('Revision 2');
   await page.locator('#new-game').click();
-  await page.reload(); await page.locator('#tools-toggle').click();
+  await page.reload(); await page.locator('#welcome-new').click(); await page.locator('#tools-toggle').click();
   await page.locator('#restore-local').click();
   await expect(page.locator('#hud-message')).toContainText('Restarted from your saved game');
   await expect(page.locator('#state-summary')).toContainText('Seed 5150 · Tick 1 · Revision 1');
@@ -23,7 +23,7 @@ test('stores JSON and restores the exact checkpoint after playing, a new game, a
 });
 
 test('handles missing or invalid checkpoints without replacing the current game', async ({ page }) => {
-  await page.goto('/'); await page.locator('#tools-toggle').click(); await page.locator('#new-game').click();
+  await page.goto('/'); await page.locator('#welcome-new').click(); await page.locator('#tools-toggle').click(); await page.locator('#new-game').click();
   const before = await page.locator('#state-summary').textContent();
   await page.locator('#restore-local').click(); await expect(page.locator('#hud-message')).toContainText('No saved checkpoint');
   await page.evaluate(() => localStorage.setItem('rougexr.manual-save.v1', '{bad json'));
@@ -39,14 +39,14 @@ test('reports unavailable storage and keeps gameplay working', async ({ page }) 
       return original.call(this, key, value);
     };
   });
-  await page.goto('/'); await page.locator('#tools-toggle').click(); await page.locator('#new-game').click();
+  await page.goto('/'); await page.locator('#welcome-new').click(); await page.locator('#tools-toggle').click(); await page.locator('#new-game').click();
   await page.locator('#save-local').click(); await expect(page.locator('#hud-message')).toContainText('Could not save game');
   await page.locator('#rest').click(); await expect(page.locator('#state-summary')).toContainText('Revision 1');
 });
 
 
 test('keeps named saves separate and updates a matching name', async ({ page }) => {
-  await page.goto('/'); await page.locator('#tools-toggle').click(); await page.locator('#new-game').click();
+  await page.goto('/'); await page.locator('#welcome-new').click(); await page.locator('#tools-toggle').click(); await page.locator('#new-game').click();
   await page.locator('#save-name').fill('Before the stairs'); await page.locator('#save-local').click();
   await expect(page.locator('#hud-message')).toContainText('Before the stairs');
   await page.locator('#rest').click(); await expect(page.locator('#state-summary')).toContainText('Revision 1');

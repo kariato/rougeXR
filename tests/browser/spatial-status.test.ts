@@ -9,6 +9,6 @@ it('reports observed player status, readable equipment, and active conditions', 
   expect(observation.status.conditions).toEqual(['Blind', 'Confused']);
   const text = spatialStatusLines(observation).join(' ');
   expect(text).toContain('HP 12/12'); expect(text).toContain('Level 1');
-  expect(text).toContain('mace'); expect(text).not.toContain('weapon.');
+  expect(text).toContain('Mace'); expect(text).not.toContain('weapon.');
   expect(text).toContain('Blind · Confused');
 });

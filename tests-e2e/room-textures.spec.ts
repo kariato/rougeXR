@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 test('produces distinct deterministic room-family textures in a browser', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/'); await page.locator('#welcome-new').click();
   const result = await page.evaluate(async () => {
     const { RoomMaterialCatalog, surfaceVariant } = await import('/src/presentation/three/room-materials.ts');
     const catalog = new RoomMaterialCatalog();
@@ -29,7 +29,7 @@ test('produces distinct deterministic room-family textures in a browser', async 
 
 test('renders a continuous cobblestone floor in first person', async ({ page }) => {
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
-  await page.goto('/'); await page.locator('#tools-toggle').click();
+  await page.goto('/'); await page.locator('#welcome-new').click(); await page.locator('#tools-toggle').click();
   const save = await page.evaluate(async () => {
     const { createTwoRoomFixture } = await import('/src/debug/fixtures.ts');
     const { GameSession } = await import('/src/engine/session.ts');

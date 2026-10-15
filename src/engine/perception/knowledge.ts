@@ -3,7 +3,7 @@ import type { CellAppearance, PlayerObservation, Visibility } from '../model/obs
 import type { ItemState, Position, TileState, WorldState } from '../model/state';
 import { IS_CONFUSED, IS_HELD, IS_HASTED, IS_LEVITATING, CAN_DETECT_MONSTERS, CAN_SEE_INVISIBLE, IS_BLIND, IS_HALLUCINATING, IS_INVISIBLE } from '../rules/flags';
 import { canStepTerrain } from '../rules/movement';
-import { observedItemLabel } from '../identification';
+import { observedDiscoveries, observedItemLabel } from '../identification';
 
 const GLYPHS: Record<TileState['terrain'], string> = {
   void: ' ', floor: '.', wallH: '─', wallV: '│', door: '+', passage: '#',
@@ -136,7 +136,12 @@ export function observe(state: WorldState): PlayerObservation {
     return sum + (ring?.kind === 'item' && ring.category === 'ring' && ring.definitionId === 'ring.add-strength' ? ring.magnitude : 0);
   }, 0);
   const maximumStrength = Math.max(3, Math.min(31, state.player.maximumStrength + strengthModifier));
-  return { revision: state.timing.revision, width: state.level.width, height: state.level.height,
+  return { discoveries: observedDiscoveries(state),
+    ...(state.timing.status === 'playing' ? {} : { ending: {
+      outcome: state.timing.status, cause: state.timing.status === 'won' ? 'You escaped with the Amulet of Yendor!' : state.timing.deathCause ?? 'An unknown dungeon danger',
+      depth: state.sourceState.maximumDepth, gold: state.player.gold, experience: state.player.stats.experience,
+      turns: state.timing.tick, score: state.player.gold + state.player.stats.experience + (state.timing.status === 'won' ? 1000 : 0),
+    } }), revision: state.timing.revision, width: state.level.width, height: state.level.height,
     playerAt: { ...state.player.at }, cells, entities, decorations,
     status: { hp: state.player.stats.hp, maxHp: state.player.stats.maxHp, gold: state.player.gold, depth: state.level.depth,
       hungerStage: state.timing.hungerStage, strength: state.player.stats.strength, maximumStrength, conditions: [

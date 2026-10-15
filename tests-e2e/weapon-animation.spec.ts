@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 test('equipped weapon swings on hits and misses and returns to ready', async ({ page }) => {
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
-  await page.goto('/');
+  await page.goto('/'); await page.locator('#welcome-new').click();
   const poses = await page.evaluate(async () => {
     const { ThreeGameView } = await import('/src/presentation/three/three-view.ts');
     const { createNewGame } = await import('/src/engine/new-game.ts');

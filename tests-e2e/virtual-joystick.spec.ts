@@ -4,7 +4,7 @@ test.use({ hasTouch: true, viewport: { width: 390, height: 844 } });
 
 test('diagonal stick drags choose one axis and stop on release', async ({ page, browserName }) => {
   test.skip(browserName === 'firefox', 'Playwright Firefox mouse emulation does not emit pointer events with hasTouch enabled.');
-  await page.goto('/');
+  await page.goto('/'); await page.locator('#welcome-new').click();
   await page.locator('#tools-toggle').click();
   await page.locator('#world-mode').selectOption('rooms');
   await page.locator('#new-game').dispatchEvent('click');
@@ -38,7 +38,7 @@ test('diagonal stick drags choose one axis and stop on release', async ({ page, 
 });
 
 test('touch Attack button hits only a monster directly ahead', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/'); await page.locator('#welcome-new').click();
   await page.locator('#tools-toggle').click();
   await page.locator('#world-mode').selectOption('kestrel');
   await page.locator('#new-game').dispatchEvent('click');

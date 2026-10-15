@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 test('arrow keys turn and move forward or backward relative to POV', async ({ page }) => {
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
-  await page.goto('/'); await page.locator('#tools-toggle').click();
+  await page.goto('/'); await page.locator('#welcome-new').click(); await page.locator('#tools-toggle').click();
   await page.locator('#world-mode').selectOption('rooms'); await page.locator('#new-game').dispatchEvent('click');
   await page.locator('#turn-angle').selectOption('90'); await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
   await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-player-at', '5,5');

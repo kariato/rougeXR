@@ -12,7 +12,7 @@ export function runStomach(state: WorldState, emit: (event: RawEventInput) => vo
   const timing = state.timing; const oldStage = timing.hungerStage;
   if (timing.foodLeft <= 0) {
     if (timing.foodLeft-- < -STARVE_TIME) {
-      state.player.stats.hp = 0; timing.status = 'dead';
+      state.player.stats.hp = 0; timing.status = 'dead'; timing.deathCause = 'starvation';
       emit({ type: 'actorDefeated', actorId: 'player', byActorId: 'starvation' });
       emit({ type: 'sourceMessage', text: 'You died of starvation.' }); return;
     }

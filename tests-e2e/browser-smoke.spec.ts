@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 test('starts without WebXR and protects focused controls from gameplay input', async ({ page }) => {
   const errors: Error[] = []; page.on('pageerror', error => errors.push(error));
   await page.addInitScript(() => Object.defineProperty(Navigator.prototype, 'xr', { configurable: true, get: () => undefined }));
-  await page.goto('/');
+  await page.goto('/'); await page.locator('#welcome-new').click();
   await page.locator('#tools-toggle').click();
   await expect(page.locator('#dungeon-3d')).toBeVisible();
   expect(await page.evaluate(() => (navigator as Navigator & { xr?: unknown }).xr === undefined)).toBe(true);
@@ -21,10 +21,10 @@ test('starts without WebXR and protects focused controls from gameplay input', a
 
 test('supports generated inventory plus manual save, load, and report export', async ({ page }) => {
   test.setTimeout(90_000);
-  await page.goto('/');
+  await page.goto('/'); await page.locator('#welcome-new').click();
   await page.locator('#tools-toggle').click();
   await page.locator('#seed').fill('5150'); await page.locator('#new-game').click();
-  await expect(page.locator('#inventory')).toContainText('food.ration');
+  await expect(page.locator('#inventory')).toContainText('Food ration');
 
   const saveDownload = page.waitForEvent('download'); await page.locator('#save').click();
   const save = await saveDownload; const savePath = await save.path(); expect(savePath).not.toBeNull();
@@ -32,7 +32,7 @@ test('supports generated inventory plus manual save, load, and report export', a
   await expect(page.locator('#state-summary')).toContainText('Revision 1');
   await page.locator('#load-file').setInputFiles(savePath!);
   await expect(page.locator('#save-status')).toContainText('Loaded revision 0', { timeout: 20_000 });
-  await expect(page.locator('#inventory')).toContainText('food.ration');
+  await expect(page.locator('#inventory')).toContainText('Food ration');
 
   const reportDownload = page.waitForEvent('download'); await page.locator('#export-report').click();
   const report = await reportDownload; const reportPath = await report.path(); expect(reportPath).not.toBeNull();
@@ -41,7 +41,7 @@ test('supports generated inventory plus manual save, load, and report export', a
 });
 
 test('keeps CSS-pixel hit testing correct after resize at devicePixelRatio 2', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/'); await page.locator('#welcome-new').click();
   await page.locator('#tools-toggle').click();
   await page.locator('#view-mode').selectOption('2d');
   await page.locator('#world-mode').selectOption('rooms'); await page.locator('#new-game').click();
@@ -67,7 +67,7 @@ test('keeps CSS-pixel hit testing correct after resize at devicePixelRatio 2', a
 
 test('switches between first-person and map views without changing the game session', async ({ page }) => {
   test.setTimeout(60_000);
-  await page.goto('/');
+  await page.goto('/'); await page.locator('#welcome-new').click();
   await page.locator('#tools-toggle').click();
   await page.locator('#seed').fill('9090'); await page.locator('#new-game').click();
   await page.locator('h1').click();

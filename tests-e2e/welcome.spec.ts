@@ -1,0 +1,46 @@
+import { expect, test } from '@playwright/test';
+test('launches at a welcome screen and starts only after choosing New Game', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await expect(page.locator('#welcome-load')).toBeDisabled();
+  await expect(page.locator('#welcome-status')).toContainText('Your first adventure awaits');
+  await page.keyboard.press('Escape'); await page.keyboard.press('w');
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await expect(page.locator('#state-summary')).toContainText('Revision 0');
+  await page.locator('#welcome').screenshot({ path: `test-results/welcome-${test.info().project.name}.png` });
+  await page.locator('#welcome-new').click();
+  await expect(page.getByRole('dialog')).toBeHidden();
+  await page.keyboard.press('.');
+  await expect(page.locator('#state-summary')).toContainText('Revision 1');
+});
+test('offers named games and autosave without silently restoring either', async ({ page }) => {
+  await page.goto('/'); await page.locator('#welcome-new').click();
+  await page.locator('#rest').click(); await expect(page.locator('#state-summary')).toContainText('Revision 1');
+  await page.locator('#save-name').fill('The old adventure'); await page.locator('#save-local').click();
+  await expect(page.locator('#saved-games')).toContainText('The old adventure');
+  await page.locator('#rest').click(); await expect(page.locator('#state-summary')).toContainText('Revision 2');
+  await page.reload();
+  await expect(page.locator('#welcome-saves')).toContainText('The old adventure');
+  await expect(page.locator('#welcome-saves')).toContainText('Latest autosave');
+  await expect(page.locator('#state-summary')).toContainText('Revision 0');
+  await page.locator('#welcome-saves').selectOption({ label: 'The old adventure' });
+  await page.locator('#welcome-load').click();
+  await expect(page.getByRole('dialog')).toBeHidden();
+  await expect(page.locator('#state-summary')).toContainText('Revision 1');
+  await page.reload();
+  await expect(page.locator('#welcome-saves')).toContainText('Latest autosave');
+  await page.locator('#welcome-saves').selectOption({ label: 'Latest autosave' });
+  await page.locator('#welcome-load').click();
+  await expect(page.getByRole('dialog')).toBeHidden();
+  await expect(page.locator('#state-summary')).toContainText('Revision 2');
+});
+test('keeps welcome available when a saved game is corrupt', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('rougexr.named-saves.v1', JSON.stringify([{ name: 'Broken save', json: '{}' }])));
+  await page.goto('/');
+  await expect(page.locator('#welcome-load')).toBeEnabled();
+  await page.locator('#welcome-load').click();
+  await expect(page.locator('#welcome-status')).toContainText('invalid or incompatible');
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.locator('#welcome-new').click();
+  await expect(page.getByRole('dialog')).toBeHidden();
+});

@@ -6,7 +6,7 @@ async function click3d(page: import('@playwright/test').Page, x: number, y: numb
 }
 test('shows effect icons and selectable explanations including known cursed equipment', async ({ page }) => {
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
-  await page.goto('/'); await page.locator('#tools-toggle').click();
+  await page.goto('/'); await page.locator('#welcome-new').click(); await page.locator('#tools-toggle').click();
   const save = await page.evaluate(async () => {
     const { createNewGame } = await import('/src/engine/new-game.ts');
     const { GameSession } = await import('/src/engine/session.ts');

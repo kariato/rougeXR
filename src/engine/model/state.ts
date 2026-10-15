@@ -76,6 +76,7 @@ export interface IdentificationEntry {
 export type PendingDecision = { kind: 'callItem'; definitionId: string }
   | { kind: 'identifyItem'; categories: ItemState['category'][] };
 export interface TimingState {
+  deathCause?: string;
   revision: number; actionSequence: number; tick: number;
   status: 'playing' | 'dead' | 'won';
   noCommand: number; noMove: number; hasted: boolean;

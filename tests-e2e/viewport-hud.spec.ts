@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 test('gives ordinary desktop play a dominant viewport and observation-backed HUD', async ({ page }) => {
   await page.setViewportSize({ width: 1366, height: 768 });
-  await page.goto('/');
+  await page.goto('/'); await page.locator('#welcome-new').click();
   await expect(page.locator('#dungeon-3d')).toBeVisible();
   await expect(page.locator('#tools-panel')).toBeHidden();
   const metrics = await page.evaluate(() => {
@@ -25,7 +25,7 @@ test('gives ordinary desktop play a dominant viewport and observation-backed HUD
 
 test('keeps tools reachable and phone actions usable', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/');
+  await page.goto('/'); await page.locator('#welcome-new').click();
   await expect(page.locator('#tools-panel')).toBeHidden();
   const width = await page.evaluate(() => document.documentElement.scrollWidth);
   expect(width).toBeLessThanOrEqual(390);

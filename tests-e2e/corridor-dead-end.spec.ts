@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 test('marks a disclosed corridor end with distinct masonry', async ({ page }) => {
-  await page.goto('/'); await page.locator('#tools-toggle').click();
+  await page.goto('/'); await page.locator('#welcome-new').click(); await page.locator('#tools-toggle').click();
   const save = await page.evaluate(async () => {
     const { createTwoRoomFixture } = await import('/src/debug/fixtures.ts');
     const { GameSession } = await import('/src/engine/session.ts');

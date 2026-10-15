@@ -68,7 +68,7 @@ function mysteryTrap(state: WorldState, emit: (event: RawEventInput) => void): v
 function hurt(state: WorldState, damage: number, cause: string, emit: (event: RawEventInput) => void): void {
   const before = state.player.stats.hp; state.player.stats.hp = Math.max(0, before - damage);
   emit({ type: 'hpChanged', actorId: 'player', from: before, to: state.player.stats.hp });
-  if (state.player.stats.hp === 0) { state.timing.status = 'dead'; emit({ type: 'actorDefeated', actorId: 'player', byActorId: cause }); message(emit, `A ${cause} killed you.`); }
+  if (state.player.stats.hp === 0) { state.timing.status = 'dead'; state.timing.deathCause = cause; emit({ type: 'actorDefeated', actorId: 'player', byActorId: cause }); message(emit, `A ${cause} killed you.`); }
 }
 function swing(state: WorldState, level: number, armor: number, bonus: number): boolean { return rnd(state.rng, 20) + bonus >= (20 - level) - armor; }
 function spread(state: WorldState, value: number): number { return value - Math.trunc(value / 20) + rnd(state.rng, Math.trunc(value / 10)); }

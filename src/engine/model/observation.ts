@@ -24,6 +24,8 @@ export interface ObservedEntity {
 }
 
 export interface PlayerObservation {
+  ending?: { outcome: 'dead' | 'won'; cause: string; depth: number; gold: number; experience: number; turns: number; score: number };
+  discoveries?: Array<{ category: string; name: string; appearance: string }>;
   revision: number;
   width: number;
   height: number;

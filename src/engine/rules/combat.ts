@@ -75,6 +75,7 @@ export function attackPlayer(state: WorldState, monster: MonsterState, emit: Emi
   else if (hit && state.player.stats.hp > 0 && (monster.flags & IS_CANCELLED) === 0) applySpecialAttack(state, monster, emit);
   if (state.player.stats.hp === 0) {
     state.timing.status = 'dead';
+    state.timing.deathCause ??= monsterName(monster);
     emit({ type: 'actorDefeated', actorId: 'player', byActorId: monster.id });
     emit({ type: 'sourceMessage', text: `The ${monsterName(monster)} defeated you.` });
   }
@@ -182,7 +183,7 @@ function damagePlayer(state: WorldState, amount: number, cause: string, emit: Em
   if (state.player.stats.hp === 0) killPlayer(state, cause, emit);
 }
 
-function killPlayer(state: WorldState, _cause: string, _emit: EmitRaw): void { state.player.stats.hp = 0; state.timing.status = 'dead'; }
+function killPlayer(state: WorldState, cause: string, _emit: EmitRaw): void { state.player.stats.hp = 0; state.timing.status = 'dead'; state.timing.deathCause = cause; }
 function saveThrow(state: WorldState, which: number): boolean { let adjusted = which;
   if (which === 3) for (const slot of ['leftRing', 'rightRing'] as const) { const id = state.player.equipment[slot]; const ring = id ? state.entities[id] : null;
     if (ring?.kind === 'item' && ring.category === 'ring' && ring.definitionId === 'ring.protection') adjusted -= ring.magnitude; }

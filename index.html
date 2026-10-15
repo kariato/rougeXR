@@ -11,6 +11,14 @@
       main { display: grid; grid-template-rows: auto minmax(0, 1fr); height: 100dvh; min-height: 30rem; overflow: hidden; }
       header { display: flex; align-items: center; gap: .7rem; padding: .4rem .75rem; border-bottom: 1px solid #334155; background: #0f172a; }
       h1 { margin: 0; font-size: 1.1rem; }
+      #welcome { width: min(34rem, calc(100% - 2rem)); max-height: calc(100dvh - 2rem); padding: clamp(1.5rem, 5vw, 3rem); border: 1px solid #ae8d4f; border-radius: 1rem; background: radial-gradient(ellipse at top, #293645, #0c1420 75%); color: #e5edf5; box-shadow: 0 2rem 6rem #000b; }
+      #welcome::backdrop { background: #03070ef2; }
+      #welcome h2 { font-size: clamp(2.5rem, 10vw, 4rem); margin: .25rem 0; color: #f5d68d; }
+      #welcome p { line-height: 1.6; color: #b8c9da; }
+      #welcome label { display: block; margin-top: 1.5rem; margin-bottom: .5rem; }
+      #welcome select, #welcome button { width: 100%; min-height: 3rem; margin-bottom: .75rem; font-size: 1rem; }
+      #welcome-new { background: #6e5226; border-color: #c7a35d; font-weight: 700; }
+      #welcome-status { min-height: 3rem; font-size: .9rem; }
       .layout { position: relative; display: grid; grid-template-rows: minmax(0, 1fr); min-height: 0; overflow: hidden; }
       .map { position: relative; min-width: 0; min-height: 0; overflow: hidden; background: #070b12; }
       canvas { display: block; width: 100%; height: 100%; border: 0; background: #070b12; }
@@ -35,6 +43,11 @@
       .message { position: absolute; z-index: 2; left: 50%; bottom: 4.2rem; transform: translateX(-50%); max-width: min(36rem, calc(100% - 2rem)); padding: .45rem .7rem; border-radius: .4rem; text-align: center; color: white; background: #07111de8; pointer-events: none; }
       .message:empty { display: none; }
       .context-prompt { position: absolute; z-index: 2; left: 50%; bottom: 7rem; transform: translateX(-50%); padding: .3rem .6rem; border-radius: .35rem; color: white; background: #07111de8; pointer-events: none; }
+      .map[data-spatial-open="true"] .crosshair { display: none; }
+      .ending-panel { position: absolute; z-index: 8; inset: 15% 10%; padding: 1.5rem; text-align: center; background: #10151ff5; border: 2px solid #ccd9e8; border-radius: .8rem; overflow: auto; }
+      .ending-panel[hidden] { display: none; }
+      .ending-panel h2 { font-size: clamp(2rem, 7vw, 4rem); margin: .2rem; }
+      .ending-panel[data-outcome="won"] { border-color: #ffd66b; background: radial-gradient(ellipse at top, #654a16, #10151ff5 80%); color: #ffe6a0; }
       .context-prompt:empty { display: none; }
       .actions { position: absolute; z-index: 3; left: 50%; bottom: max(.75rem, env(safe-area-inset-bottom)); transform: translateX(-50%); display: flex; gap: .35rem; padding: .3rem; border-radius: .5rem; background: #07111de8; }
       .actions button { min-height: 2.75rem; }
@@ -58,9 +71,18 @@
     </style>
   </head>
   <body>
+    <dialog id="welcome" aria-labelledby="welcome-title" aria-describedby="welcome-intro">
+      <p>A dungeon adventure for desktop and VR</p><h2 id="welcome-title">rougeXR</h2>
+      <p id="welcome-intro">Find the Amulet of Yendor, survive the depths, and return to the surface.</p>
+      <button id="welcome-new" type="button" autofocus>Start New Game</button>
+      <label for="welcome-saves">Continue an old adventure</label>
+      <select id="welcome-saves" aria-label="Welcome saved games" disabled><option>Checking saved games…</option></select>
+      <button id="welcome-load" type="button" disabled>Load Saved Game</button>
+      <p id="welcome-status" role="status">Checking this browser for saved adventures…</p>
+    </dialog>
     <main>
       <header class="shell-toolbar">
-        <h1>rougeXR</h1>
+        <h1 tabindex="-1">rougeXR</h1>
         <select id="view-mode" aria-label="View mode"><option value="3d">First person</option><option value="2d">Map</option></select>
         <select id="camera-mode" aria-label="Camera mode"><option value="firstPerson">First person</option><option value="orbit">Orbit</option><option value="tabletop">Tabletop</option></select>
         <button id="new-game" type="button">New Game</button>
@@ -75,6 +97,7 @@
       <div class="layout">
         <section class="map" id="view-host" aria-label="Dungeon view">
           <canvas id="dungeon" aria-label="Dungeon map view" hidden></canvas>
+          <section id="ending-panel" class="ending-panel" aria-label="Adventure results" aria-live="polite" hidden><h2 id="ending-title"></h2><p id="ending-cause"></p><p id="ending-stats"></p><p id="ending-score"></p><button id="ending-restart" type="button">Restart</button><select id="ending-saves" aria-label="Load ending checkpoint"></select><button id="ending-load" type="button">Load Save</button></section>
           <div class="hud" aria-label="Player status"><span>HP <strong id="hud-hp"></strong></span><span>Depth <strong id="hud-depth"></strong></span><span>Gold <strong id="hud-gold"></strong></span><span id="hud-hunger"></span><span id="hud-weapon"></span></div>
           <span class="crosshair" id="crosshair" aria-hidden="true"></span>
           <div class="context-prompt" id="context-prompt"></div>
@@ -86,6 +109,7 @@
         <aside id="tools-panel" aria-label="Game tools" hidden>
           <section><h2>Audio</h2><label>Volume <input id="sound-volume" type="range" min="0" max="100" value="35" aria-label="Sound volume"></label></section>
           <section><h2>Setup</h2><div class="tools-controls"><select id="world-mode" aria-label="World type"><option value="generated">Generated</option><option value="kestrel">Kestrel fixture</option><option value="rooms">Two-room fixture</option></select><input id="seed" type="number" min="0" max="4294967295" value="12345" aria-label="Seed"><label for="turn-angle">POV turn</label><select id="turn-angle"><option value="90" selected>90° (square turns)</option></select></div></section>
+          <section><h2>Discoveries</h2><div id="discoveries"></div></section>
           <section><h2>Inventory</h2><div id="inventory"></div></section>
           <section><h2>Save and diagnose</h2><div class="tools-controls"><button id="save" type="button">Save JSON</button><button id="load" type="button">Load JSON / Replay</button><button id="export-report" type="button">Export bug report</button><input id="load-file" type="file" accept="application/json,.json" hidden></div><p id="save-status">Ready for manual save.</p><p id="xr-status" aria-live="polite">Checking XR…</p></section>
           <section><h2>Replay</h2><div class="tools-controls"><button id="replay-restart" type="button" disabled>Restart</button><button id="replay-step" type="button" disabled>Step</button><button id="replay-play" type="button" disabled>Play</button><button id="replay-pause" type="button" disabled>Pause</button><select id="replay-speed" aria-label="Replay speed" disabled><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option></select></div><p id="replay-status">Live input enabled.</p><pre id="replay-details">No divergence.</pre></section>

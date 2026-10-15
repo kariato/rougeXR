@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 test('renders all revealed trap types and keeps a hidden trap absent', async ({ page }) => {
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
-  await page.goto('/'); await page.locator('#tools-toggle').click();
+  await page.goto('/'); await page.locator('#welcome-new').click(); await page.locator('#tools-toggle').click();
   const save = await page.evaluate(async () => {
     const { createTwoRoomFixture } = await import('/src/debug/fixtures.ts');
     const { GameSession } = await import('/src/engine/session.ts');
@@ -37,7 +37,7 @@ test('renders all revealed trap types and keeps a hidden trap absent', async ({ 
 
 for (const feature of ['door', 'passage', 'trap'] as const) test(`search visibly discovers a secret ${feature}`, async ({ page }) => {
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
-  await page.goto('/'); await page.locator('#tools-toggle').click();
+  await page.goto('/'); await page.locator('#welcome-new').click(); await page.locator('#tools-toggle').click();
   const save = await page.evaluate(async feature => {
     const { createTwoRoomFixture } = await import('/src/debug/fixtures.ts');
     const { createRandom } = await import('/src/engine/random.ts');

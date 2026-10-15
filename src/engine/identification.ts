@@ -92,7 +92,7 @@ export function initializeStickIdentification(rng: RandomState): IdentificationE
 }
 
 export function observedItemLabel(state: WorldState, item: ItemState): string {
-  if (item.category !== 'potion' && item.category !== 'scroll' && item.category !== 'stick' && item.category !== 'ring') return item.label ?? item.definitionId;
+  if (item.category !== 'potion' && item.category !== 'scroll' && item.category !== 'stick' && item.category !== 'ring') return item.label && item.label !== item.definitionId ? item.label : readableItemName(item.definitionId);
   const entry = state.identification.find(candidate => candidate.definitionId === item.definitionId);
   if (!entry) throw new Error(`Missing identification entry for ${item.definitionId}`);
   const definitions = item.category === 'potion' ? POTION_DEFINITIONS : item.category === 'scroll' ? SCROLL_DEFINITIONS : item.category==='stick'?STICK_DEFINITIONS:RING_DEFINITIONS;
@@ -114,4 +114,22 @@ export function observedItemLabel(state: WorldState, item: ItemState): string {
   if (entry.known) return `scroll of ${sourceName} (titled '${entry.appearanceId}')`;
   if (entry.called !== null) return `scroll called ${entry.called} (titled '${entry.appearanceId}')`;
   return `scroll titled '${entry.appearanceId}'`;
+}
+
+/** Public names only; randomized magic identities must still pass through observedItemLabel. */
+export function readableItemName(id: string): string {
+  const special: Record<string, string> = { 'amulet.yendor': 'Amulet of Yendor', 'food.ration': 'Food ration', 'armor.chain': 'Chain mail', 'gold': 'Gold' };
+  const name = special[id] ?? id.replace(/^[^.]+\./, '').replaceAll('-', ' ');
+  return name.charAt(0).toUpperCase() + name.slice(1);
+}
+
+export function observedDiscoveries(state: WorldState): Array<{ category: string; name: string; appearance: string }> {
+  const groups = [POTION_DEFINITIONS, SCROLL_DEFINITIONS, RING_DEFINITIONS, STICK_DEFINITIONS];
+  return groups.flatMap(definitions => definitions.flatMap(([id, name]) => {
+    const entry = state.identification.find(candidate => candidate.definitionId === id);
+    if (!entry?.known) return [];
+    const category = id.split('.')[0]!;
+    const prefix = category === 'stick' ? (entry.appearanceId.endsWith('staff') ? 'Staff' : 'Wand') : category.charAt(0).toUpperCase() + category.slice(1);
+    return [{ category, name: `${prefix} of ${name}`, appearance: entry.appearanceId }];
+  }));
 }
