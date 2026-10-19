@@ -1,3 +1,5 @@
+import { gameKey } from './ui-helpers';
+import { desktopClick, selectView, toggleTools } from './ui-helpers';
 import { expect, test } from '@playwright/test';
 
 test('loads a room-facing GLB doorway and keeps it open after crossing', async ({ page }) => {
@@ -7,8 +9,8 @@ test('loads a room-facing GLB doorway and keeps it open after crossing', async (
   const rogueResponses: number[] = [];
   page.on('response', response => { if (response.url().includes('/assets/props/door.glb')) assetResponses.push(response.status()); });
   page.on('response', response => { if (response.url().includes('/assets/creatures/rogue.glb')) rogueResponses.push(response.status()); });
-  await page.goto('/'); await page.locator('#welcome-new').click(); await page.locator('#tools-toggle').click();
-  await page.locator('#world-mode').selectOption('rooms'); await page.locator('#new-game').click();
+  await page.goto('/'); await page.locator('#welcome-new').click(); await toggleTools(page);
+  await page.locator('#world-mode').selectOption('rooms'); await desktopClick(page, '#new-game');
   await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-visible-doors', '1');
   await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-open-doors', '0');
   await page.locator('h1').click();
@@ -20,7 +22,7 @@ test('loads a room-facing GLB doorway and keeps it open after crossing', async (
   await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-visible-doors', '2');
   // Entering the doorway discloses and renders the connected corridor at once.
   await expect.poll(async () => Number(await page.locator('#dungeon-3d').getAttribute('data-corridor-walls'))).toBeGreaterThan(2);
-  await page.locator('#turn-angle').selectOption('90'); await page.locator('#turn-right').click();
+  await page.locator('#turn-angle').selectOption('90'); await gameKey(page, ']');
   await page.waitForTimeout(250);
   await page.locator('#dungeon-3d').screenshot({ path: 'test-results/corridor-first-entry.png' });
   await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-open-doors', '1');
@@ -28,7 +30,7 @@ test('loads a room-facing GLB doorway and keeps it open after crossing', async (
   await page.waitForTimeout(900);
   await expect.poll(async () => Number(await page.locator('#dungeon-3d').getAttribute('data-door-swing'))).toBeLessThan(-1);
   await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-player-model', 'rogue');
-  await page.locator('#view-mode').selectOption('2d'); await page.locator('#view-mode').selectOption('3d');
+  await selectView(page, 'map'); await selectView(page, 'firstPerson');
   await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-open-doors', '1');
   expect(assetResponses).toContain(200);
   expect(rogueResponses).toContain(200);

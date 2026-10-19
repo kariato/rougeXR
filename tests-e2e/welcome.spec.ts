@@ -1,3 +1,4 @@
+import { desktopClick, desktopFill, gameKey } from './ui-helpers';
 import { expect, test } from '@playwright/test';
 test('launches at a welcome screen and starts only after choosing New Game', async ({ page }) => {
   await page.goto('/');
@@ -15,10 +16,10 @@ test('launches at a welcome screen and starts only after choosing New Game', asy
 });
 test('offers named games and autosave without silently restoring either', async ({ page }) => {
   await page.goto('/'); await page.locator('#welcome-new').click();
-  await page.locator('#rest').click(); await expect(page.locator('#state-summary')).toContainText('Revision 1');
-  await page.locator('#save-name').fill('The old adventure'); await page.locator('#save-local').click();
+  await gameKey(page, '.'); await expect(page.locator('#state-summary')).toContainText('Revision 1');
+  await desktopFill(page, '#save-name', 'The old adventure'); await desktopClick(page, '#save-local');
   await expect(page.locator('#saved-games')).toContainText('The old adventure');
-  await page.locator('#rest').click(); await expect(page.locator('#state-summary')).toContainText('Revision 2');
+  await gameKey(page, '.'); await expect(page.locator('#state-summary')).toContainText('Revision 2');
   await page.reload();
   await expect(page.locator('#welcome-saves')).toContainText('The old adventure');
   await expect(page.locator('#welcome-saves')).toContainText('Latest autosave');

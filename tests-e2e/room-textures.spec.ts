@@ -1,3 +1,4 @@
+import { toggleTools } from './ui-helpers';
 import { expect, test } from '@playwright/test';
 
 test('produces distinct deterministic room-family textures in a browser', async ({ page }) => {
@@ -29,7 +30,7 @@ test('produces distinct deterministic room-family textures in a browser', async 
 
 test('renders a continuous cobblestone floor in first person', async ({ page }) => {
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
-  await page.goto('/'); await page.locator('#welcome-new').click(); await page.locator('#tools-toggle').click();
+  await page.goto('/'); await page.locator('#welcome-new').click(); await toggleTools(page);
   const save = await page.evaluate(async () => {
     const { createTwoRoomFixture } = await import('/src/debug/fixtures.ts');
     const { GameSession } = await import('/src/engine/session.ts');
@@ -40,7 +41,7 @@ test('renders a continuous cobblestone floor in first person', async ({ page }) 
   });
   await page.locator('#load-file').setInputFiles({ name: 'cobbles.json', mimeType: 'application/json', buffer: Buffer.from(save) });
   await expect(page.locator('#save-status')).toContainText('Loaded');
-  await page.locator('#tools-toggle').click();
+  await toggleTools(page);
   await page.locator('#dungeon-3d').screenshot({ path: `test-results/cobblestone-${test.info().project.name}.png` });
   expect(errors).toEqual([]);
 });

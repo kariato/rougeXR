@@ -1,3 +1,4 @@
+import { desktopClick, selectView, toggleTools } from './ui-helpers';
 import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 
@@ -5,12 +6,12 @@ test('starts without WebXR and protects focused controls from gameplay input', a
   const errors: Error[] = []; page.on('pageerror', error => errors.push(error));
   await page.addInitScript(() => Object.defineProperty(Navigator.prototype, 'xr', { configurable: true, get: () => undefined }));
   await page.goto('/'); await page.locator('#welcome-new').click();
-  await page.locator('#tools-toggle').click();
+  await toggleTools(page);
   await expect(page.locator('#dungeon-3d')).toBeVisible();
   expect(await page.evaluate(() => (navigator as Navigator & { xr?: unknown }).xr === undefined)).toBe(true);
   await expect(page.locator('#xr-toggle')).toBeDisabled();
   await expect(page.locator('#xr-status')).toContainText('Desktop mode is fully available');
-  await page.locator('#seed').fill('4242'); await page.locator('#new-game').click();
+  await page.locator('#seed').fill('4242'); await desktopClick(page, '#new-game');
   await expect(page.locator('#state-summary')).toContainText('Seed 4242 · Tick 0 · Revision 0');
   await page.locator('#seed').press('w');
   await expect(page.locator('#state-summary')).toContainText('Revision 0');
@@ -22,8 +23,8 @@ test('starts without WebXR and protects focused controls from gameplay input', a
 test('supports generated inventory plus manual save, load, and report export', async ({ page }) => {
   test.setTimeout(90_000);
   await page.goto('/'); await page.locator('#welcome-new').click();
-  await page.locator('#tools-toggle').click();
-  await page.locator('#seed').fill('5150'); await page.locator('#new-game').click();
+  await toggleTools(page);
+  await page.locator('#seed').fill('5150'); await desktopClick(page, '#new-game');
   await expect(page.locator('#inventory')).toContainText('Food ration');
 
   const saveDownload = page.waitForEvent('download'); await page.locator('#save').click();
@@ -42,9 +43,9 @@ test('supports generated inventory plus manual save, load, and report export', a
 
 test('keeps CSS-pixel hit testing correct after resize at devicePixelRatio 2', async ({ page }) => {
   await page.goto('/'); await page.locator('#welcome-new').click();
-  await page.locator('#tools-toggle').click();
-  await page.locator('#view-mode').selectOption('2d');
-  await page.locator('#world-mode').selectOption('rooms'); await page.locator('#new-game').click();
+  await toggleTools(page);
+  await selectView(page, 'map');
+  await page.locator('#world-mode').selectOption('rooms'); await desktopClick(page, '#new-game');
   expect(await page.evaluate(() => devicePixelRatio)).toBe(2);
   for (const viewport of [{ width: 1280, height: 720 }, { width: 1000, height: 640 }]) {
     await page.setViewportSize(viewport);
@@ -68,22 +69,22 @@ test('keeps CSS-pixel hit testing correct after resize at devicePixelRatio 2', a
 test('switches between first-person and map views without changing the game session', async ({ page }) => {
   test.setTimeout(60_000);
   await page.goto('/'); await page.locator('#welcome-new').click();
-  await page.locator('#tools-toggle').click();
-  await page.locator('#seed').fill('9090'); await page.locator('#new-game').click();
+  await toggleTools(page);
+  await page.locator('#seed').fill('9090'); await desktopClick(page, '#new-game');
   await page.locator('h1').click();
   await page.keyboard.press('.');
   await expect(page.locator('#state-summary')).toContainText('Seed 9090 · Tick 1 · Revision 1');
-  await page.locator('#view-mode').selectOption('2d');
+  await selectView(page, 'map');
   await expect(page.locator('#dungeon')).toBeVisible();
   await expect(page.locator('#state-summary')).toContainText('Seed 9090 · Tick 1 · Revision 1');
-  await page.locator('#view-mode').selectOption('3d');
+  await selectView(page, 'firstPerson');
   await expect(page.locator('#dungeon-3d')).toBeVisible();
   await expect(page.locator('#state-summary')).toContainText('Seed 9090 · Tick 1 · Revision 1');
-  await page.locator('#camera-mode').selectOption('orbit');
+  await selectView(page, 'orbit');
   const box = await page.locator('#dungeon-3d').boundingBox(); expect(box).not.toBeNull();
   await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
   await page.mouse.down(); await page.mouse.move(box!.x + box!.width / 2 + 80, box!.y + box!.height / 2 + 30); await page.mouse.up();
   await page.locator('#dungeon-3d').hover(); await page.mouse.wheel(0, 120);
-  await page.locator('#camera-mode').selectOption('tabletop');
+  await selectView(page, 'tabletop');
   await expect(page.locator('#state-summary')).toContainText('Seed 9090 · Tick 1 · Revision 1');
 });

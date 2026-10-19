@@ -1,3 +1,4 @@
+import { desktopClick, gameKey, toggleTools } from './ui-helpers';
 import { expect, test } from '@playwright/test';
 
 test('keeps the chest closed until clicked and open after a scene refresh', async ({ page }) => {
@@ -8,9 +9,9 @@ test('keeps the chest closed until clicked and open after a scene refresh', asyn
   });
   page.on('pageerror', error => errors.push(error));
   await page.goto('/'); await page.locator('#welcome-new').click();
-  await page.locator('#tools-toggle').click();
+  await toggleTools(page);
   await page.locator('#seed').fill('12345');
-  await page.locator('#new-game').click();
+  await desktopClick(page, '#new-game');
   await expect(page.locator('#dungeon-3d')).toBeVisible();
   await expect.poll(() => loaded.has('/assets/props/crate.glb'), { timeout: 20_000 }).toBe(true);
   await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-chest-animation', 'closed');
@@ -22,7 +23,7 @@ test('keeps the chest closed until clicked and open after a scene refresh', asyn
   await expect.poll(async () => Number(await page.locator('#hud-gold').textContent())).toBeGreaterThan(goldBefore);
   await expect(page.locator('#messages')).toContainText('gold pieces. Added to your gold.');
   await expect(page.locator('#state-summary')).toContainText('Revision 1');
-  await page.locator('#rest').click();
+  await gameKey(page, '.');
   await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-open-chests', '1');
   await expect.poll(() => loaded.has('/assets/props/torch.glb'), { timeout: 20_000 }).toBe(true);
   expect(errors).toEqual([]);

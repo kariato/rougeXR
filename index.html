@@ -3,12 +3,12 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>rougeXR — Desktop 3D</title>
+    <title>rougeXR — VR dungeon adventure</title>
     <style>
       :root { color-scheme: dark; font-family: system-ui, sans-serif; background: #070b12; color: #dbeafe; }
       * { box-sizing: border-box; }
       body { margin: 0; min-height: 100dvh; }
-      main { display: grid; grid-template-rows: auto minmax(0, 1fr); height: 100dvh; min-height: 30rem; overflow: hidden; }
+      main { display: grid; grid-template-rows: auto minmax(0, 1fr); height: 100dvh; min-height: 0; overflow: hidden; }
       header { display: flex; align-items: center; gap: .7rem; padding: .4rem .75rem; border-bottom: 1px solid #334155; background: #0f172a; }
       h1 { margin: 0; font-size: 1.1rem; }
       #welcome { width: min(34rem, calc(100% - 2rem)); max-height: calc(100dvh - 2rem); padding: clamp(1.5rem, 5vw, 3rem); border: 1px solid #ae8d4f; border-radius: 1rem; background: radial-gradient(ellipse at top, #293645, #0c1420 75%); color: #e5edf5; box-shadow: 0 2rem 6rem #000b; }
@@ -67,12 +67,39 @@
       .debug-reveal .debug-badge { display: inline; }
       :focus-visible { outline: 2px solid #67e8f9; outline-offset: 2px; }
       @media (max-width: 760px) { main { min-height: 0; } header { flex-wrap: wrap; } header h1 { flex-basis: 100%; } .actions { left: .5rem; right: .5rem; transform: none; overflow-x: auto; justify-content: flex-start; } .actions button { flex: 0 0 auto; min-width: 2.75rem; } .hud { font-size: .8rem; } .message { bottom: 5rem; } }
+      /* The headset is the primary interface; the browser shell is a compact fallback. */
+      :root { color: #e5edf5; }
+      header { min-width: 0; gap: .6rem; background: #101925; border-color: #695638; }
+      header h1 { margin-right: auto; color: #f5d68d; flex-basis: auto; }
+      .desktop-menu { position: relative; }
+      summary { cursor: pointer; padding: .65rem; border-radius: .4rem; color: #d5c6a5; }
+      .desktop-options { position: absolute; z-index: 10; right: 0; top: calc(100% + .5rem); width: min(22rem, calc(100vw - 1.5rem)); max-height: calc(100dvh - 5rem); overflow: auto; padding: 1rem; display: grid; gap: .65rem; background: #101925; border: 1px solid #88724e; border-radius: .6rem; box-shadow: 0 1rem 3rem #000a; }
+      .desktop-options h2 { margin: .6rem 0 0; font-size: .8rem; color: #d5c6a5; text-transform: uppercase; letter-spacing: .1em; }
+      .desktop-options input, .desktop-options select { width: 100%; min-width: 0; }
+      .desktop-options label { display: grid; gap: .4rem; }
+      [hidden] { display: none !important; }
+      #tools-toggle { margin-left: 0; }
+      button, select, input { min-height: 2.75rem; border-color: #59616a; background: #172332; }
+      button:hover { border-color: #d8b877; background: #233044; }
+      .actions { max-width: calc(100% - 1rem); flex-wrap: wrap; justify-content: center; }
+      .actions button { padding: .4rem .65rem; }
+      .map canvas { position: absolute; inset: 0; }
+      .map[data-spatial-open="true"] .context-prompt { display: none; }
+      .map[data-view="3d"] .actions, .map[data-view="3d"] .context-prompt { display: none; }
+      .hud { border-color: #88724e; }
+      .context-prompt { bottom: 22%; }
+      aside { border-color: #88724e; }
+      .confirm-dialog { width: min(28rem, calc(100% - 2rem)); padding: 1.5rem; border: 1px solid #88724e; border-radius: .6rem; background: #101925; color: #e5edf5; }
+      .confirm-dialog::backdrop { background: #03070ecc; }
+      .confirm-dialog h2 { color: #e4c17d; }
+      .confirm-dialog p { line-height: 1.6; }
+      @media (max-width: 760px) { header { flex-wrap: nowrap; } header h1 { flex-basis: auto; font-size: 1rem; } .actions { left: 50%; right: auto; width: max-content; transform: translateX(-50%); overflow: visible; } summary { font-size: .85rem; } #xr-toggle { padding-inline: .5rem; font-size: .85rem; } }
       @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; } }
     </style>
   </head>
   <body>
     <dialog id="welcome" aria-labelledby="welcome-title" aria-describedby="welcome-intro">
-      <p>A dungeon adventure for desktop and VR</p><h2 id="welcome-title">rougeXR</h2>
+      <p>A dungeon adventure for VR</p><h2 id="welcome-title">rougeXR</h2>
       <p id="welcome-intro">Find the Amulet of Yendor, survive the depths, and return to the surface.</p>
       <button id="welcome-new" type="button" autofocus>Start New Game</button>
       <label for="welcome-saves">Continue an old adventure</label>
@@ -80,19 +107,27 @@
       <button id="welcome-load" type="button" disabled>Load Saved Game</button>
       <p id="welcome-status" role="status">Checking this browser for saved adventures…</p>
     </dialog>
+    <dialog id="restart-confirm" class="confirm-dialog" aria-labelledby="restart-confirm-title">
+      <form method="dialog"><h2 id="restart-confirm-title">Restart adventure?</h2><p>Your current progress will be replaced. Saved checkpoints stay available.</p><div class="tools-controls"><button value="cancel" autofocus>Keep playing</button><button id="confirm-restart" value="restart">Restart adventure</button></div></form>
+    </dialog>
     <main>
       <header class="shell-toolbar">
         <h1 tabindex="-1">rougeXR</h1>
-        <select id="view-mode" aria-label="View mode"><option value="3d">First person</option><option value="2d">Map</option></select>
-        <select id="camera-mode" aria-label="Camera mode"><option value="firstPerson">First person</option><option value="orbit">Orbit</option><option value="tabletop">Tabletop</option></select>
+        <button id="xr-toggle" type="button" disabled>XR unavailable</button>
+        <details class="desktop-menu"><summary>Desktop options</summary><div class="desktop-options">
+          <h2>Adventure</h2>
+        <select hidden id="view-mode" aria-label="View mode"><option value="3d">3D dungeon</option><option value="2d">Map</option></select>
+        <select hidden id="camera-mode" aria-label="Camera mode"><option value="firstPerson">First person</option><option value="orbit">Orbit</option><option value="tabletop">Tabletop</option></select>
         <button id="new-game" type="button">New Game</button>
         <input id="save-name" type="text" maxlength="80" value="My adventure" aria-label="Save name" title="Use the same name to update a saved game">
         <button id="save-local" type="button" title="Save a checkpoint in this browser">Save Game</button>
         <select id="saved-games" aria-label="Saved games"><option value="">No saved games</option></select>
         <button id="restore-local" type="button" title="Restart from your saved checkpoint">Load Save</button>
-        <button id="xr-toggle" type="button" disabled>XR unavailable</button>
-        <button id="sound-toggle" type="button" aria-pressed="true">Sound: On</button>
-        <button id="tools-toggle" type="button" aria-controls="tools-panel" aria-expanded="false">Tools</button>
+          <label>View <select id="display-view" aria-label="View"><option value="firstPerson">First person</option><option value="orbit">Orbit</option><option value="tabletop">Tabletop</option><option value="map">Map</option></select></label>
+          <h2>Audio</h2><button id="sound-toggle" type="button" aria-pressed="true">Sound: On</button>
+          <label>Volume <input id="sound-volume" type="range" min="0" max="100" value="35" aria-label="Sound volume"></label>
+          <h2>Development</h2><button id="tools-toggle" type="button" aria-controls="tools-panel" aria-expanded="false">Developer tools</button>
+        </div></details>
       </header>
       <div class="layout">
         <section class="map" id="view-host" aria-label="Dungeon view">
@@ -106,11 +141,9 @@
           <button id="movement-stick" class="movement-stick" type="button" aria-label="Move with virtual joystick"><span id="movement-stick-knob" class="movement-stick-knob" aria-hidden="true"></span></button>
           <button id="attack-front" class="attack-button" type="button" aria-label="Attack monster in front" disabled>Attack</button>
         </section>
-        <aside id="tools-panel" aria-label="Game tools" hidden>
-          <section><h2>Audio</h2><label>Volume <input id="sound-volume" type="range" min="0" max="100" value="35" aria-label="Sound volume"></label></section>
+        <aside id="tools-panel" aria-label="Developer tools" hidden>
           <section><h2>Setup</h2><div class="tools-controls"><select id="world-mode" aria-label="World type"><option value="generated">Generated</option><option value="kestrel">Kestrel fixture</option><option value="rooms">Two-room fixture</option></select><input id="seed" type="number" min="0" max="4294967295" value="12345" aria-label="Seed"><label for="turn-angle">POV turn</label><select id="turn-angle"><option value="90" selected>90° (square turns)</option></select></div></section>
-          <section><h2>Discoveries</h2><div id="discoveries"></div></section>
-          <section><h2>Inventory</h2><div id="inventory"></div></section>
+          <details open><summary>Observation diagnostics</summary><h2>Discoveries</h2><div id="discoveries"></div><h2>Inventory state</h2><div id="inventory"></div></details>
           <section><h2>Save and diagnose</h2><div class="tools-controls"><button id="save" type="button">Save JSON</button><button id="load" type="button">Load JSON / Replay</button><button id="export-report" type="button">Export bug report</button><input id="load-file" type="file" accept="application/json,.json" hidden></div><p id="save-status">Ready for manual save.</p><p id="xr-status" aria-live="polite">Checking XR…</p></section>
           <section><h2>Replay</h2><div class="tools-controls"><button id="replay-restart" type="button" disabled>Restart</button><button id="replay-step" type="button" disabled>Step</button><button id="replay-play" type="button" disabled>Play</button><button id="replay-pause" type="button" disabled>Pause</button><select id="replay-speed" aria-label="Replay speed" disabled><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option></select></div><p id="replay-status">Live input enabled.</p><pre id="replay-details">No divergence.</pre></section>
           <section><h2>Selected cell</h2><pre id="inspector"></pre><p id="state-summary"></p><p id="action-timing">No action measured.</p></section>

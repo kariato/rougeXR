@@ -1,10 +1,11 @@
+import { desktopClick, gameKey, selectView, toggleTools } from './ui-helpers';
 import { expect, test } from '@playwright/test';
 
 test('faces and animates the visible Kestrel during resolved combat', async ({ page }) => {
   test.setTimeout(60_000);
   const errors: string[] = [];page.on('pageerror',error=>errors.push(error.message));
-  await page.goto('/'); await page.locator('#welcome-new').click();await page.locator('#tools-toggle').click();
-  await page.locator('#world-mode').selectOption('kestrel');await page.locator('#new-game').click();
+  await page.goto('/'); await page.locator('#welcome-new').click();await toggleTools(page);
+  await page.locator('#world-mode').selectOption('kestrel');await desktopClick(page, '#new-game');
   await expect(page.locator('#dungeon-3d')).toBeVisible();
   await page.locator('h1').click();await page.keyboard.press('d');
   await expect(page.locator('#state-summary')).toContainText('Revision 1');
@@ -30,12 +31,12 @@ test('shows a first-person gesture for a resolved search action', async ({ page 
 
 test('primary click attacks an adjacent monster directly in front of the POV', async ({ page }) => {
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
-  await page.goto('/'); await page.locator('#welcome-new').click(); await page.locator('#tools-toggle').click();
-  await page.locator('#world-mode').selectOption('kestrel'); await page.locator('#new-game').click();
+  await page.goto('/'); await page.locator('#welcome-new').click(); await toggleTools(page);
+  await page.locator('#world-mode').selectOption('kestrel'); await desktopClick(page, '#new-game');
   await page.locator('h1').click(); await page.keyboard.press('d');
   await expect(page.locator('#state-summary')).toContainText('Revision 1');
   await page.locator('#turn-angle').selectOption('90');
-  await page.locator('#turn-right').click();
+  await gameKey(page, ']');
   await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-pov-direction', 'E');
   await page.locator('#dungeon-3d').click({ position: { x: 640, y: 330 } });
   await expect(page.locator('#state-summary')).toContainText('Revision 2');
@@ -47,11 +48,11 @@ test('primary click attacks an adjacent monster directly in front of the POV', a
 test('falls to a ground-level upward view when the player dies', async ({ page }) => {
   test.setTimeout(90_000);
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
-  await page.goto('/'); await page.locator('#welcome-new').click(); await page.locator('#tools-toggle').click();
-  await page.locator('#world-mode').selectOption('kestrel'); await page.locator('#new-game').click();
+  await page.goto('/'); await page.locator('#welcome-new').click(); await toggleTools(page);
+  await page.locator('#world-mode').selectOption('kestrel'); await desktopClick(page, '#new-game');
   for (let revision = 1; revision <= 30; revision++) {
     if ((await page.locator('#state-summary').innerText()).includes('dead')) break;
-    await page.locator('#rest').click();
+    await gameKey(page, '.');
     await expect(page.locator('#state-summary')).toContainText(`Revision ${revision}`);
   }
   await expect(page.locator('#state-summary')).toContainText('dead');
@@ -63,9 +64,9 @@ test('falls to a ground-level upward view when the player dies', async ({ page }
 test('keeps a slain monster in its death pose after a turn and a map switch', async ({ page }) => {
   test.setTimeout(90_000);
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
-  await page.goto('/'); await page.locator('#welcome-new').click(); await page.locator('#tools-toggle').click();
-  await page.locator('#world-mode').selectOption('kestrel'); await page.locator('#new-game').click();
-  await page.locator('#view-mode').selectOption('2d');
+  await page.goto('/'); await page.locator('#welcome-new').click(); await toggleTools(page);
+  await page.locator('#world-mode').selectOption('kestrel'); await desktopClick(page, '#new-game');
+  await selectView(page, 'map');
   await page.locator('h1').click();
   for (let revision = 1; revision <= 12; revision++) {
     await page.keyboard.press('d');
@@ -73,7 +74,7 @@ test('keeps a slain monster in its death pose after a turn and a map switch', as
     if (/You defeated/.test(await page.locator('#messages').innerText())) break;
   }
   await expect(page.locator('#messages')).toContainText('You defeated');
-  await page.locator('#view-mode').selectOption('3d');
+  await selectView(page, 'firstPerson');
   await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-visible-corpses', '1');
   await page.waitForTimeout(1400);
   await page.locator('#dungeon-3d').screenshot({ path: 'test-results/corpse-after-map.png' });
@@ -81,7 +82,7 @@ test('keeps a slain monster in its death pose after a turn and a map switch', as
   await page.waitForTimeout(300);
   await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-visible-corpses', '1');
   await page.locator('#dungeon-3d').screenshot({ path: 'test-results/corpse-after-turn.png' });
-  await page.locator('#view-mode').selectOption('2d'); await page.locator('#view-mode').selectOption('3d');
+  await selectView(page, 'map'); await selectView(page, 'firstPerson');
   await page.waitForTimeout(300);
   await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-visible-corpses', '1');
   await page.locator('#dungeon-3d').screenshot({ path: 'test-results/corpse-after-toggle.png' });

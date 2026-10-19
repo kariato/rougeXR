@@ -55,7 +55,7 @@ export class ThreeGameView implements GameView {
   private readonly weaponMount = new THREE.Group();
   private readonly world = new THREE.Group();
   private readonly corpseWorld = new THREE.Group();
-  private readonly spatialStatus = new SpatialStatus(() => this.spatialInventory.showEffects());
+  private readonly spatialStatus = new SpatialStatus(() => this.spatialInventory.showEffects(), () => this.ensureAnimation());
   private readonly deathPresentation = new DeathPresentation();
   private readonly spatialInventory = new SpatialInventory(() => {
     this.canvas.dataset.inventoryOpen = String(this.spatialInventory.open);
@@ -230,7 +230,7 @@ export class ThreeGameView implements GameView {
     this.canvas.dataset.statusEffects = observedStatusEffects(observation).map(effect => `${effect.label}: ${effect.description}`).join(' | ');
     this.canvas.dataset.spatialStatus = spatialStatusLines(observation).join(' | ');
     this.canvas.dataset.spatialMessage = freshEvents.flatMap(event => event.type === 'message' ? [event.text] : []).join(' ');
-    this.spatialInventory.update(observation);
+    this.spatialInventory.update(observation, freshEvents);
     const dead = observation.status.hp <= 0;
     if (dead) this.hitFeedback.reset();
     this.canvas.style.filter = dead ? 'grayscale(1)' : '';
@@ -412,12 +412,18 @@ export class ThreeGameView implements GameView {
     this.placeCamera();
   }
 
+  closeSpatialMenu(): void { this.spatialInventory.close(); }
+
   resize(width: number, height: number): void {
     this.width = Math.max(1, Math.floor(width));
     this.height = Math.max(1, Math.floor(height));
-    this.spatialStatus.root.scale.setScalar(Math.min(1, (width / height) * 1.25 * Math.tan(34 * Math.PI / 180) / .82));
-    this.spatialInventory.root.scale.setScalar(Math.min(1, (width / height) * 1.3 * Math.tan(34 * Math.PI / 180) / .83));
-    this.deathPresentation.label.scale.setScalar(Math.min(1, (width / height) * .9 * Math.tan(34 * Math.PI / 180) / .53));
+    // Fit the entire panel, including vertical extents; immersive sizing is independent of the mirror window.
+    const immersive = this.renderer.xr.isPresenting;
+    const aspect = this.width / this.height;
+    const half = Math.tan(34 * Math.PI / 180);
+    this.spatialStatus.root.scale.setScalar(immersive ? 1 : Math.min(1, aspect * 1.25 * half / .82, 1.25 * half / .83));
+    this.spatialInventory.root.scale.setScalar(immersive ? 1 : Math.min(1, aspect * 1.3 * half / .83, 1.3 * half / .78));
+    this.deathPresentation.label.scale.setScalar(immersive ? 1 : Math.min(1, aspect * .9 * half / .53));
     this.camera.aspect = this.width / this.height;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(this.width, this.height, false);
@@ -565,11 +571,16 @@ export class ThreeGameView implements GameView {
     this.renderer.xr.enabled = session !== null;
     await this.renderer.xr.setSession(session as XRSession | null);
     for (const controller of this.xrControllers) controller.visible = session !== null;
-    if (session) this.renderer.setAnimationLoop(() => { this.updateFirstPersonHand(performance.now()); this.deathPresentation.update((this.observation?.status.hp ?? 1) <= 0, this.scene, !this.spatialInventory.open); this.discoveryFeedback.update(performance.now()); this.hitFeedback.update(performance.now(), this.camera); this.world.traverse(object => { if (object.userData.faceCamera) object.quaternion.copy(this.camera.quaternion); }); this.renderer.render(this.scene, this.camera); });
+    this.spatialInventory.setImmersive(session !== null);
+    this.resize(this.width, this.height);
+    if (session) this.renderer.setAnimationLoop(() => {
+      this.spatialInventory.hover(this.xrControllers.filter(controller => controller.visible).map(controller => new THREE.Raycaster(controller.getWorldPosition(new THREE.Vector3()), new THREE.Vector3(0, 0, -1).applyQuaternion(controller.getWorldQuaternion(new THREE.Quaternion())))));
+      this.updateFirstPersonHand(performance.now()); this.spatialStatus.tick(performance.now()); this.deathPresentation.update((this.observation?.status.hp ?? 1) <= 0, this.scene, !this.spatialInventory.open); this.discoveryFeedback.update(performance.now()); this.hitFeedback.update(performance.now(), this.camera); this.world.traverse(object => { if (object.userData.faceCamera) object.quaternion.copy(this.camera.quaternion); }); this.renderer.render(this.scene, this.camera); });
     else { this.renderer.setAnimationLoop(null); this.xrIntent.reset(); this.placeCamera(); }
   }
 
   private readonly animate = (now: number): void => {
+    this.spatialStatus.tick(now);
     const elapsed = Math.min(0.1, Math.max(0, (now - this.lastFrame) / 1000));
     this.lastFrame = now;
     this.yaw = smoothToward(this.yaw, this.targetYaw, 14, elapsed);
@@ -753,6 +764,7 @@ export class ThreeGameView implements GameView {
   configureMenu(state: SpatialMenuState): void { this.spatialInventory.configure(state); this.ensureAnimation(); }
   toggleMenu(): void { this.spatialInventory.toggleMenu(); }
   showMessage(text: string): void {
+    this.spatialInventory.recordMessage(text);
     if (this.observation) this.spatialStatus.update(this.observation, [{ type: 'message', text }]);
     this.canvas.dataset.spatialMessage = text; this.ensureAnimation();
   }

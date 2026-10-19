@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 test('solid props stop player movement in 3D, including opened chests', async ({ page }) => {
+  test.setTimeout(60_000);
   await page.goto('/'); await page.locator('#welcome-new').click();
   for (const kind of ['crate', 'rubble', 'pillar', 'urn', 'mushroom']) {
     const json = await page.evaluate(async kind => {

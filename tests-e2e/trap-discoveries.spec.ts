@@ -1,8 +1,9 @@
+import { gameKey, toggleTools } from './ui-helpers';
 import { expect, test } from '@playwright/test';
 
 test('renders all revealed trap types and keeps a hidden trap absent', async ({ page }) => {
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
-  await page.goto('/'); await page.locator('#welcome-new').click(); await page.locator('#tools-toggle').click();
+  await page.goto('/'); await page.locator('#welcome-new').click(); await toggleTools(page);
   const save = await page.evaluate(async () => {
     const { createTwoRoomFixture } = await import('/src/debug/fixtures.ts');
     const { GameSession } = await import('/src/engine/session.ts');
@@ -37,7 +38,7 @@ test('renders all revealed trap types and keeps a hidden trap absent', async ({ 
 
 for (const feature of ['door', 'passage', 'trap'] as const) test(`search visibly discovers a secret ${feature}`, async ({ page }) => {
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
-  await page.goto('/'); await page.locator('#welcome-new').click(); await page.locator('#tools-toggle').click();
+  await page.goto('/'); await page.locator('#welcome-new').click(); await toggleTools(page);
   const save = await page.evaluate(async feature => {
     const { createTwoRoomFixture } = await import('/src/debug/fixtures.ts');
     const { createRandom } = await import('/src/engine/random.ts');
@@ -55,7 +56,8 @@ for (const feature of ['door', 'passage', 'trap'] as const) test(`search visibly
   await page.locator('#load-file').setInputFiles({ name: 'search.json', mimeType: 'application/json', buffer: Buffer.from(save) });
   if (feature === 'trap') await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-visible-traps', '');
   for (let attempt = 0; attempt < 20; attempt++) {
-    await page.locator('#search').click();
+    await gameKey(page, 'f');
+    await expect(page.locator('#state-summary')).toContainText(`Revision ${attempt + 1}`);
     if ((await page.locator('#dungeon-3d').getAttribute('data-discoveries'))?.includes(feature === 'trap' ? 'bear' : feature)) break;
   }
   await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-discoveries', new RegExp(feature === 'trap' ? 'bear' : feature));

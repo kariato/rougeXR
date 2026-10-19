@@ -128,10 +128,10 @@ const stopMovementStick = bindVirtualJoystick(movementStick, movementStickKnob, 
 function setToolsOpen(open: boolean): void {
   toolsPanel.hidden = !open;
   toolsToggle.setAttribute('aria-expanded', String(open));
-  if (!open && toolsPanel.contains(document.activeElement)) toolsToggle.focus();
+  if (!open && toolsPanel.contains(document.activeElement)) required<HTMLElement>('.desktop-menu > summary').focus();
 }
 
-toolsToggle.addEventListener('click', () => setToolsOpen(toolsPanel.hidden === true));
+toolsToggle.addEventListener('click', () => { setToolsOpen(toolsPanel.hidden === true); toolsToggle.closest('details')?.removeAttribute('open'); });
 window.addEventListener('keydown', event => {
   if (event.key === 'Escape' && !toolsPanel.hidden && xrController.status() !== 'active') {
     setToolsOpen(false);
@@ -202,6 +202,8 @@ function render(): void {
   required<HTMLElement>('.hud').hidden = view === threeView;
   hudMessage.hidden = view === threeView;
   viewHost.dataset.spatialOpen = String(threeView.inventoryOpen);
+  viewHost.dataset.view = view === threeView ? '3d' : '2d';
+  required<HTMLSelectElement>('#display-view').value = view === gridView ? 'map' : cameraMode.value;
   crosshair.hidden = view === gridView || cameraMode.value !== 'firstPerson';
   const currentCell = observation.cells[cellIndex(observation, observation.playerAt)];
   const currentFeature = currentCell?.visibility === 'visible' ? currentCell.appearance?.featureLabel : null;
@@ -328,6 +330,12 @@ canvas.addEventListener('click', event => {
   selectedIndex = position ? cellIndex(observation, position) : null;
   render();
 });
+required<HTMLSelectElement>('#display-view').addEventListener('change', event => {
+  const value = (event.target as HTMLSelectElement).value;
+  viewMode.value = value === 'map' ? '2d' : '3d';
+  viewMode.dispatchEvent(new Event('change'));
+  if (value !== 'map') { cameraMode.value = value; cameraMode.dispatchEvent(new Event('change')); }
+});
 viewMode.addEventListener('change', () => {
   stopMovementStick();
   view.dispose();
@@ -341,7 +349,7 @@ xrToggle.addEventListener('click', () => { void xrController.toggle().then(updat
 threeView.canvas.addEventListener('rougexr-inventory-toggle', event => {
   const open = (event as CustomEvent<{ open: boolean }>).detail.open;
   viewHost.dataset.spatialOpen = String(open);
-  if (open) setToolsOpen(false);
+  if (open) { setToolsOpen(false); required<HTMLElement>('.desktop-menu').removeAttribute('open'); }
 });
 threeView.canvas.addEventListener('rougexr-select-cell', event => {
   const position = (event as CustomEvent<{ x: number; y: number }>).detail;
@@ -368,7 +376,12 @@ search.addEventListener('click', () => submit({ type: 'search' }));
 pickup.addEventListener('click', () => submit({ type: 'pickup' }));
 descend.addEventListener('click', () => submit({ type: 'descend' }));
 ascend.addEventListener('click', () => submit({ type: 'ascend' }));
-newGame.addEventListener('click', () => {
+const restartConfirm = required<HTMLDialogElement>('#restart-confirm');
+restartConfirm.addEventListener('close', () => { if (restartConfirm.returnValue === 'restart') newGame.click(); });
+newGame.addEventListener('click', event => {
+  if (event.isTrusted && !welcome.open && !observe(session.exportState()).ending) {
+    restartConfirm.returnValue = ''; restartConfirm.showModal(); return;
+  }
   actionQueue = actionQueue.then(async () => {
     leaveReplayMode();
     const seed = parseSeed(seedInput.value);
@@ -402,14 +415,14 @@ replaySpeed.addEventListener('change', () => {
 });
 window.addEventListener('keydown', event => {
   if (!welcome.open && event.key.toLowerCase() === 'm' && !event.repeat && view === threeView
-    && !['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'].includes((event.target as HTMLElement)?.tagName)) {
+    && !['INPUT', 'TEXTAREA', 'SELECT'].includes((event.target as HTMLElement)?.tagName)) {
     event.preventDefault(); threeView.toggleMenu();
   }
   if (!welcome.open && event.key.toLowerCase() === 'i' && !event.repeat && view === threeView
-    && !['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'].includes((event.target as HTMLElement)?.tagName)) {
+    && !['INPUT', 'TEXTAREA', 'SELECT'].includes((event.target as HTMLElement)?.tagName)) {
     event.preventDefault(); threeView.toggleInventory();
   }
-  if (event.key === 'Escape' && threeView.inventoryOpen) threeView.toggleMenu();
+  if (event.key === 'Escape' && threeView.inventoryOpen) { event.preventDefault(); threeView.closeSpatialMenu(); }
 });
 bindDesktopInput(window, action => {
   if (threeView.inventoryOpen) return;
@@ -474,6 +487,7 @@ function syncSpatialMenu(): void {
 threeView.canvas.addEventListener('rougexr-menu-command', event => {
   const command = (event as CustomEvent<SpatialMenuCommand>).detail;
   void gameAudio.unlock();
+  if (command.type === 'exitXR') { void xrController.toggle().then(updateXrControls); }
   if (command.type === 'name') { saveNameInput.value = command.name; syncSpatialMenu(); }
   if (command.type === 'save') required<HTMLButtonElement>('#save-local').click();
   if (command.type === 'load') { refreshSavedGames(command.name); required<HTMLButtonElement>('#restore-local').click(); }
@@ -482,7 +496,7 @@ threeView.canvas.addEventListener('rougexr-menu-command', event => {
   if (command.type === 'volume') { gameAudio.configure(gameAudio.enabled, command.value); refreshAudioControls(); syncSpatialMenu(); }
   if (command.type === 'map') {
     cameraMode.value = cameraMode.value === 'tabletop' ? 'firstPerson' : 'tabletop';
-    cameraMode.dispatchEvent(new Event('change')); threeView.toggleMenu();
+    cameraMode.dispatchEvent(new Event('change')); threeView.closeSpatialMenu();
   }
 });
 function checkpointMessage(text: string): void {
@@ -646,7 +660,7 @@ welcome.showModal();
 actionQueue = actionQueue.then(prepareWelcome);
 
 function updateXrControls(status: ReturnType<XrSessionController['status']>): void {
-  if (status === 'active') { movementStick.disabled = true; stopMovementStick(); }
+  if (status === 'active') { setToolsOpen(false); movementStick.disabled = true; stopMovementStick(); }
   refreshAttackButton();
   xrToggle.disabled = status === 'checking' || status === 'unavailable';
   xrToggle.textContent = status === 'active' ? 'Exit XR' : status === 'available' ? 'Enter XR' : 'XR unavailable';

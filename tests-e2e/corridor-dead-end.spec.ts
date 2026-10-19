@@ -1,7 +1,9 @@
+import { gameKey } from './ui-helpers';
+import { toggleTools } from './ui-helpers';
 import { expect, test } from '@playwright/test';
 
 test('marks a disclosed corridor end with distinct masonry', async ({ page }) => {
-  await page.goto('/'); await page.locator('#welcome-new').click(); await page.locator('#tools-toggle').click();
+  await page.goto('/'); await page.locator('#welcome-new').click(); await toggleTools(page);
   const save = await page.evaluate(async () => {
     const { createTwoRoomFixture } = await import('/src/debug/fixtures.ts');
     const { GameSession } = await import('/src/engine/session.ts');
@@ -14,7 +16,7 @@ test('marks a disclosed corridor end with distinct masonry', async ({ page }) =>
   });
   await page.locator('#load-file').setInputFiles({ name: 'dead-end.json', mimeType: 'application/json', buffer: Buffer.from(save) });
   await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-dead-end-walls', '1');
-  await page.locator('#turn-right').click();
+  await gameKey(page, ']');
   await page.waitForTimeout(400);
   await page.locator('#dungeon-3d').screenshot({ path: `test-results/dead-end-${test.info().project.name}.png` });
   const distinct = await page.evaluate(async () => {

@@ -25,3 +25,17 @@ Phase 13.6 requires a WebXR-capable headset and cannot be closed by desktop emul
 ## Result
 
 Phase 13.6 passes only when every item above has been exercised on the target headset and any device-specific failures have been recorded or fixed.
+
+## Spatial UI cleanup acceptance (19 October 2026)
+
+These checks remain pending on physical hardware. Browser ray-selection tests cover navigation and actions but do not establish headset comfort or legibility.
+
+- Read HP, depth, hunger, and equipment without leaning forward. Confirm the compact status panel stays clear of the main view.
+- Open Inventory, Actions, and Menu using either controller ray. Confirm hovered buttons visibly highlight, passive headings do not activate, and menu interaction never moves the player.
+- Open Settings, Controls, Discoveries, Effects, and Messages. Confirm Back and Close remain easy to target and the weapon does not obscure open panels.
+- Resize the desktop mirror while wearing the headset. Confirm spatial controls retain their physical size and remain reachable.
+- Select Throw or Zap. Confirm choosing a direction does not spend a turn, Cancel returns to inventory, and only confirmation submits the action.
+- Confirm empty message panels are absent, messages expire after a few seconds, and history remains available from Menu → Messages.
+- Confirm Pick up and stair actions appear only where relevant in Actions.
+- Save, name, load, cancel a restart, and confirm a restart without using the browser toolbar.
+- Exit VR through Settings and through the system interface, then re-enter and verify menu sizing and input.

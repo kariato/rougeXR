@@ -1,3 +1,4 @@
+import { desktopClick, toggleTools } from './ui-helpers';
 import { expect, test } from '@playwright/test';
 
 test('creates gameplay audio, avoids repeats, and remembers mute preference', async ({ page }) => {
@@ -9,15 +10,15 @@ test('creates gameplay audio, avoids repeats, and remembers mute preference', as
       (window as any).audioTones++; return original.call(this);
     };
   });
-  await page.goto('/'); await page.locator('#welcome-new').click(); await page.locator('#tools-toggle').click();
-  await page.locator('#world-mode').selectOption('kestrel'); await page.locator('#new-game').click();
+  await page.goto('/'); await page.locator('#welcome-new').click(); await toggleTools(page);
+  await page.locator('#world-mode').selectOption('kestrel'); await desktopClick(page, '#new-game');
   await page.locator('h1').click(); await page.keyboard.press('d');
   await expect(page.locator('#state-summary')).toContainText('Revision 1');
   await expect.poll(() => page.evaluate(() => (window as any).audioTones)).toBeGreaterThan(0);
   const tones = await page.evaluate(() => (window as any).audioTones);
   await page.locator('#event-filter').selectOption('messages');
   expect(await page.evaluate(() => (window as any).audioTones)).toBe(tones);
-  await page.locator('#sound-toggle').click(); await expect(page.locator('#sound-toggle')).toHaveText('Sound: Off');
+  await desktopClick(page, '#sound-toggle'); await expect(page.locator('#sound-toggle')).toHaveText('Sound: Off');
   await page.locator('h1').click(); await page.keyboard.press('d');
   await expect(page.locator('#state-summary')).toContainText('Revision 2');
   expect(await page.evaluate(() => (window as any).audioTones)).toBe(tones);

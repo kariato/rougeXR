@@ -1,3 +1,5 @@
+import { gameKey } from './ui-helpers';
+import { toggleTools } from './ui-helpers';
 import { expect, test } from '@playwright/test';
 
 test.use({ hasTouch: true, viewport: { width: 390, height: 844 } });
@@ -5,11 +7,11 @@ test.use({ hasTouch: true, viewport: { width: 390, height: 844 } });
 test('diagonal stick drags choose one axis and stop on release', async ({ page, browserName }) => {
   test.skip(browserName === 'firefox', 'Playwright Firefox mouse emulation does not emit pointer events with hasTouch enabled.');
   await page.goto('/'); await page.locator('#welcome-new').click();
-  await page.locator('#tools-toggle').click();
+  await toggleTools(page);
   await page.locator('#world-mode').selectOption('rooms');
   await page.locator('#new-game').dispatchEvent('click');
   await page.locator('#turn-angle').selectOption('90');
-  await page.locator('#tools-toggle').click();
+  await toggleTools(page);
   const stick = page.locator('#movement-stick');
   await expect(stick).toBeVisible();
   await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-player-at', '5,5');
@@ -39,18 +41,18 @@ test('diagonal stick drags choose one axis and stop on release', async ({ page, 
 
 test('touch Attack button hits only a monster directly ahead', async ({ page }) => {
   await page.goto('/'); await page.locator('#welcome-new').click();
-  await page.locator('#tools-toggle').click();
+  await toggleTools(page);
   await page.locator('#world-mode').selectOption('kestrel');
   await page.locator('#new-game').dispatchEvent('click');
   await page.locator('#turn-angle').selectOption('90');
-  await page.locator('#tools-toggle').click();
+  await toggleTools(page);
   const attack = page.locator('#attack-front');
   await expect(attack).toBeVisible();
   await expect(attack).toBeDisabled();
   await page.locator('h1').click();
   await page.keyboard.press('d');
   await expect(page.locator('#state-summary')).toContainText('Revision 1');
-  await page.locator('#turn-right').click();
+  await gameKey(page, ']');
   await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-pov-direction', 'E');
   await expect(attack).toBeEnabled();
   await attack.click();

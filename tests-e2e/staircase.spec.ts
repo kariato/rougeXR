@@ -1,8 +1,10 @@
+import { gameKey } from './ui-helpers';
+import { toggleTools } from './ui-helpers';
 import { expect, test } from '@playwright/test';
 
 test('shows spiral stairs and descends when the player steps onto them', async ({ page }) => {
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
-  await page.goto('/'); await page.locator('#welcome-new').click(); await page.locator('#tools-toggle').click();
+  await page.goto('/'); await page.locator('#welcome-new').click(); await toggleTools(page);
   const save = await page.evaluate(async () => {
     const { createTwoRoomFixture } = await import('/src/debug/fixtures.ts');
     const { GameSession } = await import('/src/engine/session.ts');
@@ -15,7 +17,7 @@ test('shows spiral stairs and descends when the player steps onto them', async (
   await page.locator('#load-file').setInputFiles({ name: 'stairs.json', mimeType: 'application/json', buffer: Buffer.from(save) });
   await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-visible-stairs', '1');
   await expect(page.locator('#context-prompt')).toContainText('Spiral stairs down');
-  await page.locator('#turn-angle').selectOption('90'); await page.locator('#turn-right').click();
+  await page.locator('#turn-angle').selectOption('90'); await gameKey(page, ']');
   await page.waitForTimeout(350);
   await page.locator('#dungeon-3d').screenshot({ path: `test-results/staircase-${test.info().project.name}.png` });
   await page.locator('h1').click(); await page.keyboard.press('d');
@@ -30,7 +32,7 @@ test('shows spiral stairs and descends when the player steps onto them', async (
 });
 
 test('shows upward stairs and automatically returns with the Amulet', async ({ page }) => {
-  await page.goto('/'); await page.locator('#welcome-new').click(); await page.locator('#tools-toggle').click();
+  await page.goto('/'); await page.locator('#welcome-new').click(); await toggleTools(page);
   const save = await page.evaluate(async () => {
     const { createTwoRoomFixture } = await import('/src/debug/fixtures.ts');
     const { GameSession } = await import('/src/engine/session.ts');
