@@ -1,4 +1,4 @@
-export type StickVector = { horizontal: number; vertical: number };
+export type StickVector = { horizontal: number; vertical: number; repeat?: boolean };
 
 /** Bind one captured pointer to a four-direction, repeating turn-based control. */
 export function bindVirtualJoystick(button: HTMLButtonElement, knob: HTMLElement,
@@ -13,9 +13,9 @@ export function bindVirtualJoystick(button: HTMLButtonElement, knob: HTMLElement
     clearTimer();
     if (active === null || pointerId === null || button.disabled) return;
     timer = window.setTimeout(() => {
-      if (active !== null && pointerId !== null && !button.disabled) move(active);
+      if (active !== null && pointerId !== null && !button.disabled) move({ ...active, repeat: true });
       repeat();
-    }, 260);
+    }, 320);
   };
   const stop = (): void => {
     clearTimer(); pointerId = null; active = null; octant = null;
@@ -28,15 +28,17 @@ export function bindVirtualJoystick(button: HTMLButtonElement, knob: HTMLElement
     const horizontal = (event.clientX - box.left - radius) / radius;
     const vertical = (box.top + box.height / 2 - event.clientY) / radius;
     const distance = Math.hypot(horizontal, vertical);
-    if (distance < .28) {
+    if (distance < (active === null ? .38 : .24)) {
       active = null; octant = null; clearTimer();
       knob.style.transform = '';
       button.removeAttribute('data-direction');
       return;
     }
-    const nextOctant = Math.abs(horizontal) > Math.abs(vertical)
+    // Keep the chosen direction until the thumb returns to center. Reject ambiguous diagonals on engagement.
+    if (active === null && Math.max(Math.abs(horizontal), Math.abs(vertical)) < Math.min(Math.abs(horizontal), Math.abs(vertical)) * 1.2) return;
+    const nextOctant = octant ?? ( Math.abs(horizontal) > Math.abs(vertical)
       ? horizontal > 0 ? 0 : 4
-      : vertical > 0 ? 2 : 6;
+      : vertical > 0 ? 2 : 6);
     const travel = Math.min(distance, 1) * radius * .43;
     knob.style.transform = `translate(${nextOctant === 0 ? travel : nextOctant === 4 ? -travel : 0}px, ${nextOctant === 2 ? -travel : nextOctant === 6 ? travel : 0}px)`;
     if (nextOctant === octant) return;

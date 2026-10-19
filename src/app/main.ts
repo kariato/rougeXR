@@ -116,9 +116,9 @@ let replayTimer: number | null = null;
 let replaySchedule = 0;
 let latestActionTiming = 'No action measured.';
 let lastHudMessage = '';
-const stopMovementStick = bindVirtualJoystick(movementStick, movementStickKnob, ({ horizontal, vertical }) => {
+const stopMovementStick = bindVirtualJoystick(movementStick, movementStickKnob, ({ horizontal, vertical, repeat }) => {
   if (view === threeView && cameraMode.value === 'firstPerson') {
-    if (Math.abs(horizontal) > .38) turnCamera(Math.sign(horizontal) * Number(turnAngle.value));
+    if (!repeat && Math.abs(horizontal) > .38) turnCamera(Math.sign(horizontal) * Number(turnAngle.value));
     if (Math.abs(vertical) > .38) submit(threeView.movementDirectionForPov(vertical > 0));
     return;
   }

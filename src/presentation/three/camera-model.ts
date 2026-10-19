@@ -45,7 +45,7 @@ export function frontMonsterAttackRequest(observation: PlayerObservation, direct
   return { expectedRevision: observation.revision, action: { type: 'move', direction, pickup: true } };
 }
 
-/** Align first-person headings with the dungeon's four cardinal directions. */
-export function snapCardinalYaw(yaw: number): number {
-  return Math.round(yaw / (Math.PI / 2)) * (Math.PI / 2);
+/** Align first-person headings with the dungeon's eight movement directions. */
+export function snapGridYaw(yaw: number): number {
+  return Math.round(yaw / (Math.PI / 4)) * (Math.PI / 4);
 }

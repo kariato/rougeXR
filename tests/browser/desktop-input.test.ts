@@ -29,6 +29,8 @@ describe('desktop input', () => {
     expect(actionForKeyboardEvent(keyboard(' ', { target: { tagName: 'BUTTON' } }))).toBeNull();
   });
   it('turns the camera left or right without creating a game action', () => {
+    expect(viewTurnForKeyboardEvent(keyboard('['), 45)).toBe(-45);
+    expect(viewTurnForKeyboardEvent(keyboard(']'), 45)).toBe(45);
     expect(viewTurnForKeyboardEvent(keyboard('['), 90)).toBe(-90);
     expect(viewTurnForKeyboardEvent(keyboard(']'), 90)).toBe(90);
     expect(viewTurnForKeyboardEvent(keyboard(']'), 90)).toBe(90);

@@ -13,7 +13,7 @@ import type { PresentationEvent } from '../../engine/model/action';
 import type { PlayerObservation } from '../../engine/model/observation';
 import type { GameView } from '../game-view';
 import { buildCorridorWalls, buildPrimitiveCells, selectLitTorches } from './scene-plan';
-import { snapCardinalYaw, deathFallProgress, frontMonsterAttackRequest, nearestVisibleHit, smoothToward, type CameraMode } from './camera-model';
+import { snapGridYaw, deathFallProgress, frontMonsterAttackRequest, nearestVisibleHit, smoothToward, type CameraMode } from './camera-model';
 import { createActorVisual, createDecorationVisual, createItemVisual, setChestFallbackOpen, type ActorVisual } from './entity-visual';
 import { SceneGeneration } from './asset-cache';
 import { loadPropInto } from './prop-asset';
@@ -204,7 +204,7 @@ export class ThreeGameView implements GameView {
         this.actorFacings.set(event.defenderToken,Math.atan2(event.attackerAt.x-event.defenderAt.x,event.attackerAt.y-event.defenderAt.y));
         addCue(event.attackerToken,'attack');
         if (event.hit) addCue(event.defenderToken,'hurt');
-        if (event.attackerToken === 'player') { this.targetYaw=snapCardinalYaw(towardDefender);this.enqueueCameraAction('attack'); }
+        if (event.attackerToken === 'player') { this.targetYaw=snapGridYaw(towardDefender);this.enqueueCameraAction('attack'); }
         else if (event.defenderToken === 'player' && event.hit) this.enqueueCameraAction('hurt');
       } else if (event.type === 'visibleDefeat') {
         addCue(event.token,'death');
@@ -531,7 +531,7 @@ export class ThreeGameView implements GameView {
 
   setMode(mode: CameraMode): void {
     this.mode = mode;
-    if (mode === 'firstPerson') this.targetYaw = snapCardinalYaw(this.targetYaw);
+    if (mode === 'firstPerson') this.targetYaw = snapGridYaw(this.targetYaw);
     this.hand.visible = mode === 'firstPerson';
     if (this.actorVisuals[0]) this.actorVisuals[0].root.visible = mode !== 'firstPerson';
     this.targetPitch = mode === 'tabletop' ? -0.9 : mode === 'orbit' ? -0.2 : 0;
@@ -544,7 +544,7 @@ export class ThreeGameView implements GameView {
   rotatePov(degrees: number): void {
     if (this.spatialInventory.open || this.mode !== 'firstPerson' || !Number.isFinite(degrees)) return;
     if (degrees === 0) return;
-    this.targetYaw = snapCardinalYaw(this.targetYaw) - Math.sign(degrees) * Math.PI / 2;
+    this.targetYaw = snapGridYaw(this.targetYaw - degrees * Math.PI / 180);
     this.actorFacings.set('player', this.targetYaw);
     this.canvas.dataset.povDirection = directionFromForward(Math.sin(this.targetYaw), Math.cos(this.targetYaw));
     this.ensureAnimation();
@@ -665,7 +665,7 @@ export class ThreeGameView implements GameView {
     if (this.mode === 'firstPerson') {
       this.dragYawPixels += event.movementX;
       if (Math.abs(this.dragYawPixels) >= 40) {
-        this.rotatePov(Math.sign(this.dragYawPixels) * 90);
+        this.rotatePov(Math.sign(this.dragYawPixels) * 45);
         this.dragYawPixels = 0;
       }
     } else this.targetYaw -= event.movementX * 0.006;
