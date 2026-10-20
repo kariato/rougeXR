@@ -85,7 +85,7 @@ test('a tracked controller ray opens the spatial menu and exits through VR setti
   await expect(page.locator('#state-summary')).toContainText('Revision 1');
   await select(-.48, -.38); // Settings.
   await expect(page.locator('#dungeon-3d')).toHaveAttribute('aria-description', /Exit VR/);
-  await select(0, -.48); // Exit VR without using the browser controls.
+  await select(0, -.56); // Exit VR without using the browser controls.
   await expect(page.locator('#xr-toggle')).toHaveText('Enter XR');
   expect(errors).toEqual([]);
 });

@@ -1,3 +1,4 @@
+import { parseLocomotionPreferences } from '../presentation/xr/locomotion';
 import type { SpatialMenuCommand } from '../presentation/three/spatial-inventory';
 import { GameAudio } from '../presentation/audio/game-audio';
 import { cellIndex } from '../engine/grid';
@@ -96,6 +97,10 @@ const loadFile = required<HTMLInputElement>('#load-file');
 const saveStatus = required<HTMLElement>('#save-status');
 const gridView = new CanvasGridView(canvas);
 const threeView = new ThreeGameView();
+const LOCOMOTION_KEY = 'rougexr.locomotion.v1';
+let locomotionSettings = parseLocomotionPreferences(null);
+try { locomotionSettings = parseLocomotionPreferences(localStorage.getItem(LOCOMOTION_KEY)); } catch { /* Preferences remain usable without storage. */ }
+threeView.configureLocomotion(locomotionSettings);
 let view: GameView = threeView;
 const xrSystem = (navigator as Navigator & { xr?: XrSystemLike }).xr ?? null;
 const xrController = new XrSessionController(xrSystem, session => threeView.setXrSession(session), updateXrControls,
@@ -492,11 +497,18 @@ savedGames.addEventListener('change', () => { if (savedGames.value) saveNameInpu
 function syncSpatialMenu(): void {
   let names: string[] = [];
   try { names = readNamedCheckpoints().map(entry => entry.name); if (localStorage.getItem(MANUAL_SAVE_KEY) !== null) names.push(''); } catch { /* Save controls report storage failures. */ }
-  threeView.configureMenu({ names, saveName: saveNameInput.value.trim() || 'My adventure', sound: gameAudio.enabled, volume: gameAudio.volume });
+  threeView.configureMenu({ names, saveName: saveNameInput.value.trim() || 'My adventure', sound: gameAudio.enabled, volume: gameAudio.volume, ...locomotionSettings });
 }
 threeView.canvas.addEventListener('rougexr-menu-command', event => {
   const command = (event as CustomEvent<SpatialMenuCommand>).detail;
   void gameAudio.unlock();
+  if (command.type === 'movement' || command.type === 'vignette') {
+    if (command.type === 'movement') locomotionSettings.movement = command.value;
+    else locomotionSettings.vignette = command.value;
+    threeView.configureLocomotion(locomotionSettings);
+    try { localStorage.setItem(LOCOMOTION_KEY, JSON.stringify(locomotionSettings)); } catch { /* Keep the current session's settings. */ }
+    syncSpatialMenu();
+  }
   if (command.type === 'exitXR') { void xrController.toggle().then(updateXrControls); }
   if (command.type === 'name') { saveNameInput.value = command.name; syncSpatialMenu(); }
   if (command.type === 'save') required<HTMLButtonElement>('#save-local').click();

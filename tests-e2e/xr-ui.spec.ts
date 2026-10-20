@@ -79,7 +79,7 @@ test('preserves message history across view changes before the first turn', asyn
   await clickSpatial(page, -.36, .1); // Save without spending a turn.
   await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-spatial-message', /Game saved/);
   await clickSpatial(page, -.48, -.38); // Settings
-  await clickSpatial(page, 0, -.28); // Switch to tabletop.
+  await clickSpatial(page, 0, -.39); // Switch to tabletop.
   await gameKey(page, 'm');
   await clickSpatial(page, .48, -.38); // Messages
   await expect(page.locator('#dungeon-3d')).toHaveAttribute('aria-description', /MESSAGE HISTORY.*Game saved/s);

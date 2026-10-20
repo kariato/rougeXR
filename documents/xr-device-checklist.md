@@ -45,3 +45,11 @@ These checks remain pending on physical hardware. Browser ray-selection tests co
 The camera and controllers now share a tracking rig anchored at the current dungeon cell. XR uses a `local` reference space rather than requiring floor tracking. Browser resizes leave XR framebuffer sizing to the runtime, the native XR frame loop advances scene animations, and system exit restores the desktop renderer after Three.js completes its own cleanup. Failed attachment ends the session and reports the failure in the game.
 
 Automated stereo tests use a simulated XR device and the real Three.js/WebGL renderer. They sample central dungeon pixels in both eyes, change tracked position, resize the mirror, exit/re-enter, recover from an attachment error, enter from Map, and select spatial menus through a tracked controller ray. This verifies the software rendering path; it does not replace testing the reported phone/browser or a physical headset.
+
+## Grid movement comfort options (20 October 2026)
+
+VR Settings → Movement & comfort now offers Comfort (default) and Glide. Comfort uses a brief fade with a fully covered frame at the position change; the nominal transition is 180 ms and may extend to preserve the covered frame during a rendering stall. Glide interpolates the horizontal rig position over 300 ms. Its optional peripheral vignette leaves the center visible. Preferences are stored per browser under `rougexr.locomotion.v1`.
+
+The transition affects presentation only: one step still consumes one game turn, native head tracking remains immediate, and rig eye height stays steady. Combat does not force the tracked view to face a target. Long jumps and level transitions use Comfort rather than gliding across unseen terrain.
+
+On the target headset, check both modes with the vignette enabled and disabled, repeated steps, diagonal movement, a blocked step, a level change, physical head motion during a step, and exit/re-entry. Confirm saved preferences survive a reload and identify the preferred mode through device testing; automated rendering checks cannot establish an individual's comfort.

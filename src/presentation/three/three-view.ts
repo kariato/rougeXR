@@ -1,3 +1,5 @@
+import { XrLocomotion, type LocomotionOptions } from '../xr/locomotion';
+import { LocomotionOverlay } from './locomotion-overlay';
 import { createTrapVisual, observedTrapKind } from './trap-asset';
 import { DiscoveryFeedback } from './discovery-feedback';
 import { observedStatusEffects } from './status-effects';
@@ -53,6 +55,8 @@ export class ThreeGameView implements GameView {
   private readonly camera = new THREE.PerspectiveCamera(68, 1, 0.05, 120);
   private readonly xrRig = new THREE.Group();
   private xrActive = false;
+  private readonly locomotion = new XrLocomotion();
+  private readonly locomotionOverlay = new LocomotionOverlay();
   private readonly hand = createFirstPersonHand();
   private readonly weaponMount = new THREE.Group();
   private readonly world = new THREE.Group();
@@ -125,6 +129,7 @@ export class ThreeGameView implements GameView {
     this.scene.background = new THREE.Color(0x05080d);
     this.scene.fog = new THREE.FogExp2(0x05080d, 0.055);
     this.scene.add(this.world);
+    this.scene.add(this.locomotionOverlay.root);
     this.scene.add(this.hitFeedback.root);
     this.scene.add(this.discoveryFeedback.root);
     this.world.add(this.corpseWorld);
@@ -207,7 +212,7 @@ export class ThreeGameView implements GameView {
         this.actorFacings.set(event.defenderToken,Math.atan2(event.attackerAt.x-event.defenderAt.x,event.attackerAt.y-event.defenderAt.y));
         addCue(event.attackerToken,'attack');
         if (event.hit) addCue(event.defenderToken,'hurt');
-        if (event.attackerToken === 'player') { this.targetYaw=snapGridYaw(towardDefender);this.enqueueCameraAction('attack'); }
+        if (event.attackerToken === 'player') { if (!this.xrActive) this.targetYaw=snapGridYaw(towardDefender);this.enqueueCameraAction('attack'); }
         else if (event.defenderToken === 'player' && event.hit) this.enqueueCameraAction('hurt');
       } else if (event.type === 'visibleDefeat') {
         addCue(event.token,'death');
@@ -228,6 +233,11 @@ export class ThreeGameView implements GameView {
       const corpse = this.corpses.get(event.token);
       if (corpse) { corpse.facing = this.actorFacings.get(event.token) ?? corpse.facing; if (corpse.holder) corpse.holder.rotation.y = corpse.facing; }
     }
+    const visualTarget = { x: observation.playerAt.x, z: observation.playerAt.y };
+    if (this.xrActive && this.mode === 'firstPerson') {
+      this.locomotion.moveTo(visualTarget, performance.now(), this.observation?.status.depth !== observation.status.depth
+        || freshEvents.some(event => event.type === 'levelViewReset'));
+    } else this.locomotion.reset(visualTarget);
     this.observation = observation;
     this.spatialStatus.update(observation, freshEvents);
     this.canvas.dataset.statusEffects = observedStatusEffects(observation).map(effect => `${effect.label}: ${effect.description}`).join(' | ');
@@ -460,6 +470,7 @@ export class ThreeGameView implements GameView {
   }
 
   resetPresentation(): void {
+    this.locomotion.reset(); this.locomotionOverlay.reset();
     this.spatialInventory.reset();
     this.spatialStatus.reset();
     this.discoveryFeedback.reset();
@@ -533,7 +544,15 @@ export class ThreeGameView implements GameView {
     this.clearCapturedInput();
   }
 
+  configureLocomotion(options: LocomotionOptions): void {
+    this.locomotion.configure(options);
+    this.canvas.dataset.movementMode = options.movement;
+    this.canvas.dataset.comfortVignette = String(options.vignette);
+  }
+
   setMode(mode: CameraMode): void {
+    this.locomotion.reset(this.observation ? { x: this.observation.playerAt.x, z: this.observation.playerAt.y } : undefined);
+    this.locomotionOverlay.reset();
     this.mode = mode;
     if (mode === 'firstPerson') this.targetYaw = snapGridYaw(this.targetYaw);
     this.hand.visible = mode === 'firstPerson';
@@ -574,6 +593,8 @@ export class ThreeGameView implements GameView {
   async setXrSession(session: XrSessionLike | null): Promise<void> {
     if (this.frame !== null) cancelAnimationFrame(this.frame);
     this.frame = null;
+    this.locomotion.reset(this.observation ? { x: this.observation.playerAt.x, z: this.observation.playerAt.y } : undefined);
+    this.locomotionOverlay.reset();
     this.xrActive = session !== null;
     this.canvas.dataset.xrActive = String(this.xrActive);
     if (session) {
@@ -600,12 +621,13 @@ export class ThreeGameView implements GameView {
     if (!session) { this.placeCamera(); this.ensureAnimation(); }
   }
 
-  private updateXrRig(): void {
+  private updateXrRig(now = performance.now()): void {
     const observation = this.observation;
     if (!observation) return;
     if (this.mode === 'firstPerson') {
-      this.xrRig.position.set(observation.playerAt.x, .72, observation.playerAt.y);
-      this.xrRig.rotation.set(0, this.yaw - Math.PI, 0);
+      const visual = this.locomotion.sample(now);
+      this.xrRig.position.set(visual.x, .72, visual.z);
+      this.xrRig.rotation.set(0, this.targetYaw - Math.PI, 0);
     } else {
       const target = new THREE.Vector3(
         (this.mode === 'tabletop' ? observation.width / 2 : observation.playerAt.x) * this.worldScale, 0,
@@ -620,6 +642,8 @@ export class ThreeGameView implements GameView {
 
   private readonly onXrFrame = (now: number): void => {
     this.animate(now);
+    if (this.mode === 'firstPerson') this.locomotionOverlay.update(this.locomotion.sample(now));
+    else this.locomotionOverlay.reset();
     this.renderer.xr.updateCamera(this.camera);
     this.spatialInventory.hover(this.xrControllers.filter(controller => controller.visible).map(controller =>
       new THREE.Raycaster(controller.getWorldPosition(new THREE.Vector3()),
@@ -654,15 +678,15 @@ export class ThreeGameView implements GameView {
       if (now >= corpse.settlingUntil) this.finishCorpse(corpse);
       else { corpse.actor?.mixer.update(elapsed); corpse.mixer?.update(elapsed); }
     }
-    this.placeCamera();
+    this.placeCamera(now);
     const moving = this.cameraActions.length>0 || this.doorVisuals.some(door => door.openedAt !== null && now < door.openedAt + 750) || [...this.corpses.values()].some(corpse => corpse.settlingUntil > 0) || Math.abs(this.yaw - this.targetYaw) > 0.0001 || Math.abs(this.pitch - this.targetPitch) > 0.0001 || Math.abs(this.distance - this.targetDistance) > 0.001 || Math.abs(this.worldScale - this.targetWorldScale) > 0.0001 || now < this.animationUntil;
     this.frame = !this.xrActive && moving ? requestAnimationFrame(this.animate) : null;
   };
 
-  private placeCamera(): void {
+  private placeCamera(now = performance.now()): void {
     const observation = this.observation;
     if (!observation) return;
-    if (this.xrActive) { this.updateXrRig(); return; }
+    if (this.xrActive) { this.updateXrRig(now); return; }
     const player = observation.playerAt;
     if (this.mode === 'firstPerson') {
       const { bob, death } = this.updateFirstPersonHand(performance.now());

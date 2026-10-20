@@ -6,7 +6,7 @@ export async function installXrRuntime(page: Page): Promise<void> {
     const telemetry = {
       frames: 0, sessions: 0, ended: 0, spaces: [] as string[], rejectAttach: false,
       trackingX: 0, trackingY: 0, aimX: 0, aimY: 0, aimZ: -1, leftPixels: 0, rightPixels: 0, image: '',
-      session: null as FakeSession | null,
+      session: null as FakeSession | null, capture: false, trace: [] as Array<{ left: number; right: number }>,
     };
     Object.assign(window, { xrTest: telemetry });
     Object.defineProperty(WebGL2RenderingContext.prototype, 'makeXRCompatible', {
@@ -76,6 +76,7 @@ export async function installXrRuntime(page: Page): Promise<void> {
             }
             telemetry[key as 'leftPixels' | 'rightPixels'] = lit;
           }
+          if (telemetry.capture) telemetry.trace.push({ left: telemetry.leftPixels, right: telemetry.rightPixels });
           if (telemetry.frames % 10 === 0) {
             const canvas = document.createElement('canvas'); canvas.width = 640; canvas.height = 320;
             const context = canvas.getContext('2d')!;

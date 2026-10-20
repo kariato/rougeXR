@@ -1,3 +1,4 @@
+import type { MovementMode } from '../xr/locomotion';
 import { observedStatusEffects } from './status-effects';
 import { assetUrl } from '../../asset-url';
 import { SceneGeneration } from './asset-cache';
@@ -8,8 +9,8 @@ import type { GameAction } from '../../engine/model/action';
 import type { PlayerObservation } from '../../engine/model/observation';
 import type { Direction, EquipmentSlot } from '../../engine/model/state';
 
-export interface SpatialMenuState { names: string[]; saveName: string; sound: boolean; volume: number }
-export type SpatialMenuCommand = { type: 'save' | 'restart' | 'sound' | 'map' | 'exitXR' } | { type: 'load' | 'name'; name: string } | { type: 'volume'; value: number };
+export interface SpatialMenuState { names: string[]; saveName: string; sound: boolean; volume: number; movement: MovementMode; vignette: boolean }
+export type SpatialMenuCommand = { type: 'save' | 'restart' | 'sound' | 'map' | 'exitXR' } | { type: 'load' | 'name'; name: string } | { type: 'volume'; value: number } | { type: 'movement'; value: MovementMode } | { type: 'vignette'; value: boolean };
 type Item = PlayerObservation['inventory'][number];
 export function inventoryActions(item: Item, direction: Direction): Array<{ label: string; action: GameAction }> {
   const actions: Array<{ label: string; action: GameAction }> = [];
@@ -29,8 +30,8 @@ export class SpatialInventory {
   readonly root = new THREE.Group();
   open = false;
   private readonly generation = new SceneGeneration();
-  private menuMode: 'inventory' | 'menu' | 'keyboard' | 'load' | 'restart' | 'effects' | 'discoveries' | 'ending' | 'settings' | 'controls' | 'actions' | 'history' | 'target' = 'inventory';
-  private settings: SpatialMenuState = { names: [], saveName: 'My adventure', sound: true, volume: .35 };
+  private menuMode: 'inventory' | 'menu' | 'keyboard' | 'load' | 'restart' | 'effects' | 'discoveries' | 'ending' | 'settings' | 'controls' | 'actions' | 'history' | 'target' | 'movement' = 'inventory';
+  private settings: SpatialMenuState = { names: [], saveName: 'My adventure', sound: true, volume: .35, movement: 'comfort', vignette: true };
   private draftName = '';
   private selected: string | null = null;
   private page = 0;
@@ -183,7 +184,7 @@ export class SpatialInventory {
       this.button('Discoveries', 0, -.49, 1.4, .1, () => this.navigate('discoveries'));
       return;
     }
-    const titles: Record<string, string> = { menu: 'ADVENTURE', discoveries: 'DISCOVERIES', effects: 'STATUS EFFECTS', settings: 'SETTINGS', controls: 'CONTROLS', actions: 'ACTIONS', history: 'MESSAGE HISTORY', target: 'CHOOSE A DIRECTION', keyboard: 'NAME YOUR SAVE', load: 'LOAD ADVENTURE', restart: 'RESTART ADVENTURE' };
+    const titles: Record<string, string> = { menu: 'ADVENTURE', discoveries: 'DISCOVERIES', effects: 'STATUS EFFECTS', settings: 'SETTINGS', movement: 'MOVEMENT & COMFORT', controls: 'CONTROLS', actions: 'ACTIONS', history: 'MESSAGE HISTORY', target: 'CHOOSE A DIRECTION', keyboard: 'NAME YOUR SAVE', load: 'LOAD ADVENTURE', restart: 'RESTART ADVENTURE' };
     this.button(titles[this.menuMode] ?? 'ADVENTURE', 0, .49, 1.4, .09);
     if (this.menuMode !== 'menu') this.button('Back', -.52, .61, .32, .1, () => this.navigate(ending ? 'ending' : 'menu'));
     this.button('Close', .52, .61, .32, .1, () => this.close());
@@ -227,13 +228,24 @@ export class SpatialInventory {
       if (!item && !onStairs) this.button('No item or stair interaction here.', 0, -.1, 1.4, .12);
       return;
     }
+    if (this.menuMode === 'movement') {
+      this.button('Comfort — fade between squares', 0, .28, 1.4, .13,
+        () => this.command({ type: 'movement', value: 'comfort' }), this.settings.movement === 'comfort');
+      this.button('Glide — smooth steps', 0, .08, 1.4, .13,
+        () => this.command({ type: 'movement', value: 'glide' }), this.settings.movement === 'glide');
+      this.button(`Glide vignette: ${this.settings.vignette ? 'On' : 'Off'}`, 0, -.12, 1.4, .12,
+        () => this.command({ type: 'vignette', value: !this.settings.vignette }));
+      this.button('VR movement\nHead tracking stays immediate. Turns remain 45° snaps.', 0, -.36, 1.4, .18);
+      return;
+    }
     if (this.menuMode === 'settings') {
       this.button(this.settings.sound ? 'Sound: On' : 'Sound: Off', 0, .28, 1.4, .12, () => this.command({ type: 'sound' }));
       this.button(`Volume ${Math.round(this.settings.volume * 100)}%`, 0, .1, 1.4, .1);
       this.button('Quieter', -.36, -.06, .65, .12, () => this.command({ type: 'volume', value: Math.max(0, this.settings.volume - .1) }));
       this.button('Louder', .36, -.06, .65, .12, () => this.command({ type: 'volume', value: Math.min(1, this.settings.volume + .1) }));
-      this.button('Tabletop / first person', 0, -.28, 1.4, .12, () => this.command({ type: 'map' }));
-      if (this.immersive) this.button('Exit VR', 0, -.48, 1.4, .12, () => this.command({ type: 'exitXR' }));
+      this.button('Movement & comfort', 0, -.22, 1.4, .12, () => this.navigate('movement'));
+      this.button('Tabletop / first person', 0, -.39, 1.4, .12, () => this.command({ type: 'map' }));
+      if (this.immersive) this.button('Exit VR', 0, -.56, 1.4, .12, () => this.command({ type: 'exitXR' }));
       return;
     }
     if (this.menuMode === 'discoveries') {
