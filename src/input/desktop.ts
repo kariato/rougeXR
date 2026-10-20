@@ -14,7 +14,7 @@ export type PovArrowCommand = 'turnLeft' | 'turnRight' | 'forward' | 'backward';
 
 export function povCommandForKeyboardEvent(event: KeyboardInput): PovArrowCommand | null {
   if (event.repeat || isEditableTarget(event.target)) return null;
-  return ({ ArrowLeft: 'turnLeft', ArrowRight: 'turnRight', ArrowUp: 'forward', ArrowDown: 'backward' } as const)[event.key as 'ArrowLeft'] ?? null;
+  return ({ ArrowLeft: 'turnLeft', ArrowRight: 'turnRight', ArrowUp: 'forward', ArrowDown: 'backward', w: 'forward', s: 'backward' } as const)[event.key as 'ArrowLeft'] ?? null;
 }
 
 export function actionForKeyboardEvent(event: KeyboardInput): GameAction | null {
@@ -46,7 +46,7 @@ export function bindViewTurnInput(target: Window, stepDegrees: () => number, tur
   return () => target.removeEventListener('keydown', onKeyDown);
 }
 
-/** First-person arrow controls rotate the view or move along its current eight-way heading. */
+/** First-person arrows turn and travel; W/S also follow the current eight-way heading. */
 export function bindPovArrowInput(target: Window, stepDegrees: () => number, turn: (degrees: number) => boolean,
   move: (forward: boolean) => boolean): () => void {
   const onKeyDown = (event: KeyboardEvent): void => {
@@ -61,6 +61,7 @@ export function bindPovArrowInput(target: Window, stepDegrees: () => number, tur
 
 export function bindDesktopInput(target: Window, submit: (action: GameAction) => void): () => void {
   const onKeyDown = (event: KeyboardEvent): void => {
+    if (event.defaultPrevented) return;
     const action = actionForKeyboardEvent(event);
     if (!action) return;
     event.preventDefault(); submit(action);

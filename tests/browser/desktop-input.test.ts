@@ -20,6 +20,8 @@ describe('desktop input', () => {
     expect(povCommandForKeyboardEvent(keyboard('ArrowRight'))).toBe('turnRight');
     expect(povCommandForKeyboardEvent(keyboard('ArrowUp'))).toBe('forward');
     expect(povCommandForKeyboardEvent(keyboard('ArrowDown'))).toBe('backward');
+    expect(povCommandForKeyboardEvent(keyboard('w'))).toBe('forward');
+    expect(povCommandForKeyboardEvent(keyboard('s'))).toBe('backward');
     expect(povCommandForKeyboardEvent(keyboard('ArrowUp', { target: { tagName: 'INPUT' } }))).toBeNull();
   });
   it('ignores repeats, unknown keys, and focused controls (B02)', () => {
