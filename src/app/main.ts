@@ -98,7 +98,8 @@ const gridView = new CanvasGridView(canvas);
 const threeView = new ThreeGameView();
 let view: GameView = threeView;
 const xrSystem = (navigator as Navigator & { xr?: XrSystemLike }).xr ?? null;
-const xrController = new XrSessionController(xrSystem, session => threeView.setXrSession(session));
+const xrController = new XrSessionController(xrSystem, session => threeView.setXrSession(session), updateXrControls,
+  error => checkpointMessage(`VR could not close cleanly: ${error instanceof Error ? error.message : String(error)}`));
 required<HTMLButtonElement>('#ending-restart').addEventListener('click', () => newGame.click());
 required<HTMLButtonElement>('#ending-load').addEventListener('click', () => {
   required<HTMLSelectElement>('#saved-games').value = required<HTMLSelectElement>('#ending-saves').value;
@@ -345,7 +346,16 @@ viewMode.addEventListener('change', () => {
   render();
 });
 cameraMode.addEventListener('change', () => { stopMovementStick(); threeView.setMode(cameraMode.value as 'firstPerson' | 'orbit' | 'tabletop'); render(); });
-xrToggle.addEventListener('click', () => { void xrController.toggle().then(updateXrControls).catch(error => { xrStatus.textContent = `XR failed: ${error instanceof Error ? error.message : String(error)}`; }); });
+xrToggle.addEventListener('click', () => {
+  if (xrController.status() === 'available') {
+    if (view !== threeView) { viewMode.value = '3d'; viewMode.dispatchEvent(new Event('change')); }
+    cameraMode.value = 'firstPerson'; cameraMode.dispatchEvent(new Event('change'));
+  }
+  void xrController.toggle().catch(error => {
+    const message = `Could not enter VR: ${error instanceof Error ? error.message : String(error)}`;
+    xrStatus.textContent = message; checkpointMessage(message);
+  });
+});
 threeView.canvas.addEventListener('rougexr-inventory-toggle', event => {
   const open = (event as CustomEvent<{ open: boolean }>).detail.open;
   viewHost.dataset.spatialOpen = String(open);

@@ -51,6 +51,8 @@ export class ThreeGameView implements GameView {
   private readonly renderer: THREE.WebGLRenderer;
   private readonly scene = new THREE.Scene();
   private readonly camera = new THREE.PerspectiveCamera(68, 1, 0.05, 120);
+  private readonly xrRig = new THREE.Group();
+  private xrActive = false;
   private readonly hand = createFirstPersonHand();
   private readonly weaponMount = new THREE.Group();
   private readonly world = new THREE.Group();
@@ -139,14 +141,15 @@ export class ThreeGameView implements GameView {
     this.camera.add(this.spatialInventory.root);
     this.camera.add(this.spatialStatus.root);
     this.camera.add(this.deathPresentation.label);
-    this.scene.add(this.camera);
+    this.xrRig.add(this.camera);
+    this.scene.add(this.xrRig);
     for (let index = 0; index < 2; index++) {
       const controller = this.renderer.xr.getController(index);
       const ray = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3(0, 0, -1)]), new THREE.LineBasicMaterial({ color: 0x67e8f9 }));
       ray.scale.z = 2; controller.add(ray); controller.visible = false;
       controller.addEventListener('select', () => this.commitXrIntent(controller, true));
       controller.addEventListener('squeeze', () => this.commitXrIntent(controller, false));
-      this.xrControllers.push(controller); this.scene.add(controller);
+      this.xrControllers.push(controller); this.xrRig.add(controller);
     }
   }
 
@@ -418,12 +421,13 @@ export class ThreeGameView implements GameView {
     this.width = Math.max(1, Math.floor(width));
     this.height = Math.max(1, Math.floor(height));
     // Fit the entire panel, including vertical extents; immersive sizing is independent of the mirror window.
-    const immersive = this.renderer.xr.isPresenting;
+    const immersive = this.xrActive;
     const aspect = this.width / this.height;
     const half = Math.tan(34 * Math.PI / 180);
     this.spatialStatus.root.scale.setScalar(immersive ? 1 : Math.min(1, aspect * 1.25 * half / .82, 1.25 * half / .83));
     this.spatialInventory.root.scale.setScalar(immersive ? 1 : Math.min(1, aspect * 1.3 * half / .83, 1.3 * half / .78));
     this.deathPresentation.label.scale.setScalar(immersive ? 1 : Math.min(1, aspect * .9 * half / .53));
+    if (immersive) return; // WebXR owns the projection and framebuffer dimensions.
     this.camera.aspect = this.width / this.height;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(this.width, this.height, false);
@@ -568,16 +572,65 @@ export class ThreeGameView implements GameView {
   }
 
   async setXrSession(session: XrSessionLike | null): Promise<void> {
-    this.renderer.xr.enabled = session !== null;
-    await this.renderer.xr.setSession(session as XRSession | null);
+    if (this.frame !== null) cancelAnimationFrame(this.frame);
+    this.frame = null;
+    this.xrActive = session !== null;
+    this.canvas.dataset.xrActive = String(this.xrActive);
+    if (session) {
+      // Phone/3DoF runtimes may support local tracking without local-floor tracking.
+      this.renderer.xr.setReferenceSpaceType('local');
+      this.renderer.xr.enabled = true;
+      this.updateXrRig();
+      this.camera.position.set(0, 0, 0);
+      this.camera.quaternion.identity();
+      this.lastFrame = performance.now();
+      await this.renderer.xr.setSession(session as XRSession);
+      this.renderer.setAnimationLoop(this.onXrFrame);
+    } else {
+      // Three.js already tears down the native session in its own end listener.
+      this.renderer.setAnimationLoop(null);
+      this.renderer.xr.enabled = false;
+      this.xrRig.position.set(0, 0, 0);
+      this.xrRig.quaternion.identity();
+      this.xrIntent.reset();
+    }
     for (const controller of this.xrControllers) controller.visible = session !== null;
     this.spatialInventory.setImmersive(session !== null);
     this.resize(this.width, this.height);
-    if (session) this.renderer.setAnimationLoop(() => {
-      this.spatialInventory.hover(this.xrControllers.filter(controller => controller.visible).map(controller => new THREE.Raycaster(controller.getWorldPosition(new THREE.Vector3()), new THREE.Vector3(0, 0, -1).applyQuaternion(controller.getWorldQuaternion(new THREE.Quaternion())))));
-      this.updateFirstPersonHand(performance.now()); this.spatialStatus.tick(performance.now()); this.deathPresentation.update((this.observation?.status.hp ?? 1) <= 0, this.scene, !this.spatialInventory.open); this.discoveryFeedback.update(performance.now()); this.hitFeedback.update(performance.now(), this.camera); this.world.traverse(object => { if (object.userData.faceCamera) object.quaternion.copy(this.camera.quaternion); }); this.renderer.render(this.scene, this.camera); });
-    else { this.renderer.setAnimationLoop(null); this.xrIntent.reset(); this.placeCamera(); }
+    if (!session) { this.placeCamera(); this.ensureAnimation(); }
   }
+
+  private updateXrRig(): void {
+    const observation = this.observation;
+    if (!observation) return;
+    if (this.mode === 'firstPerson') {
+      this.xrRig.position.set(observation.playerAt.x, .72, observation.playerAt.y);
+      this.xrRig.rotation.set(0, this.yaw - Math.PI, 0);
+    } else {
+      const target = new THREE.Vector3(
+        (this.mode === 'tabletop' ? observation.width / 2 : observation.playerAt.x) * this.worldScale, 0,
+        (this.mode === 'tabletop' ? observation.height / 2 : observation.playerAt.y) * this.worldScale);
+      const horizontal = Math.cos(this.pitch) * this.distance;
+      this.xrRig.position.set(target.x - Math.sin(this.yaw) * horizontal,
+        1.2 - Math.sin(this.pitch) * this.distance, target.z - Math.cos(this.yaw) * horizontal);
+      this.xrRig.quaternion.setFromRotationMatrix(new THREE.Matrix4().lookAt(this.xrRig.position, target, new THREE.Vector3(0, 1, 0)));
+    }
+    this.xrRig.updateMatrixWorld(true);
+  }
+
+  private readonly onXrFrame = (now: number): void => {
+    this.animate(now);
+    this.renderer.xr.updateCamera(this.camera);
+    this.spatialInventory.hover(this.xrControllers.filter(controller => controller.visible).map(controller =>
+      new THREE.Raycaster(controller.getWorldPosition(new THREE.Vector3()),
+        new THREE.Vector3(0, 0, -1).applyQuaternion(controller.getWorldQuaternion(new THREE.Quaternion())))));
+    this.updateFirstPersonHand(now);
+    this.deathPresentation.update((this.observation?.status.hp ?? 1) <= 0, this.scene, !this.spatialInventory.open);
+    this.discoveryFeedback.update(now);
+    this.hitFeedback.update(now, this.camera);
+    this.world.traverse(object => { if (object.userData.faceCamera) object.quaternion.copy(this.camera.quaternion); });
+    this.renderer.render(this.scene, this.camera);
+  };
 
   private readonly animate = (now: number): void => {
     this.spatialStatus.tick(now);
@@ -603,12 +656,13 @@ export class ThreeGameView implements GameView {
     }
     this.placeCamera();
     const moving = this.cameraActions.length>0 || this.doorVisuals.some(door => door.openedAt !== null && now < door.openedAt + 750) || [...this.corpses.values()].some(corpse => corpse.settlingUntil > 0) || Math.abs(this.yaw - this.targetYaw) > 0.0001 || Math.abs(this.pitch - this.targetPitch) > 0.0001 || Math.abs(this.distance - this.targetDistance) > 0.001 || Math.abs(this.worldScale - this.targetWorldScale) > 0.0001 || now < this.animationUntil;
-    this.frame = moving ? requestAnimationFrame(this.animate) : null;
+    this.frame = !this.xrActive && moving ? requestAnimationFrame(this.animate) : null;
   };
 
   private placeCamera(): void {
     const observation = this.observation;
     if (!observation) return;
+    if (this.xrActive) { this.updateXrRig(); return; }
     const player = observation.playerAt;
     if (this.mode === 'firstPerson') {
       const { bob, death } = this.updateFirstPersonHand(performance.now());
@@ -734,7 +788,7 @@ export class ThreeGameView implements GameView {
   private readonly onVisibilityChange = (): void => { if (document.hidden) this.clearCapturedInput(); };
 
   private ensureAnimation(): void {
-    if (this.frame !== null) return;
+    if (this.xrActive || this.frame !== null) return;
     this.lastFrame = performance.now();
     this.frame = requestAnimationFrame(this.animate);
   }

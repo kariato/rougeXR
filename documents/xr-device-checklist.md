@@ -39,3 +39,9 @@ These checks remain pending on physical hardware. Browser ray-selection tests co
 - Confirm Pick up and stair actions appear only where relevant in Actions.
 - Save, name, load, cancel a restart, and confirm a restart without using the browser toolbar.
 - Exit VR through Settings and through the system interface, then re-enter and verify menu sizing and input.
+
+## XR entry repair (20 October 2026)
+
+The camera and controllers now share a tracking rig anchored at the current dungeon cell. XR uses a `local` reference space rather than requiring floor tracking. Browser resizes leave XR framebuffer sizing to the runtime, the native XR frame loop advances scene animations, and system exit restores the desktop renderer after Three.js completes its own cleanup. Failed attachment ends the session and reports the failure in the game.
+
+Automated stereo tests use a simulated XR device and the real Three.js/WebGL renderer. They sample central dungeon pixels in both eyes, change tracked position, resize the mirror, exit/re-enter, recover from an attachment error, enter from Map, and select spatial menus through a tracked controller ray. This verifies the software rendering path; it does not replace testing the reported phone/browser or a physical headset.
