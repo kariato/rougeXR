@@ -56,8 +56,19 @@
       .movement-stick::after { content: '↶                 ↷'; position: absolute; top: 43%; left: .3rem; right: .3rem; white-space: pre; color: #e4c17d; pointer-events: none; font-size: 1rem; }
       .movement-stick-knob { display: block; width: 3rem; height: 3rem; margin: auto; border: 2px solid #e0f2fe; border-radius: 50%; background: #38bdf8bb; box-shadow: 0 2px 8px #0009; pointer-events: none; }
       .attack-button { display: none; position: absolute; z-index: 4; right: max(.75rem, env(safe-area-inset-right)); bottom: calc(max(.75rem, env(safe-area-inset-bottom)) + 4.15rem); width: 4.75rem; height: 4.75rem; padding: 0; border: 2px solid #fecaca; border-radius: 50%; background: #991b1be0; color: #fff; font-weight: 700; box-shadow: 0 0 0 .3rem #07111d66; touch-action: manipulation; }
-      .attack-button[hidden] { display: none; }
-      @media (any-pointer: coarse) { .movement-stick { display: grid; place-items: center; } .attack-button { display: grid; place-items: center; } }
+      .attack-button[data-action="move"] { background: #234459e8; border-color: #d5c6a5; }
+      .search-button { display: none; position: absolute; z-index: 4; right: max(.75rem, env(safe-area-inset-right)); bottom: calc(max(.75rem, env(safe-area-inset-bottom)) + 9.4rem); width: 4.75rem; min-height: 3rem; padding: .35rem; border: 1px solid #d5c6a5; background: #172332eb; color: #fff; font-weight: 600; touch-action: manipulation; }
+      .attack-button[hidden], .search-button[hidden] { display: none; }
+      .map[data-spatial-open="true"] .search-button { visibility: hidden; }
+      .seed-picker { margin: .6rem 0 1rem; padding: .75rem; border: 1px solid #88724e; border-radius: .4rem; background: #0b1420; }
+      .seed-picker label, #welcome .seed-picker label { margin: 0 0 .5rem; }
+      .seed-entry { display: flex; gap: .5rem; }
+      .seed-entry input { min-width: 0; width: 100%; flex: 1; font-size: 1rem; }
+      #welcome .seed-entry button, .seed-entry button { width: auto; margin: 0; }
+      .seed-picker p { margin: .5rem 0 0; font-size: .8rem; }
+      #checkpoint-feedback { margin: 0; color: #bce8c4; font-size: .9rem; overflow-wrap: anywhere; }
+      #checkpoint-feedback:empty { display: none; }
+      @media (any-pointer: coarse) { .movement-stick { display: grid; place-items: center; } .attack-button, .search-button { display: grid; place-items: center; } }
       .tools-controls { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
       .tools-controls label { display: inline-flex; align-items: center; gap: .3rem; }
       button, select, input { color: #dbeafe; background: #1e293b; border: 1px solid #475569; border-radius: .35rem; padding: .45rem .8rem; }
@@ -104,13 +115,14 @@
       <p>A dungeon adventure for VR</p><h2 id="welcome-title">rougeXR</h2>
       <p id="welcome-intro">Find the Amulet of Yendor, survive the depths, and return to the surface.</p>
       <button id="welcome-new" type="button" autofocus>Start New Game</button>
+      <div class="seed-picker"><label for="welcome-seed">World seed</label><div class="seed-entry"><input id="welcome-seed" type="number" inputmode="numeric" min="0" max="4294967295" step="1" value="12345" required><button id="welcome-random" type="button">Random</button></div><p>Reuse a seed to explore the same starting dungeon.</p></div>
       <label for="welcome-saves">Continue an old adventure</label>
       <select id="welcome-saves" aria-label="Welcome saved games" disabled><option>Checking saved games…</option></select>
       <button id="welcome-load" type="button" disabled>Load Saved Game</button>
       <p id="welcome-status" role="status">Checking this browser for saved adventures…</p>
     </dialog>
     <dialog id="restart-confirm" class="confirm-dialog" aria-labelledby="restart-confirm-title">
-      <form method="dialog"><h2 id="restart-confirm-title">Restart adventure?</h2><p>Your current progress will be replaced. Saved checkpoints stay available.</p><div class="tools-controls"><button value="cancel" autofocus>Keep playing</button><button id="confirm-restart" value="restart">Restart adventure</button></div></form>
+      <form method="dialog"><h2 id="restart-confirm-title">Restart adventure?</h2><p>Your current progress will be replaced. Saved checkpoints stay available.</p><div class="seed-picker"><label for="restart-seed">World seed</label><div class="seed-entry"><input id="restart-seed" type="number" inputmode="numeric" min="0" max="4294967295" step="1" required><button id="restart-random" type="button">Random</button></div></div><div class="tools-controls"><button value="cancel" formnovalidate autofocus>Keep playing</button><button id="confirm-restart" value="restart">Restart adventure</button></div></form>
     </dialog>
     <main>
       <header class="shell-toolbar">
@@ -121,8 +133,8 @@
         <select hidden id="view-mode" aria-label="View mode"><option value="3d">3D dungeon</option><option value="2d">Map</option></select>
         <select hidden id="camera-mode" aria-label="Camera mode"><option value="firstPerson">First person</option><option value="orbit">Orbit</option><option value="tabletop">Tabletop</option></select>
         <button id="new-game" type="button">New Game</button>
-        <input id="save-name" type="text" maxlength="80" value="My adventure" aria-label="Save name" title="Use the same name to update a saved game">
-        <button id="save-local" type="button" title="Save a checkpoint in this browser">Save Game</button>
+        <input id="save-name" type="text" maxlength="80" value="" aria-label="Save name" title="Use the same name to update a saved game">
+        <button id="save-local" type="button" title="Save a checkpoint in this browser">Save Game</button><p id="checkpoint-feedback" role="status" aria-live="polite"></p>
         <select id="saved-games" aria-label="Saved games"><option value="">No saved games</option></select>
         <button id="restore-local" type="button" title="Restart from your saved checkpoint">Load Save</button>
           <label>View <select id="display-view" aria-label="View"><option value="firstPerson">First person</option><option value="orbit">Orbit</option><option value="tabletop">Tabletop</option><option value="map">Map</option></select></label>
@@ -141,6 +153,7 @@
           <div class="message" id="hud-message" aria-live="polite"></div>
           <div class="actions" aria-label="Primary actions"><button id="turn-left" type="button" aria-label="Turn POV left">⟲</button><button id="turn-right" type="button" aria-label="Turn POV right">⟳</button><button id="rest" type="button">Rest</button><button id="search" type="button">Search</button><button id="pickup" type="button">Pick up</button><button id="descend" type="button">Descend</button><button id="ascend" type="button">Ascend</button></div>
           <button id="movement-stick" class="movement-stick" type="button" aria-label="Drag up or down to move; left or right turns once. Return to center to change direction."><span id="movement-stick-knob" class="movement-stick-knob" aria-hidden="true"></span></button>
+          <button id="mobile-search" class="search-button" type="button" aria-label="Search nearby">Search</button>
           <button id="attack-front" class="attack-button" type="button" aria-label="Attack monster in front" disabled>Attack</button>
         </section>
         <aside id="tools-panel" aria-label="Developer tools" hidden>

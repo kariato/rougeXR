@@ -48,13 +48,15 @@ test('touch Attack button hits only a monster directly ahead', async ({ page }) 
   await toggleTools(page);
   const attack = page.locator('#attack-front');
   await expect(attack).toBeVisible();
-  await expect(attack).toBeDisabled();
+  await expect(attack).toBeEnabled();
+  await expect(attack).toHaveText('Forward');
   await page.locator('h1').click();
   await page.keyboard.press('d');
   await expect(page.locator('#state-summary')).toContainText('Revision 1');
   await gameKey(page, ']');
   await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-pov-direction', 'E');
   await expect(attack).toBeEnabled();
+  await expect(attack).toHaveText('Attack');
   await attack.click();
   await expect(page.locator('#state-summary')).toContainText('Revision 2');
   await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-weapon-action', 'attack');
@@ -84,4 +86,22 @@ test('larger stick ignores small drifts, locks direction, and turns only once pe
   await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-player-at', '6,4');
   await expect(page.locator('#state-summary')).toContainText('Revision 1');
   await expect(stick).not.toHaveAttribute('data-direction');
+});
+
+test('touch Forward walks and the separate Search searches without moving', async ({ page }) => {
+  await page.goto('/'); await page.locator('#welcome-new').click();
+  await toggleTools(page); await page.locator('#world-mode').selectOption('rooms');
+  await page.locator('#new-game').dispatchEvent('click'); await toggleTools(page);
+  const forward = page.locator('#attack-front'), search = page.locator('#mobile-search');
+  await expect(forward).toHaveText('Forward'); await expect(search).toBeVisible();
+  const a = (await forward.boundingBox())!, b = (await search.boundingBox())!;
+  expect(b.y + b.height).toBeLessThan(a.y);
+  expect(b.width).toBeGreaterThanOrEqual(44); expect(b.height).toBeGreaterThanOrEqual(44);
+  await forward.click();
+  await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-player-at', '5,4');
+  await expect(page.locator('#state-summary')).toContainText('Revision 1');
+  await search.click();
+  await expect(page.locator('#state-summary')).toContainText('Revision 2');
+  await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-player-at', '5,4');
+  await gameKey(page, 'm'); await expect(search).toBeHidden(); await expect(forward).toBeHidden();
 });

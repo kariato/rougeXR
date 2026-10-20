@@ -53,3 +53,9 @@ VR Settings → Movement & comfort now offers Comfort (default) and Glide. Comfo
 The transition affects presentation only: one step still consumes one game turn, native head tracking remains immediate, and rig eye height stays steady. Combat does not force the tracked view to face a target. Long jumps and level transitions use Comfort rather than gliding across unseen terrain.
 
 On the target headset, check both modes with the vignette enabled and disabled, repeated steps, diagonal movement, a blocked step, a level change, physical head motion during a step, and exit/re-entry. Confirm saved preferences survive a reload and identify the preferred mode through device testing; automated rendering checks cannot establish an individual's comfort.
+
+## Touch controls, checkpoints, and seeds (20 October 2026)
+
+On mobile, the primary button reads Forward when the cell ahead has no attackable monster, and Attack when one is directly ahead. A separate Search button sits above it. Confirm each tap commits one action, Search does not move, and both controls disappear while a spatial menu is open.
+
+Save confirmation now stays inside the open Adventure menu, including an explicit failure message when browser storage is unavailable. Automatic checkpoint names use local date/time and the current world seed; manually entered names still update a matching checkpoint. Welcome and restart screens offer a world-seed field and Random button. In VR, Restart offers a controller-operated numeric keypad and Random seed button before confirmation. Confirm these controls are legible and reachable on the target phone and headset.

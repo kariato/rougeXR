@@ -1,3 +1,5 @@
+import { checkpointStamp, defaultCheckpointName } from '../persistence/checkpoint-name';
+import { randomWorldSeed } from '../input/random-seed';
 import { parseLocomotionPreferences } from '../presentation/xr/locomotion';
 import type { SpatialMenuCommand } from '../presentation/three/spatial-inventory';
 import { GameAudio } from '../presentation/audio/game-audio';
@@ -61,6 +63,7 @@ const turnRight = required<HTMLButtonElement>('#turn-right');
 const movementStick = required<HTMLButtonElement>('#movement-stick');
 const movementStickKnob = required<HTMLElement>('#movement-stick-knob');
 const attackFront = required<HTMLButtonElement>('#attack-front');
+const mobileSearch = required<HTMLButtonElement>('#mobile-search');
 const turnAngle = required<HTMLSelectElement>('#turn-angle');
 const viewMode = required<HTMLSelectElement>('#view-mode');
 const cameraMode = required<HTMLSelectElement>('#camera-mode');
@@ -158,8 +161,14 @@ function frontAttackRequest(observation: PlayerObservation) {
 
 function refreshAttackButton(observation: PlayerObservation = observe(session.exportState())): void {
   attackFront.hidden = view !== threeView || cameraMode.value !== 'firstPerson';
-  attackFront.disabled = replayPlayer !== null || observation.pendingDecision !== null ||
-    observation.status.hp <= 0 || xrController.status() === 'active' || frontAttackRequest(observation) === null;
+  const attacking = frontAttackRequest(observation) !== null;
+  attackFront.textContent = attacking ? 'Attack' : 'Forward';
+  attackFront.dataset.action = attacking ? 'attack' : 'move';
+  attackFront.setAttribute('aria-label', attacking ? 'Attack monster in front' : 'Move forward');
+  attackFront.disabled = attackFront.hidden || replayPlayer !== null || observation.pendingDecision !== null ||
+    observation.status.hp <= 0 || observation.ending !== undefined || xrController.status() === 'active';
+  mobileSearch.hidden = attackFront.hidden;
+  mobileSearch.disabled = attackFront.disabled;
 }
 
 function render(): void {
@@ -321,7 +330,9 @@ attackFront.addEventListener('click', () => {
   if (attackFront.disabled) return;
   const request = frontAttackRequest(observe(session.exportState()));
   if (request) enqueue(request.action, request.expectedRevision);
+  else submit(threeView.movementDirectionForPov(true));
 });
+mobileSearch.addEventListener('click', () => { if (!mobileSearch.disabled) submit({ type: 'search' }); });
 bindViewTurnInput(window, () => Number(turnAngle.value), turnCamera);
 bindPovArrowInput(window, () => Number(turnAngle.value), turnCamera, forward => {
   if (view !== threeView || cameraMode.value !== 'firstPerson' || xrController.status() === 'active') return false;
@@ -392,10 +403,17 @@ pickup.addEventListener('click', () => submit({ type: 'pickup' }));
 descend.addEventListener('click', () => submit({ type: 'descend' }));
 ascend.addEventListener('click', () => submit({ type: 'ascend' }));
 const restartConfirm = required<HTMLDialogElement>('#restart-confirm');
-restartConfirm.addEventListener('close', () => { if (restartConfirm.returnValue === 'restart') newGame.click(); });
+const restartSeed = required<HTMLInputElement>('#restart-seed');
+const welcomeSeed = required<HTMLInputElement>('#welcome-seed');
+for (const [id, input] of [['#welcome-random', welcomeSeed], ['#restart-random', restartSeed]] as const) {
+  required<HTMLButtonElement>(id).addEventListener('click', () => { input.value = String(randomWorldSeed(Number(input.value))); });
+}
+restartConfirm.addEventListener('close', () => {
+  if (restartConfirm.returnValue === 'restart') { seedInput.value = restartSeed.value; newGame.click(); }
+});
 newGame.addEventListener('click', event => {
   if (event.isTrusted && !welcome.open && !observe(session.exportState()).ending) {
-    restartConfirm.returnValue = ''; restartConfirm.showModal(); return;
+    restartSeed.value = seedInput.value; restartConfirm.returnValue = ''; restartConfirm.showModal(); return;
   }
   actionQueue = actionQueue.then(async () => {
     leaveReplayMode();
@@ -405,6 +423,7 @@ newGame.addEventListener('click', event => {
     const validation = validateWorld(state);
     if (validation.length) throw new Error(`New world validation failed: ${JSON.stringify(validation)}`);
     session = new GameSession(state); threeView.resetPresentation(); recorder = new ReplayRecorder(state); selectedIndex = null; latestEvents = []; resetDiagnostics();
+    resetSaveName(seed);
     closeWelcome();
     saveStatus.textContent = `Started ${mode} world with seed ${seed}.`; render();
     await autosave(state);
@@ -469,6 +488,15 @@ function enqueue(action: GameAction, capturedRevision?: number, source?: 'xr' | 
 const MANUAL_SAVE_KEY = 'rougexr.manual-save.v1';
 const NAMED_SAVES_KEY = 'rougexr.named-saves.v1';
 const saveNameInput = required<HTMLInputElement>('#save-name');
+let customSaveName = false;
+let saveFeedback = '';
+let savePending = false;
+function resetSaveName(seed: number): void {
+  customSaveName = false; saveNameInput.value = defaultCheckpointName(seed); saveFeedback = '';
+  required<HTMLElement>('#checkpoint-feedback').textContent = '';
+}
+resetSaveName(session.exportState().seed);
+saveNameInput.addEventListener('input', () => { customSaveName = saveNameInput.value.trim() !== ''; });
 const savedGames = required<HTMLSelectElement>('#saved-games');
 interface NamedCheckpoint { name: string; json: string }
 function readNamedCheckpoints(): NamedCheckpoint[] {
@@ -493,11 +521,11 @@ function refreshSavedGames(selected?: string): void {
   if (selected !== undefined) savedGames.value = selected;
 }
 try { refreshSavedGames(); } catch { /* Storage errors are reported on Save or Load. */ }
-savedGames.addEventListener('change', () => { if (savedGames.value) saveNameInput.value = savedGames.value; });
+savedGames.addEventListener('change', () => { if (savedGames.value) { saveNameInput.value = savedGames.value; customSaveName = true; } });
 function syncSpatialMenu(): void {
   let names: string[] = [];
   try { names = readNamedCheckpoints().map(entry => entry.name); if (localStorage.getItem(MANUAL_SAVE_KEY) !== null) names.push(''); } catch { /* Save controls report storage failures. */ }
-  threeView.configureMenu({ names, saveName: saveNameInput.value.trim() || 'My adventure', sound: gameAudio.enabled, volume: gameAudio.volume, ...locomotionSettings });
+  threeView.configureMenu({ names, saveName: saveNameInput.value.trim() || defaultCheckpointName(session.exportState().seed), saveStatus: saveFeedback, saving: savePending, seed: session.exportState().seed, sound: gameAudio.enabled, volume: gameAudio.volume, ...locomotionSettings });
 }
 threeView.canvas.addEventListener('rougexr-menu-command', event => {
   const command = (event as CustomEvent<SpatialMenuCommand>).detail;
@@ -510,10 +538,10 @@ threeView.canvas.addEventListener('rougexr-menu-command', event => {
     syncSpatialMenu();
   }
   if (command.type === 'exitXR') { void xrController.toggle().then(updateXrControls); }
-  if (command.type === 'name') { saveNameInput.value = command.name; syncSpatialMenu(); }
+  if (command.type === 'name') { saveNameInput.value = command.name; customSaveName = true; syncSpatialMenu(); }
   if (command.type === 'save') required<HTMLButtonElement>('#save-local').click();
   if (command.type === 'load') { refreshSavedGames(command.name); required<HTMLButtonElement>('#restore-local').click(); }
-  if (command.type === 'restart') newGame.click();
+  if (command.type === 'restart') { if (command.seed !== undefined) seedInput.value = String(command.seed); newGame.click(); }
   if (command.type === 'sound') { soundToggle.click(); syncSpatialMenu(); }
   if (command.type === 'volume') { gameAudio.configure(gameAudio.enabled, command.value); refreshAudioControls(); syncSpatialMenu(); }
   if (command.type === 'map') {
@@ -526,16 +554,27 @@ function checkpointMessage(text: string): void {
   threeView.showMessage(text); syncSpatialMenu();
 }
 required<HTMLButtonElement>('#save-local').addEventListener('click', () => {
+  if (savePending) return;
+  savePending = true; saveFeedback = 'Saving…';
+  required<HTMLButtonElement>('#save-local').disabled = true;
+  required<HTMLElement>('#checkpoint-feedback').textContent = saveFeedback; syncSpatialMenu();
   actionQueue = actionQueue.then(() => {
     const state = session.exportState();
-    const name = saveNameInput.value.trim();
-    if (!name) { checkpointMessage('Enter a name for your saved game.'); saveNameInput.focus(); return; }
+    const now = new Date();
+    const name = customSaveName && saveNameInput.value.trim() ? saveNameInput.value.trim() : defaultCheckpointName(state.seed, now);
     const entries = readNamedCheckpoints().filter(entry => entry.name !== name);
     entries.unshift({ name, json: serializeSave(state) });
     localStorage.setItem(NAMED_SAVES_KEY, JSON.stringify(entries));
     saveNameInput.value = name; refreshSavedGames(name);
+    saveFeedback = `Saved ${checkpointStamp(now)} · seed ${state.seed}`;
     checkpointMessage(`Game saved in this browser as “${name}” at level ${state.level.depth}.`);
-  }).catch(error => checkpointMessage(`Could not save game: ${error instanceof Error ? error.message : String(error)}`));
+  }).catch(error => {
+    saveFeedback = 'Save failed — see Messages for details.';
+    checkpointMessage(`Could not save game: ${error instanceof Error ? error.message : String(error)}`);
+  }).finally(() => {
+    savePending = false; required<HTMLButtonElement>('#save-local').disabled = false;
+    required<HTMLElement>('#checkpoint-feedback').textContent = saveFeedback; syncSpatialMenu();
+  });
 });
 required<HTMLButtonElement>('#restore-local').addEventListener('click', () => {
   stopMovementStick();
@@ -549,6 +588,7 @@ required<HTMLButtonElement>('#restore-local').addEventListener('click', () => {
     leaveReplayMode(); session = candidate; threeView.resetPresentation();
     recorder = new ReplayRecorder(candidate.exportState()); selectedIndex = null; latestEvents = [];
     resetDiagnostics(); seedInput.value = String(candidate.exportState().seed);
+    if (name) { saveNameInput.value = name; customSaveName = true; } else resetSaveName(candidate.exportState().seed);
     render(); await autosave(candidate.exportState());
     checkpointMessage(`Restarted from your saved game${name ? ` “${name}”` : ''} on level ${candidate.exportState().level.depth}.`);
   }).catch(error => checkpointMessage(`Could not load saved game: ${error instanceof Error ? error.message : String(error)}`));
@@ -653,7 +693,10 @@ async function prepareWelcome(): Promise<void> {
   if (choices.disabled) choices.add(new Option('No saved games in this browser', ''));
   status.textContent = [welcomeCheckpoints.length ? 'Choose a saved adventure, or start a new one.' : 'Your first adventure awaits. Start a new game.', ...problems].join(' ');
 }
-required<HTMLButtonElement>('#welcome-new').addEventListener('click', () => newGame.click());
+required<HTMLButtonElement>('#welcome-new').addEventListener('click', () => {
+  if (!welcomeSeed.reportValidity()) return;
+  seedInput.value = welcomeSeed.value; worldMode.value = 'generated'; newGame.click();
+});
 required<HTMLButtonElement>('#welcome-load').addEventListener('click', () => {
   actionQueue = actionQueue.then(() => {
     const checkpoint = welcomeCheckpoints[Number(required<HTMLSelectElement>('#welcome-saves').value)];
@@ -664,7 +707,8 @@ required<HTMLButtonElement>('#welcome-load').addEventListener('click', () => {
     leaveReplayMode(); session = candidate; threeView.resetPresentation();
     recorder = new ReplayRecorder(candidate.exportState()); selectedIndex = null; latestEvents = []; resetDiagnostics();
     seedInput.value = String(candidate.exportState().seed);
-    try { if (readNamedCheckpoints().some(entry => entry.name === checkpoint.name)) { saveNameInput.value = checkpoint.name; refreshSavedGames(checkpoint.name); } } catch { /* An autosave can still load when named-save storage is unavailable. */ }
+    resetSaveName(session.exportState().seed);
+    try { if (readNamedCheckpoints().some(entry => entry.name === checkpoint.name)) { saveNameInput.value = checkpoint.name; customSaveName = true; refreshSavedGames(checkpoint.name); } } catch { /* An autosave can still load when named-save storage is unavailable. */ }
     closeWelcome(); render(); checkpointMessage(`Loaded “${checkpoint.name}” on level ${candidate.exportState().level.depth}.`);
   }).catch(error => { required<HTMLElement>('#welcome-status').textContent = `Could not load this adventure: ${error instanceof Error ? error.message : String(error)}`; });
 });

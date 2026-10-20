@@ -45,3 +45,27 @@ test('keeps welcome available when a saved game is corrupt', async ({ page }) =>
   await page.locator('#welcome-new').click();
   await expect(page.getByRole('dialog')).toBeHidden();
 });
+
+test('accepts a chosen seed and generates a new seed on welcome and restart', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('#welcome-random').click();
+  const random = Number(await page.locator('#welcome-seed').inputValue());
+  expect(random).not.toBe(12345); expect(random).toBeGreaterThanOrEqual(0); expect(random).toBeLessThanOrEqual(4294967295);
+  await page.locator('#welcome-seed').fill('43210'); await page.locator('#welcome-new').click();
+  await expect(page.locator('#state-summary')).toContainText('Seed 43210');
+  await expect(page.locator('#save-name')).toHaveValue(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} · seed 43210/);
+  await desktopClick(page, '#save-local');
+  const saves = await page.evaluate(() => JSON.parse(localStorage.getItem('rougexr.named-saves.v1')!));
+  expect(saves[0].name).toMatch(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} · seed 43210/);
+  await page.locator('.desktop-menu > summary').click(); await page.locator('#new-game').click();
+  await expect(page.locator('#restart-seed')).toHaveValue('43210');
+  await page.locator('#restart-seed').fill(''); await page.getByRole('button', { name: 'Keep playing' }).click();
+  await expect(page.locator('#restart-confirm')).toBeHidden();
+  await expect(page.locator('#state-summary')).toContainText('Seed 43210');
+  await page.locator('#new-game').click();
+  await page.locator('#restart-random').click();
+  expect(await page.locator('#restart-seed').inputValue()).not.toBe('43210');
+  await page.locator('#restart-seed').fill('9876'); await page.locator('#confirm-restart').click();
+  await expect(page.locator('#state-summary')).toContainText('Seed 9876');
+  await expect(page.locator('#save-name')).toHaveValue(/seed 9876$/);
+});

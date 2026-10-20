@@ -53,3 +53,17 @@ test('keeps the spatial menu accessible after death', async ({ page }) => {
   await click3d(page, -.36, -.34); // Restart from the results panel
   await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-dead', 'false');
 });
+
+test('shows save confirmation in the open menu and lets VR players enter a seed', async ({ page }) => {
+  await page.goto('/'); await page.locator('#welcome-new').click(); await openMenu(page);
+  await click3d(page, -.36, .1);
+  await expect(page.locator('#dungeon-3d')).toHaveAttribute('aria-description', /Saved \d{4}-.*seed 12345/);
+  await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-inventory-open', 'true');
+  await click3d(page, 0, -.59); await click3d(page, 0, -.2); // Restart → seed keypad
+  await click3d(page, .48, -.4); // Clear
+  await click3d(page, -.48, .22); await click3d(page, 0, .22); // 12
+  await click3d(page, -.36, -.52); // Done
+  await expect(page.locator('#dungeon-3d')).toHaveAttribute('aria-description', /World seed: 12/);
+  await click3d(page, -.36, 0);
+  await expect(page.locator('#state-summary')).toContainText('Seed 12 · Tick 0 · Revision 0');
+});

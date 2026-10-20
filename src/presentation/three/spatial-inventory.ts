@@ -1,3 +1,4 @@
+import { randomWorldSeed } from '../../input/random-seed';
 import type { MovementMode } from '../xr/locomotion';
 import { observedStatusEffects } from './status-effects';
 import { assetUrl } from '../../asset-url';
@@ -9,8 +10,8 @@ import type { GameAction } from '../../engine/model/action';
 import type { PlayerObservation } from '../../engine/model/observation';
 import type { Direction, EquipmentSlot } from '../../engine/model/state';
 
-export interface SpatialMenuState { names: string[]; saveName: string; sound: boolean; volume: number; movement: MovementMode; vignette: boolean }
-export type SpatialMenuCommand = { type: 'save' | 'restart' | 'sound' | 'map' | 'exitXR' } | { type: 'load' | 'name'; name: string } | { type: 'volume'; value: number } | { type: 'movement'; value: MovementMode } | { type: 'vignette'; value: boolean };
+export interface SpatialMenuState { names: string[]; saveName: string; sound: boolean; volume: number; movement: MovementMode; vignette: boolean; seed: number; saveStatus: string; saving: boolean }
+export type SpatialMenuCommand = { type: 'save' | 'sound' | 'map' | 'exitXR' } | { type: 'load' | 'name'; name: string } | { type: 'restart'; seed?: number } | { type: 'volume'; value: number } | { type: 'movement'; value: MovementMode } | { type: 'vignette'; value: boolean };
 type Item = PlayerObservation['inventory'][number];
 export function inventoryActions(item: Item, direction: Direction): Array<{ label: string; action: GameAction }> {
   const actions: Array<{ label: string; action: GameAction }> = [];
@@ -31,8 +32,11 @@ export class SpatialInventory {
   open = false;
   private readonly generation = new SceneGeneration();
   private menuMode: 'inventory' | 'menu' | 'keyboard' | 'load' | 'restart' | 'effects' | 'discoveries' | 'ending' | 'settings' | 'controls' | 'actions' | 'history' | 'target' | 'movement' = 'inventory';
-  private settings: SpatialMenuState = { names: [], saveName: 'My adventure', sound: true, volume: .35, movement: 'comfort', vignette: true };
+  private settings: SpatialMenuState = { names: [], saveName: 'My adventure', sound: true, volume: .35, movement: 'comfort', vignette: true, seed: 12345, saveStatus: '', saving: false };
   private draftName = '';
+  private keyboardPurpose: 'save' | 'seed' = 'save';
+  private keyboardError = '';
+  private pendingSeed: number | null = null;
   private selected: string | null = null;
   private page = 0;
   private direction: Direction = 'N';
@@ -56,7 +60,7 @@ export class SpatialInventory {
   toggle(): void { if (!this.observation || this.observation.ending || this.observation.status.hp <= 0) return; this.open = !(this.open && this.menuMode === 'inventory'); this.menuMode = 'inventory'; this.draw(); this.changed(); }
   showEffects(): void { this.open = true; this.navigate('effects'); }
   recordMessage(text: string): void { this.history.push(text); this.history = this.history.slice(-40); }
-  configure(settings: SpatialMenuState): void { this.settings = settings; if (this.open && this.menuMode !== 'inventory') this.draw(); }
+  configure(settings: SpatialMenuState): void { this.settings = settings; if (this.open && this.menuMode !== 'inventory') { this.draw(); this.changed(); } }
   toggleMenu(): void { this.open = !(this.open && (this.menuMode === 'menu' || this.menuMode === 'ending')); this.menuMode = this.observation?.ending ? 'ending' : 'menu'; this.page = 0; this.draw(); this.changed(); }
   close(): void { this.open = false; this.draw(); this.changed(); }
   private navigate(mode: typeof this.menuMode): void { this.menuMode = mode; this.page = 0; this.draw(); this.changed(); }
@@ -82,7 +86,7 @@ export class SpatialInventory {
     const celebration = text.includes('VICTORY');
     ctx.fillStyle = celebration ? '#6b4a10' : selected ? '#514126' : run ? '#172332' : '#101925'; ctx.fillRect(0, 0, canvas.width, 96);
     ctx.strokeStyle = celebration || selected ? '#e4c17d' : '#88724e'; ctx.lineWidth = 3; if (run || celebration) ctx.strokeRect(2, 2, canvas.width - 4, 92);
-    ctx.fillStyle = '#ffffff'; ctx.font = '32px sans-serif'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = text.startsWith('Saved ') ? '#bce8c4' : text.startsWith('Save failed') ? '#fecaca' : '#ffffff'; ctx.font = '32px sans-serif'; ctx.textBaseline = 'middle';
     let label = text; while (ctx.measureText(label).width > canvas.width - 36 && label.length > 1) label = label.slice(0, -2) + '…';
     if (text.includes('\n')) {
       ctx.font = '28px sans-serif'; ctx.textBaseline = 'top';
@@ -185,7 +189,7 @@ export class SpatialInventory {
       return;
     }
     const titles: Record<string, string> = { menu: 'ADVENTURE', discoveries: 'DISCOVERIES', effects: 'STATUS EFFECTS', settings: 'SETTINGS', movement: 'MOVEMENT & COMFORT', controls: 'CONTROLS', actions: 'ACTIONS', history: 'MESSAGE HISTORY', target: 'CHOOSE A DIRECTION', keyboard: 'NAME YOUR SAVE', load: 'LOAD ADVENTURE', restart: 'RESTART ADVENTURE' };
-    this.button(titles[this.menuMode] ?? 'ADVENTURE', 0, .49, 1.4, .09);
+    this.button(this.menuMode === 'keyboard' && this.keyboardPurpose === 'seed' ? 'WORLD SEED' : titles[this.menuMode] ?? 'ADVENTURE', 0, this.menuMode === 'menu' ? .53 : .49, 1.4, .09);
     if (this.menuMode !== 'menu') this.button('Back', -.52, .61, .32, .1, () => this.navigate(ending ? 'ending' : 'menu'));
     this.button('Close', .52, .61, .32, .1, () => this.close());
     if (this.menuMode === 'target') {
@@ -266,19 +270,41 @@ export class SpatialInventory {
     }
     if (this.menuMode === 'restart') {
       this.button('Restart this adventure from the beginning?', 0, .23, 1.4, .11);
-      this.button('Restart', -.36, 0, .65, .11, () => this.command({ type: 'restart' }));
-      this.button('Cancel', .36, 0, .65, .11, () => this.navigate('menu')); return;
+      this.button('Start New Game', -.36, 0, .65, .11, () => this.command({ type: 'restart', seed: this.pendingSeed ?? this.settings.seed }));
+      this.button('Cancel', .36, 0, .65, .11, () => this.navigate('menu'));
+      this.button(`World seed: ${this.pendingSeed ?? this.settings.seed}`, 0, -.2, 1.4, .12, () => {
+        this.keyboardPurpose = 'seed'; this.keyboardError = ''; this.draftName = String(this.pendingSeed ?? this.settings.seed); this.navigate('keyboard');
+      });
+      this.button('Random seed', 0, -.4, .8, .11, () => { this.pendingSeed = randomWorldSeed(this.pendingSeed ?? this.settings.seed); this.draw(); this.changed(); });
+      return;
     }
     if (this.menuMode === 'keyboard') {
-      this.button(this.draftName || 'Enter save name', 0, .37, 1.4, .1);
-      for (const [index, char] of [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'].entries())
-        this.button(char, -.6 + index % 6 * .24, .22 - Math.floor(index / 6) * .095, .21, .08,
-          () => { this.draftName = (this.draftName + char).slice(0, 80); this.draw(); this.changed(); });
-      this.button('Space', -.48, -.4, .43, .085, () => { this.draftName = (this.draftName + ' ').slice(0, 80); this.draw(); this.changed(); });
-      this.button('Backspace', 0, -.4, .43, .085, () => { this.draftName = this.draftName.slice(0, -1); this.draw(); this.changed(); });
-      this.button('Clear', .48, -.4, .43, .085, () => { this.draftName = ''; this.draw(); this.changed(); });
-      this.button('Done', -.36, -.52, .65, .09, () => { if (!this.draftName.trim()) return; this.command({ type: 'name', name: this.draftName.trim() }); this.navigate('menu'); });
-      this.button('Cancel', .36, -.52, .65, .09, () => this.navigate('menu')); return;
+      const seedEntry = this.keyboardPurpose === 'seed';
+      this.button(this.draftName || (seedEntry ? 'Enter world seed' : 'Enter save name'), 0, .37, 1.4, .1);
+      const characters = seedEntry ? '1234567890' : 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      for (const [index, char] of [...characters].entries()) {
+        const x = seedEntry ? (index === 9 ? 0 : -.48 + index % 3 * .48) : -.6 + index % 6 * .24;
+        const y = seedEntry ? .22 - Math.floor(index / 3) * .14 : .22 - Math.floor(index / 6) * .095;
+        this.button(char, x, y, seedEntry ? .4 : .21, seedEntry ? .11 : .08,
+          () => { this.draftName = (this.draftName + char).slice(0, seedEntry ? 10 : 80); this.keyboardError = ''; this.draw(); this.changed(); });
+      }
+      if (!seedEntry) this.button('Space', -.48, -.4, .43, .085, () => { this.draftName = (this.draftName + ' ').slice(0, 80); this.draw(); this.changed(); });
+      this.button('Backspace', 0, -.4, .43, .085, () => { this.draftName = this.draftName.slice(0, -1); this.keyboardError = ''; this.draw(); this.changed(); });
+      this.button('Clear', .48, -.4, .43, .085, () => { this.draftName = ''; this.keyboardError = ''; this.draw(); this.changed(); });
+      if (this.keyboardError) this.button(this.keyboardError, 0, -.3, 1.4, .07);
+      this.button('Done', -.36, -.52, .65, .09, () => {
+        if (seedEntry) {
+          const seed = Number(this.draftName);
+          if (!/^\d+$/.test(this.draftName) || !Number.isInteger(seed) || seed > 0xffffffff) {
+            this.keyboardError = 'Enter a whole number from 0 to 4294967295.'; this.draw(); this.changed(); return;
+          }
+          this.pendingSeed = seed; this.navigate('restart');
+        } else {
+          if (!this.draftName.trim()) return;
+          this.command({ type: 'name', name: this.draftName.trim() }); this.navigate('menu');
+        }
+      });
+      this.button('Cancel', .36, -.52, .65, .09, () => this.navigate(seedEntry ? 'restart' : 'menu')); return;
     }
     if (this.menuMode === 'load') {
       const names = this.settings.names;
@@ -287,16 +313,17 @@ export class SpatialInventory {
         this.button(name || 'Previous checkpoint', 0, .34 - index * .13, 1.4, .11, () => this.command({ type: 'load', name })));
       this.pagination(names.length, 5, -.4); return;
     }
+    if (this.settings.saveStatus) this.button(this.settings.saveStatus, 0, .415, 1.4, .08);
     this.button('Continue adventure', 0, .3, 1.4, .13, () => this.close(), true);
-    this.button('Save adventure', -.36, .1, .65, .12, () => this.command({ type: 'save' }));
+    this.button(this.settings.saving ? 'Saving…' : 'Save adventure', -.36, .1, .65, .12, this.settings.saving ? undefined : () => this.command({ type: 'save' }));
     this.button('Load adventure', .36, .1, .65, .12, () => this.navigate('load'));
-    this.button(`Save name: ${this.settings.saveName}`, 0, -.06, 1.4, .1, () => { this.draftName = this.settings.saveName; this.navigate('keyboard'); });
+    this.button(`Save name: ${this.settings.saveName}`, 0, -.06, 1.4, .1, () => { this.keyboardPurpose = 'save'; this.keyboardError = ''; this.draftName = this.settings.saveName; this.navigate('keyboard'); });
     this.button('Discoveries', -.36, -.22, .65, .11, () => this.navigate('discoveries'));
     this.button('Effects', .36, -.22, .65, .11, () => this.navigate('effects'));
     this.button('Settings', -.48, -.38, .43, .11, () => this.navigate('settings'));
     this.button('Controls', 0, -.38, .43, .11, () => this.navigate('controls'));
     this.button('Messages', .48, -.38, .43, .11, () => this.navigate('history'));
-    this.button('Restart…', 0, -.59, .6, .1, () => this.navigate('restart'));
+    this.button('Restart…', 0, -.59, .6, .1, () => { this.pendingSeed = this.settings.seed; this.navigate('restart'); });
   }
 
   get accessibleLabels(): string[] { return this.root.children.flatMap(object => typeof object.userData.label === 'string' ? [object.userData.label] : []); }

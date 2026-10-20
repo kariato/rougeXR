@@ -43,6 +43,7 @@ test('reports unavailable storage and keeps gameplay working', async ({ page }) 
   });
   await page.goto('/'); await page.locator('#welcome-new').click(); await toggleTools(page); await desktopClick(page, '#new-game');
   await desktopClick(page, '#save-local'); await expect(page.locator('#hud-message')).toContainText('Could not save game');
+  await expect(page.locator('#checkpoint-feedback')).toContainText('Save failed');
   await gameKey(page, '.'); await expect(page.locator('#state-summary')).toContainText('Revision 1');
 });
 
@@ -65,6 +66,7 @@ test('keeps named saves separate and updates a matching name', async ({ page }) 
   const checkpoints = await page.evaluate(key => JSON.parse(localStorage.getItem(key)!), key);
   expect(JSON.parse(checkpoints.find((entry: {name: string}) => entry.name === 'After exploring').json).state.timing.revision).toBe(2);
   await desktopFill(page, '#save-name', '   '); await desktopClick(page, '#save-local');
-  await expect(page.locator('#hud-message')).toContainText('Enter a name');
-  await expect(page.locator('#saved-games option')).toHaveCount(2);
+  await expect(page.locator('#hud-message')).toContainText('Game saved in this browser');
+  await expect(page.locator('#checkpoint-feedback')).toContainText('Saved ');
+  await expect(page.locator('#saved-games option')).toHaveCount(3);
 });
