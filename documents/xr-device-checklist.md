@@ -59,3 +59,11 @@ On the target headset, check both modes with the vignette enabled and disabled, 
 On mobile, the primary button reads Forward when the cell ahead has no attackable monster, and Attack when one is directly ahead. A separate Search button sits above it. Confirm each tap commits one action, Search does not move, and both controls disappear while a spatial menu is open.
 
 Save confirmation now stays inside the open Adventure menu, including an explicit failure message when browser storage is unavailable. Automatic checkpoint names use local date/time and the current world seed; manually entered names still update a matching checkpoint. Welcome and restart screens offer a world-seed field and Random button. In VR, Restart offers a controller-operated numeric keypad and Random seed button before confirmation. Confirm these controls are legible and reachable on the target phone and headset.
+
+## Headset height and thumbsticks (20 October 2026)
+
+First-person XR now calibrates the initial local tracking height to a 1.65 m eye height, preserving subsequent physical head movement and crouching. The dungeon uses 1.5 m per tile in XR (2.7 m walls and a 2.58 m doorway frame), while tracking and stereo eye separation remain in native metres. The camera-held hand/weapon is reduced to 65% of its desktop size. Desktop camera proportions remain unchanged. Exit and re-enter VR to recalibrate the starting height.
+
+Either controller thumbstick now uses the XR-standard axes 2/3, with a two-axis fallback. Up/down moves relative to the headset's view, including diagonal headings. Left/right snap-turns 45 degrees once per deflection; centre the stick to re-arm. A dead zone and axis lock reject drift, held movement repeats every 400 ms, and menus, lost tracking, or system overlays block travel until the stick returns to neutral. Trigger/grip ray gestures remain available. The Controls panel describes the new bindings.
+
+Automated Chromium/Firefox XR checks cover zero and standing tracking origins, crouching, re-entry, both-eye rendering, both controller handednesses, forward/back movement after a snap turn, neutral re-arming, and overlay interruption. Check standing/seated entry, apparent proportions, hand/weapon size, both physical sticks, physical head turns, and movement comfort on the actual headset before recording hardware acceptance.

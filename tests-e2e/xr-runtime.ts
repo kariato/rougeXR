@@ -23,10 +23,12 @@ export async function installXrRuntime(page: Page): Promise<void> {
     }
     Object.assign(window, { XRWebGLLayer: FakeLayer });
     class FakeSession extends EventTarget {
-      inputSources: Array<{ handedness: string; targetRayMode: string; profiles: string[]; targetRaySpace: object }> = [];
+      inputSources: Array<{ handedness: string; targetRayMode: string; profiles: string[]; targetRaySpace: object; gamepad: { axes: number[]; mapping: string } }> = [];
       lastFrame: object | null = null;
-      connectController() {
-        const input = { handedness: 'right', targetRayMode: 'tracked-pointer', profiles: [], targetRaySpace: {} };
+      releaseStickAfterFrame = false;
+      pulseStick(axes: number[]) { this.inputSources[0]!.gamepad.axes = axes; this.releaseStickAfterFrame = true; }
+      connectController(handedness = 'right', axes = [0, 0, 0, 0]) {
+        const input = { handedness, targetRayMode: 'tracked-pointer', profiles: [], targetRaySpace: {}, gamepad: { axes, mapping: 'xr-standard' } };
         this.inputSources.push(input);
         const event = new Event('inputsourceschange'); Object.assign(event, { added: [input], removed: [] }); this.dispatchEvent(event);
       }
@@ -61,6 +63,7 @@ export async function installXrRuntime(page: Page): Promise<void> {
               telemetry.trackingX + (eye === 'left' ? -.032 : .032), telemetry.trackingY, 0, 1]) },
           })) }) };
           this.lastFrame = frame; callback(time, frame);
+          if (this.releaseStickAfterFrame) { this.inputSources[0]!.gamepad.axes.fill(0); this.releaseStickAfterFrame = false; }
           telemetry.frames++;
           const layer = this.renderState.baseLayer;
           if (!layer) return;

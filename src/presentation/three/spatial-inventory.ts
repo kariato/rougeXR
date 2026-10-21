@@ -209,8 +209,8 @@ export class SpatialInventory {
     }
     if (this.menuMode === 'controls') {
       this.button('VR controllers\nAim the ray and press trigger to select.', 0, .28, 1.4, .16);
-      this.button('Movement\nPoint toward a direction and squeeze the grip to move. Actions opens rest and search.', 0, .07, 1.4, .18);
-      this.button('Desktop fallback\nArrows move and turn. I: inventory. M: menu. Esc: close.', 0, -.16, 1.4, .18);
+      this.button('Thumbsticks\nUp/down: move forward/back. Left/right: turn 45°. Centre to turn again.', 0, .07, 1.4, .18);
+      this.button('More controls\nPoint + grip: move. Actions: rest/search. Desktop: arrows, I inventory, M menu.', 0, -.16, 1.4, .18);
       return;
     }
     if (this.menuMode === 'actions') {

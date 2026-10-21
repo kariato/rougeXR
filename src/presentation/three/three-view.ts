@@ -1,3 +1,5 @@
+import { XR_METRES_PER_TILE, XrEyeHeight } from '../xr/physical-scale';
+import { XrThumbsticks } from '../xr/thumbstick';
 import { XrLocomotion, type LocomotionOptions } from '../xr/locomotion';
 import { LocomotionOverlay } from './locomotion-overlay';
 import { createTrapVisual, observedTrapKind } from './trap-asset';
@@ -55,6 +57,11 @@ export class ThreeGameView implements GameView {
   private readonly camera = new THREE.PerspectiveCamera(68, 1, 0.05, 120);
   private readonly xrRig = new THREE.Group();
   private xrActive = false;
+  private xrSession: XrSessionLike | null = null;
+  private readonly onXrVisibility = (): void => { this.xrThumbsticks.reset(true); this.xrIntent.reset(); };
+  private readonly xrEyeHeight = new XrEyeHeight();
+  private xrEyeOffset = 1.65;
+  private readonly xrThumbsticks = new XrThumbsticks();
   private readonly locomotion = new XrLocomotion();
   private readonly locomotionOverlay = new LocomotionOverlay();
   private readonly hand = createFirstPersonHand();
@@ -559,7 +566,7 @@ export class ThreeGameView implements GameView {
     if (this.actorVisuals[0]) this.actorVisuals[0].root.visible = mode !== 'firstPerson';
     this.targetPitch = mode === 'tabletop' ? -0.9 : mode === 'orbit' ? -0.2 : 0;
     this.targetDistance = mode === 'tabletop' ? 7 : 8;
-    this.targetWorldScale = mode === 'tabletop' ? 0.12 : 1;
+    this.targetWorldScale = mode === 'tabletop' ? 0.12 : this.xrActive ? XR_METRES_PER_TILE : 1;
     this.ensureAnimation();
   }
 
@@ -595,7 +602,15 @@ export class ThreeGameView implements GameView {
     this.frame = null;
     this.locomotion.reset(this.observation ? { x: this.observation.playerAt.x, z: this.observation.playerAt.y } : undefined);
     this.locomotionOverlay.reset();
+    this.xrEyeHeight.reset(); this.xrEyeOffset = this.xrEyeHeight.offset(Number.NaN);
+    this.xrSession?.removeEventListener('visibilitychange', this.onXrVisibility);
+    this.xrSession = session; session?.addEventListener('visibilitychange', this.onXrVisibility);
+    this.xrThumbsticks.reset(true); this.xrIntent.reset();
+    this.hand.scale.setScalar(session ? .65 : 1);
     this.xrActive = session !== null;
+    this.worldScale = this.targetWorldScale = this.mode === 'tabletop' ? .12 : session ? XR_METRES_PER_TILE : 1;
+    this.world.scale.setScalar(this.worldScale);
+    this.canvas.dataset.xrMetresPerTile = String(session ? XR_METRES_PER_TILE : 1);
     this.canvas.dataset.xrActive = String(this.xrActive);
     if (session) {
       // Phone/3DoF runtimes may support local tracking without local-floor tracking.
@@ -626,7 +641,7 @@ export class ThreeGameView implements GameView {
     if (!observation) return;
     if (this.mode === 'firstPerson') {
       const visual = this.locomotion.sample(now);
-      this.xrRig.position.set(visual.x, .72, visual.z);
+      this.xrRig.position.set(visual.x * this.worldScale, this.xrEyeOffset, visual.z * this.worldScale);
       this.xrRig.rotation.set(0, this.targetYaw - Math.PI, 0);
     } else {
       const target = new THREE.Vector3(
@@ -640,11 +655,20 @@ export class ThreeGameView implements GameView {
     this.xrRig.updateMatrixWorld(true);
   }
 
-  private readonly onXrFrame = (now: number): void => {
+  private readonly onXrFrame = (now: number, frame?: XRFrame): void => {
+    if (!this.xrActive || !frame) return;
+    const space = this.renderer.xr.getReferenceSpace();
+    const pose = space ? frame.getViewerPose(space) : null;
+    if (pose) {
+      const trackedY = pose.transform?.position.y ?? pose.views[0]?.transform.matrix[13] ?? 0;
+      this.xrEyeOffset = this.xrEyeHeight.offset(trackedY);
+      this.canvas.dataset.xrEyeHeight = String(this.xrEyeOffset + trackedY);
+    }
     this.animate(now);
     if (this.mode === 'firstPerson') this.locomotionOverlay.update(this.locomotion.sample(now));
     else this.locomotionOverlay.reset();
     this.renderer.xr.updateCamera(this.camera);
+    this.pollXrThumbsticks(now, frame, pose !== null);
     this.spatialInventory.hover(this.xrControllers.filter(controller => controller.visible).map(controller =>
       new THREE.Raycaster(controller.getWorldPosition(new THREE.Vector3()),
         new THREE.Vector3(0, 0, -1).applyQuaternion(controller.getWorldQuaternion(new THREE.Quaternion())))));
@@ -815,6 +839,29 @@ export class ThreeGameView implements GameView {
     if (this.xrActive || this.frame !== null) return;
     this.lastFrame = performance.now();
     this.frame = requestAnimationFrame(this.animate);
+  }
+
+  private pollXrThumbsticks(now: number, frame: XRFrame, tracked: boolean): void {
+    const observation = this.observation;
+    const enabled = tracked && frame.session.visibilityState === 'visible' && this.mode === 'firstPerson'
+      && !!observation && !this.spatialInventory.open && !observation.ending && observation.status.hp > 0 && !observation.pendingDecision;
+    let handled = false;
+    for (const source of frame.session.inputSources) {
+      const space = this.renderer.xr.getReferenceSpace();
+      const sourceTracked = space && frame.getPose(source.targetRaySpace, space) !== null;
+      const command = this.xrThumbsticks.sample(source, now, enabled && !!sourceTracked && !handled);
+      if (!command) continue;
+      handled = true;
+      if (command.type === 'turn') {
+        this.rotatePov(command.degrees); this.updateXrRig(now); this.renderer.xr.updateCamera(this.camera);
+      } else if (observation) {
+        const forward = this.camera.getWorldDirection(new THREE.Vector3()).multiplyScalar(command.forward ? 1 : -1);
+        // Thumbsticks already debounce and pace held input; a new centred gesture must remain responsive.
+        const request: ActionRequest = { expectedRevision: observation.revision, action: { type: 'move',
+          direction: directionFromForward(forward.x, forward.z), pickup: true } };
+        this.canvas.dispatchEvent(new CustomEvent<ActionRequest>('rougexr-xr-action', { detail: request }));
+      }
+    }
   }
 
   private commitXrIntent(controller: THREE.Object3D, select: boolean): void {
