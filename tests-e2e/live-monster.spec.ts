@@ -7,7 +7,7 @@ test('loads the visible Kestrel model into live first-person gameplay', async ({
   await page.goto('/'); await page.locator('#welcome-new').click();
   await toggleTools(page);
   await page.locator('#world-mode').selectOption('kestrel');
-  const response = page.waitForResponse(value => value.url().endsWith('/assets/creatures/kestrel.glb') && value.ok());
+  const response = page.waitForResponse(value => value.url().endsWith('/assets/hunyuan-v1/creatures/kestrel.glb') && value.ok());
   await desktopClick(page, '#new-game');
   await response;
   await expect(page.locator('#dungeon-3d')).toBeVisible();

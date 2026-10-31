@@ -7,7 +7,7 @@ test('loads a room-facing GLB doorway and keeps it open after crossing', async (
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
   const assetResponses: number[] = [];
   const rogueResponses: number[] = [];
-  page.on('response', response => { if (response.url().includes('/assets/props/door.glb')) assetResponses.push(response.status()); });
+  page.on('response', response => { if (response.url().includes('/assets/hunyuan-v1/props/door.glb')) assetResponses.push(response.status()); });
   page.on('response', response => { if (response.url().includes('/assets/creatures/rogue.glb')) rogueResponses.push(response.status()); });
   await page.goto('/'); await page.locator('#welcome-new').click(); await toggleTools(page);
   await page.locator('#world-mode').selectOption('rooms'); await desktopClick(page, '#new-game');

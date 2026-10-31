@@ -5,7 +5,7 @@ test('keeps the chest closed until clicked and open after a scene refresh', asyn
   const loaded = new Set<string>();
   const errors: Error[] = [];
   page.on('requestfinished', request => {
-    if (request.url().includes('/assets/props/')) loaded.add(new URL(request.url()).pathname);
+    if (request.url().includes('/assets/hunyuan-v1/props/')) loaded.add(new URL(request.url()).pathname);
   });
   page.on('pageerror', error => errors.push(error));
   await page.goto('/'); await page.locator('#welcome-new').click();
@@ -13,7 +13,7 @@ test('keeps the chest closed until clicked and open after a scene refresh', asyn
   await page.locator('#seed').fill('12345');
   await desktopClick(page, '#new-game');
   await expect(page.locator('#dungeon-3d')).toBeVisible();
-  await expect.poll(() => loaded.has('/assets/props/crate.glb'), { timeout: 20_000 }).toBe(true);
+  await expect.poll(() => loaded.has('/assets/hunyuan-v1/props/chest.glb'), { timeout: 20_000 }).toBe(true);
   await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-chest-animation', 'closed');
   await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-open-chests', '0');
   const goldBefore = Number(await page.locator('#hud-gold').textContent());
@@ -25,7 +25,7 @@ test('keeps the chest closed until clicked and open after a scene refresh', asyn
   await expect(page.locator('#state-summary')).toContainText('Revision 1');
   await gameKey(page, '.');
   await expect(page.locator('#dungeon-3d')).toHaveAttribute('data-open-chests', '1');
-  await expect.poll(() => loaded.has('/assets/props/torch.glb'), { timeout: 20_000 }).toBe(true);
+  await expect.poll(() => loaded.has('/assets/hunyuan-v1/props/torch.glb'), { timeout: 20_000 }).toBe(true);
   expect(errors).toEqual([]);
 });
 
