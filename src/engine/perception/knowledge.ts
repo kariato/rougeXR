@@ -142,7 +142,7 @@ export function observe(state: WorldState): PlayerObservation {
       turns: state.timing.tick, score: state.player.gold + state.player.stats.experience + (state.timing.status === 'won' ? 1000 : 0),
     } }), revision: state.timing.revision, width: state.level.width, height: state.level.height,
     playerAt: { ...state.player.at }, cells, entities, decorations,
-    status: { hp: state.player.stats.hp, maxHp: state.player.stats.maxHp, gold: state.player.gold, depth: state.level.depth,
+    status: { ...(state.settings ? { difficulty: state.settings.difficulty, godMode: state.settings.godMode } : {}), hp: state.player.stats.hp, maxHp: state.player.stats.maxHp, gold: state.player.gold, depth: state.level.depth,
       hungerStage: state.timing.hungerStage, strength: state.player.stats.strength, maximumStrength, conditions: [
         [IS_BLIND, 'Blind'], [IS_CONFUSED, 'Confused'], [IS_HELD, 'Held'], [IS_LEVITATING, 'Levitating'],
         [IS_HALLUCINATING, 'Hallucinating'], [IS_HASTED, 'Hasted'],

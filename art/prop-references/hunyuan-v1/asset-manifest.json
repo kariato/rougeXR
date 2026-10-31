@@ -1,0 +1,170 @@
+{
+  "format": "rougexr-prop-collection-v1",
+  "status": "review-draft",
+  "referenceGenerator": "built-in ImageGen",
+  "meshGenerator": "Tencent Hunyuan3D 2.0 Turbo via local MLX",
+  "animationSource": "authored rigid hinges",
+  "assets": [
+    {
+      "id": "door",
+      "referenceImages": [
+        "art/prop-references/hunyuan-v1/door-leaf.png",
+        "art/prop-references/hunyuan-v1/door-frame.png"
+      ],
+      "glb": "out/props-v1/door/model.glb",
+      "blender": "out/props-v1/door/model.blend",
+      "sha256": "48a065112e06068e544ffe5e57fa6df59cea7aed5efda04fd20ed3f86fdf9a3b",
+      "clips": [
+        "open",
+        "close"
+      ],
+      "validation": {
+        "id": "door",
+        "vertices": 3052,
+        "triangles": 4179,
+        "bytes": 1887512,
+        "textures": 2,
+        "clips": [
+          "open",
+          "close"
+        ],
+        "details": {
+          "open": {
+            "duration": 1.2916666269302368,
+            "maxVertexMotion": 1.0677734176666789
+          },
+          "close": {
+            "duration": 1.2916666269302368,
+            "maxVertexMotion": 1.0677734176666789
+          },
+          "clearOpening": "0.8m-wide tested passage, clear through frame"
+        },
+        "result": "passed"
+      }
+    },
+    {
+      "id": "chest",
+      "referenceImages": [
+        "art/prop-references/hunyuan-v1/chest-base.png",
+        "art/prop-references/hunyuan-v1/chest-lid.png",
+        "art/prop-references/hunyuan-v1/chest-base-front.png"
+      ],
+      "glb": "out/props-v1/chest/model.glb",
+      "blender": "out/props-v1/chest/model.blend",
+      "sha256": "c917eabc8eacdd77d8c9431375a2e557d8322a819fa2801b4f6f580bc68ac57d",
+      "clips": [
+        "open",
+        "close"
+      ],
+      "validation": {
+        "id": "chest",
+        "vertices": 2539,
+        "triangles": 3480,
+        "bytes": 1664480,
+        "textures": 2,
+        "clips": [
+          "open",
+          "close"
+        ],
+        "details": {
+          "open": {
+            "duration": 1.2916666269302368,
+            "maxVertexMotion": 0.9574547941674868
+          },
+          "close": {
+            "duration": 1.2916666269302368,
+            "maxVertexMotion": 0.9574547941674868
+          },
+          "interiorFloorY": 0.08000001311302185
+        },
+        "result": "passed"
+      }
+    },
+    {
+      "id": "torch",
+      "referenceImages": [
+        "art/prop-references/hunyuan-v1/torch.png"
+      ],
+      "glb": "out/props-v1/torch/model.glb",
+      "blender": "out/props-v1/torch/model.blend",
+      "sha256": "a44234bf1d3dc33f1e57fb116d715ee6c923ccf19edd07444370ebc251feb3d0",
+      "clips": [],
+      "validation": {
+        "id": "torch",
+        "vertices": 1667,
+        "triangles": 1599,
+        "bytes": 1382752,
+        "textures": 1,
+        "clips": [],
+        "details": {},
+        "result": "passed"
+      }
+    },
+    {
+      "id": "urn",
+      "referenceImages": [
+        "art/prop-references/hunyuan-v1/urn.png"
+      ],
+      "glb": "out/props-v1/urn/model.glb",
+      "blender": "out/props-v1/urn/model.blend",
+      "sha256": "6c962039b8f57aab20a6d592940ee6a39967db531b6ed4abb2faf4841b591df7",
+      "clips": [],
+      "validation": {
+        "id": "urn",
+        "vertices": 1765,
+        "triangles": 1999,
+        "bytes": 1414840,
+        "textures": 1,
+        "clips": [],
+        "details": {},
+        "result": "passed"
+      }
+    },
+    {
+      "id": "pillar",
+      "referenceImages": [
+        "art/prop-references/hunyuan-v1/pillar.png"
+      ],
+      "glb": "out/props-v1/pillar/model.glb",
+      "blender": "out/props-v1/pillar/model.blend",
+      "sha256": "31d59e6b33d3707a06025e4c918690a6d31083c8f1d98ae1b6bf0ce28dff5333",
+      "clips": [],
+      "validation": {
+        "id": "pillar",
+        "vertices": 1929,
+        "triangles": 2552,
+        "bytes": 1093260,
+        "textures": 1,
+        "clips": [],
+        "details": {},
+        "result": "passed"
+      }
+    },
+    {
+      "id": "potion",
+      "referenceImages": [
+        "art/prop-references/hunyuan-v1/potion.png"
+      ],
+      "glb": "out/props-v1/potion/model.glb",
+      "blender": "out/props-v1/potion/model.blend",
+      "sha256": "09402eb3cb9be1d366040692f406bf3b8e7b8db872fab739f3af9213df050f08",
+      "clips": [],
+      "validation": {
+        "id": "potion",
+        "vertices": 1303,
+        "triangles": 1396,
+        "bytes": 1211868,
+        "textures": 1,
+        "clips": [],
+        "details": {},
+        "result": "passed"
+      }
+    }
+  ],
+  "browserValidation": {
+    "chromiumPropsPassed": 6,
+    "firefoxPropsPassed": 6,
+    "monsterViewerRegressionsPassed": 6,
+    "totalChecksPassed": 18
+  }
+}

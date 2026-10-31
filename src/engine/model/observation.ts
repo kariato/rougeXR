@@ -33,7 +33,7 @@ export interface PlayerObservation {
   cells: ObservedCell[];
   entities: ObservedEntity[];
   decorations: ObservedDecoration[];
-  status: { hp: number; maxHp: number; gold: number; depth: number; hungerStage: number; conditions?: string[]; strength?: number; maximumStrength?: number };
+  status: { difficulty?: 'easy' | 'normal' | 'hard'; godMode?: boolean; hp: number; maxHp: number; gold: number; depth: number; hungerStage: number; conditions?: string[]; strength?: number; maximumStrength?: number };
   inventory: Array<{ token: string; label: string; quantity: number; category: string; equippedSlot: string | null; assetKey: string | null; knownCursed?: boolean }>;
   pendingDecision: 'callItem' | 'identifyItem' | null;
 }

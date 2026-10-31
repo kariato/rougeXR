@@ -1,0 +1,523 @@
+{
+  "format": "rougexr-monster-collection-v1",
+  "status": "review-draft",
+  "referenceGenerator": "built-in ImageGen",
+  "meshGenerator": "Tencent Hunyuan3D 2.0 Turbo via local MLX",
+  "animationSource": "authored rougeXR species rigs and motion clips",
+  "blenderRuntime": "5.0.1",
+  "localGallery": "/out/monsters-v1/index.html",
+  "limitations": [
+    "Single-image reconstruction and approximate side/rear textures.",
+    "Automatic surface skin-weight transfer; individual joints may need manual cleanup."
+  ],
+  "assets": [
+    {
+      "id": "aquator",
+      "reference": "aquator.png",
+      "glb": "out/monsters-v1/aquator/animated.glb",
+      "blender": "out/monsters-v1/aquator/animated.blend",
+      "sha256": "a9a836e7ab41d020593ac0d86138e167de550ff7c32f3a36525a2e3968f58610",
+      "bytes": 3903368,
+      "triangles": 11994,
+      "bones": 8,
+      "clips": [
+        "idle",
+        "move",
+        "attack",
+        "hurt",
+        "death"
+      ],
+      "deformationValidation": "passed",
+      "textureFinisherSha256": "2268993b3e4fe25350468b4ff63d41b5a331120a8bd7121c5d3deb168e8e3cbf"
+    },
+    {
+      "id": "bat",
+      "reference": "bat.png",
+      "glb": "out/monsters-v1/bat/animated.glb",
+      "blender": "out/monsters-v1/bat/animated.blend",
+      "sha256": "16a24dd878a8f8bb1788951cef418bf3c0c9d953ee7534efbfd6b480bb521c2f",
+      "bytes": 3796412,
+      "triangles": 11996,
+      "bones": 10,
+      "clips": [
+        "idle",
+        "move",
+        "attack",
+        "hurt",
+        "death"
+      ],
+      "deformationValidation": "passed",
+      "textureFinisherSha256": "2268993b3e4fe25350468b4ff63d41b5a331120a8bd7121c5d3deb168e8e3cbf"
+    },
+    {
+      "id": "centaur",
+      "reference": "centaur.png",
+      "glb": "out/monsters-v1/centaur/animated.glb",
+      "blender": "out/monsters-v1/centaur/animated.blend",
+      "sha256": "5c9245630a85ff60c39aef2f3e2c2fb18bf1d41ea69b7850b00f38f9e19ad67a",
+      "bytes": 3734856,
+      "triangles": 11885,
+      "bones": 10,
+      "clips": [
+        "idle",
+        "move",
+        "attack",
+        "hurt",
+        "death"
+      ],
+      "deformationValidation": "passed",
+      "textureFinisherSha256": "2268993b3e4fe25350468b4ff63d41b5a331120a8bd7121c5d3deb168e8e3cbf"
+    },
+    {
+      "id": "dragon",
+      "reference": "dragon.png",
+      "glb": "out/monsters-v1/dragon/animated.glb",
+      "blender": "out/monsters-v1/dragon/animated.blend",
+      "sha256": "6629a54eae9612fea7c9119d886f95253e3d83d5a87231702c15f3f5bd4081b7",
+      "bytes": 4033600,
+      "triangles": 11976,
+      "bones": 8,
+      "clips": [
+        "idle",
+        "move",
+        "attack",
+        "hurt",
+        "death"
+      ],
+      "deformationValidation": "passed",
+      "textureFinisherSha256": "2268993b3e4fe25350468b4ff63d41b5a331120a8bd7121c5d3deb168e8e3cbf"
+    },
+    {
+      "id": "emu",
+      "reference": "emu.png",
+      "glb": "out/monsters-v1/emu/animated.glb",
+      "blender": "out/monsters-v1/emu/animated.blend",
+      "sha256": "92926c8d309876f62f433b3f401b4492035b9a2b4f195e52d9f89de1dcbc69c7",
+      "bytes": 3704060,
+      "triangles": 11892,
+      "bones": 8,
+      "clips": [
+        "idle",
+        "move",
+        "attack",
+        "hurt",
+        "death"
+      ],
+      "deformationValidation": "passed",
+      "textureFinisherSha256": "2268993b3e4fe25350468b4ff63d41b5a331120a8bd7121c5d3deb168e8e3cbf"
+    },
+    {
+      "id": "venus-flytrap",
+      "reference": "venus-flytrap.png",
+      "glb": "out/monsters-v1/venus-flytrap/animated.glb",
+      "blender": "out/monsters-v1/venus-flytrap/animated.blend",
+      "sha256": "43eca62cdcc828450e55c86ddf1e2106ab937ac94e8299d5d9c07aa658eda4ba",
+      "bytes": 4183660,
+      "triangles": 11855,
+      "bones": 7,
+      "clips": [
+        "idle",
+        "move",
+        "attack",
+        "hurt",
+        "death"
+      ],
+      "deformationValidation": "passed",
+      "textureFinisherSha256": "2268993b3e4fe25350468b4ff63d41b5a331120a8bd7121c5d3deb168e8e3cbf"
+    },
+    {
+      "id": "griffin",
+      "reference": "griffin.png",
+      "glb": "out/monsters-v1/griffin/animated.glb",
+      "blender": "out/monsters-v1/griffin/animated.blend",
+      "sha256": "6215ee7f5e2df9d3e3af4cee8e865aed49a4c1081ab24e13d86a3c1e068112ce",
+      "bytes": 4107084,
+      "triangles": 11931,
+      "bones": 8,
+      "clips": [
+        "idle",
+        "move",
+        "attack",
+        "hurt",
+        "death"
+      ],
+      "deformationValidation": "passed",
+      "textureFinisherSha256": "2268993b3e4fe25350468b4ff63d41b5a331120a8bd7121c5d3deb168e8e3cbf"
+    },
+    {
+      "id": "hobgoblin",
+      "reference": "hobgoblin.png",
+      "glb": "out/monsters-v1/hobgoblin/animated.glb",
+      "blender": "out/monsters-v1/hobgoblin/animated.blend",
+      "sha256": "e963235937f09aab537af7838d061594c958e66e7b71b2b376137952f93e92f2",
+      "bytes": 3818928,
+      "triangles": 11980,
+      "bones": 7,
+      "clips": [
+        "idle",
+        "move",
+        "attack",
+        "hurt",
+        "death"
+      ],
+      "deformationValidation": "passed",
+      "textureFinisherSha256": "2268993b3e4fe25350468b4ff63d41b5a331120a8bd7121c5d3deb168e8e3cbf"
+    },
+    {
+      "id": "ice-monster",
+      "reference": "ice-monster.png",
+      "glb": "out/monsters-v1/ice-monster/animated.glb",
+      "blender": "out/monsters-v1/ice-monster/animated.blend",
+      "sha256": "322c23cf4908fc9b33b70c330511f8d596ed74896da2715f994f78b31b0b7f5e",
+      "bytes": 4144268,
+      "triangles": 11992,
+      "bones": 8,
+      "clips": [
+        "idle",
+        "move",
+        "attack",
+        "hurt",
+        "death"
+      ],
+      "deformationValidation": "passed",
+      "textureFinisherSha256": "2268993b3e4fe25350468b4ff63d41b5a331120a8bd7121c5d3deb168e8e3cbf"
+    },
+    {
+      "id": "jabberwock",
+      "reference": "jabberwock.png",
+      "glb": "out/monsters-v1/jabberwock/animated.glb",
+      "blender": "out/monsters-v1/jabberwock/animated.blend",
+      "sha256": "6da79504bbddeb19d3a80d9c94287b86aef346207b485a10ded18e371b7d05d1",
+      "bytes": 3880680,
+      "triangles": 11927,
+      "bones": 8,
+      "clips": [
+        "idle",
+        "move",
+        "attack",
+        "hurt",
+        "death"
+      ],
+      "deformationValidation": "passed",
+      "textureFinisherSha256": "2268993b3e4fe25350468b4ff63d41b5a331120a8bd7121c5d3deb168e8e3cbf"
+    },
+    {
+      "id": "kestrel",
+      "reference": "kestrel.png",
+      "glb": "out/monsters-v1/kestrel/animated.glb",
+      "blender": "out/monsters-v1/kestrel/animated.blend",
+      "sha256": "ec29ae6b34a4b5513b52b306427b509ebc301a0751a553c68fcae29274aaac72",
+      "bytes": 3962452,
+      "triangles": 11997,
+      "bones": 10,
+      "clips": [
+        "idle",
+        "move",
+        "attack",
+        "hurt",
+        "death"
+      ],
+      "deformationValidation": "passed",
+      "textureFinisherSha256": "2268993b3e4fe25350468b4ff63d41b5a331120a8bd7121c5d3deb168e8e3cbf"
+    },
+    {
+      "id": "leprechaun",
+      "reference": "leprechaun.png",
+      "glb": "out/monsters-v1/leprechaun/animated.glb",
+      "blender": "out/monsters-v1/leprechaun/animated.blend",
+      "sha256": "54d36630a245f088f4d3229f0924c024f23d4c0ade9e2a1725ccc7cc9241a9f0",
+      "bytes": 3977996,
+      "triangles": 11982,
+      "bones": 7,
+      "clips": [
+        "idle",
+        "move",
+        "attack",
+        "hurt",
+        "death"
+      ],
+      "deformationValidation": "passed",
+      "textureFinisherSha256": "2268993b3e4fe25350468b4ff63d41b5a331120a8bd7121c5d3deb168e8e3cbf"
+    },
+    {
+      "id": "medusa",
+      "reference": "medusa.png",
+      "glb": "out/monsters-v1/medusa/animated.glb",
+      "blender": "out/monsters-v1/medusa/animated.blend",
+      "sha256": "fdfc64200f38f2a770f1d5984782c61b0b50cc9b1b83a152efb50892f2d9a00d",
+      "bytes": 3873840,
+      "triangles": 11997,
+      "bones": 7,
+      "clips": [
+        "idle",
+        "move",
+        "attack",
+        "hurt",
+        "death"
+      ],
+      "deformationValidation": "passed",
+      "textureFinisherSha256": "2268993b3e4fe25350468b4ff63d41b5a331120a8bd7121c5d3deb168e8e3cbf"
+    },
+    {
+      "id": "nymph",
+      "reference": "nymph.png",
+      "glb": "out/monsters-v1/nymph/animated.glb",
+      "blender": "out/monsters-v1/nymph/animated.blend",
+      "sha256": "a6527f191455716e6990b44770c90dbb80e9c65c9ab6c28ed770738e8b8455db",
+      "bytes": 3657184,
+      "triangles": 11987,
+      "bones": 7,
+      "clips": [
+        "idle",
+        "move",
+        "attack",
+        "hurt",
+        "death"
+      ],
+      "deformationValidation": "passed",
+      "textureFinisherSha256": "2268993b3e4fe25350468b4ff63d41b5a331120a8bd7121c5d3deb168e8e3cbf"
+    },
+    {
+      "id": "orc",
+      "reference": "orc.png",
+      "glb": "out/monsters-v1/orc/animated.glb",
+      "blender": "out/monsters-v1/orc/animated.blend",
+      "sha256": "698897dc19973823108a2c850484e24f7fd8469d8a2f3d2c2a8c83ff5021b7c6",
+      "bytes": 3886748,
+      "triangles": 11985,
+      "bones": 7,
+      "clips": [
+        "idle",
+        "move",
+        "attack",
+        "hurt",
+        "death"
+      ],
+      "deformationValidation": "passed",
+      "textureFinisherSha256": "2268993b3e4fe25350468b4ff63d41b5a331120a8bd7121c5d3deb168e8e3cbf"
+    },
+    {
+      "id": "phantom",
+      "reference": "phantom.png",
+      "glb": "out/monsters-v1/phantom/animated.glb",
+      "blender": "out/monsters-v1/phantom/animated.blend",
+      "sha256": "dbf4f518ffac5be8f27d4b87db371dd9ceaab672765397b3fece2c52736c505a",
+      "bytes": 3553136,
+      "triangles": 11761,
+      "bones": 7,
+      "clips": [
+        "idle",
+        "move",
+        "attack",
+        "hurt",
+        "death"
+      ],
+      "deformationValidation": "passed",
+      "textureFinisherSha256": "2268993b3e4fe25350468b4ff63d41b5a331120a8bd7121c5d3deb168e8e3cbf"
+    },
+    {
+      "id": "quagga",
+      "reference": "quagga.png",
+      "glb": "out/monsters-v1/quagga/animated.glb",
+      "blender": "out/monsters-v1/quagga/animated.blend",
+      "sha256": "0bb3fbeeae6660a537e7bc7ec1c9f38e5c910e6eaf9c8dd916cf4ae5f8778afe",
+      "bytes": 3791056,
+      "triangles": 11979,
+      "bones": 8,
+      "clips": [
+        "idle",
+        "move",
+        "attack",
+        "hurt",
+        "death"
+      ],
+      "deformationValidation": "passed",
+      "textureFinisherSha256": "2268993b3e4fe25350468b4ff63d41b5a331120a8bd7121c5d3deb168e8e3cbf"
+    },
+    {
+      "id": "rattlesnake",
+      "reference": "rattlesnake.png",
+      "glb": "out/monsters-v1/rattlesnake/animated.glb",
+      "blender": "out/monsters-v1/rattlesnake/animated.blend",
+      "sha256": "c24bd1c0b9d989ac3e6fe587e0f3c93f4321dfd9faef378d565c721cba692bca",
+      "bytes": 3648592,
+      "triangles": 11997,
+      "bones": 18,
+      "clips": [
+        "idle",
+        "move",
+        "attack",
+        "hurt",
+        "death"
+      ],
+      "deformationValidation": "passed",
+      "textureFinisherSha256": "2268993b3e4fe25350468b4ff63d41b5a331120a8bd7121c5d3deb168e8e3cbf"
+    },
+    {
+      "id": "snake",
+      "reference": "snake.png",
+      "glb": "out/monsters-v1/snake/animated.glb",
+      "blender": "out/monsters-v1/snake/animated.blend",
+      "sha256": "bba07e68df6c144c4e104d1fc3e2280929e9459736424aa0035ecfa2e99c9f23",
+      "bytes": 3641292,
+      "triangles": 11991,
+      "bones": 17,
+      "clips": [
+        "idle",
+        "move",
+        "attack",
+        "hurt",
+        "death"
+      ],
+      "deformationValidation": "passed",
+      "textureFinisherSha256": "2268993b3e4fe25350468b4ff63d41b5a331120a8bd7121c5d3deb168e8e3cbf"
+    },
+    {
+      "id": "troll",
+      "reference": "troll.png",
+      "glb": "out/monsters-v1/troll/animated.glb",
+      "blender": "out/monsters-v1/troll/animated.blend",
+      "sha256": "18c8154b79f75b7f6f75a6f2bb27a59f66abe90b8f11e69305f1af8341200c47",
+      "bytes": 4078980,
+      "triangles": 11962,
+      "bones": 8,
+      "clips": [
+        "idle",
+        "move",
+        "attack",
+        "hurt",
+        "death"
+      ],
+      "deformationValidation": "passed",
+      "textureFinisherSha256": "2268993b3e4fe25350468b4ff63d41b5a331120a8bd7121c5d3deb168e8e3cbf"
+    },
+    {
+      "id": "black-unicorn",
+      "reference": "black-unicorn.png",
+      "glb": "out/monsters-v1/black-unicorn/animated.glb",
+      "blender": "out/monsters-v1/black-unicorn/animated.blend",
+      "sha256": "3ab7829be8ee94d0796f2c9ab0f8bb6d9d81a8a8532ffc4e06fe15bdbd437bfd",
+      "bytes": 3575620,
+      "triangles": 11983,
+      "bones": 8,
+      "clips": [
+        "idle",
+        "move",
+        "attack",
+        "hurt",
+        "death"
+      ],
+      "deformationValidation": "passed",
+      "textureFinisherSha256": "2268993b3e4fe25350468b4ff63d41b5a331120a8bd7121c5d3deb168e8e3cbf"
+    },
+    {
+      "id": "vampire",
+      "reference": "vampire.png",
+      "glb": "out/monsters-v1/vampire/animated.glb",
+      "blender": "out/monsters-v1/vampire/animated.blend",
+      "sha256": "c1074c4b4319c35838bb81b8bc522a096089bfd0d0635a7c1dadc2a285fbbdcd",
+      "bytes": 3596976,
+      "triangles": 11982,
+      "bones": 8,
+      "clips": [
+        "idle",
+        "move",
+        "attack",
+        "hurt",
+        "death"
+      ],
+      "deformationValidation": "passed",
+      "textureFinisherSha256": "2268993b3e4fe25350468b4ff63d41b5a331120a8bd7121c5d3deb168e8e3cbf"
+    },
+    {
+      "id": "wraith",
+      "reference": "wraith.png",
+      "glb": "out/monsters-v1/wraith/animated.glb",
+      "blender": "out/monsters-v1/wraith/animated.blend",
+      "sha256": "fc4b3a2f9facbadab1757956094c0dd25bdade322c57e73d3aa218194996a957",
+      "bytes": 3746416,
+      "triangles": 11884,
+      "bones": 7,
+      "clips": [
+        "idle",
+        "move",
+        "attack",
+        "hurt",
+        "death"
+      ],
+      "deformationValidation": "passed",
+      "textureFinisherSha256": "2268993b3e4fe25350468b4ff63d41b5a331120a8bd7121c5d3deb168e8e3cbf"
+    },
+    {
+      "id": "xeroc",
+      "reference": "xeroc.png",
+      "glb": "out/monsters-v1/xeroc/animated.glb",
+      "blender": "out/monsters-v1/xeroc/animated.blend",
+      "sha256": "dde3e6bdf7925d600819000acd542709367cd72f8ae993ecfef20333f772aff7",
+      "bytes": 4435480,
+      "triangles": 11997,
+      "bones": 6,
+      "clips": [
+        "idle",
+        "move",
+        "attack",
+        "hurt",
+        "death"
+      ],
+      "deformationValidation": "passed",
+      "textureFinisherSha256": "2268993b3e4fe25350468b4ff63d41b5a331120a8bd7121c5d3deb168e8e3cbf"
+    },
+    {
+      "id": "yeti",
+      "reference": "yeti.png",
+      "glb": "out/monsters-v1/yeti/animated.glb",
+      "blender": "out/monsters-v1/yeti/animated.blend",
+      "sha256": "163651ba348ab8255fba78bd186b5601c29ba730359dea51d47605d3bf7572f4",
+      "bytes": 3977104,
+      "triangles": 11975,
+      "bones": 8,
+      "clips": [
+        "idle",
+        "move",
+        "attack",
+        "hurt",
+        "death"
+      ],
+      "deformationValidation": "passed",
+      "textureFinisherSha256": "2268993b3e4fe25350468b4ff63d41b5a331120a8bd7121c5d3deb168e8e3cbf"
+    },
+    {
+      "id": "zombie",
+      "reference": "zombie.png",
+      "glb": "out/monsters-v1/zombie/animated.glb",
+      "blender": "out/monsters-v1/zombie/animated.blend",
+      "sha256": "68ef2ee1b10d06db338f4c2ac35ec8e62d7549a149451af960f3ff366600a8a4",
+      "bytes": 3538320,
+      "triangles": 11985,
+      "bones": 8,
+      "clips": [
+        "idle",
+        "move",
+        "attack",
+        "hurt",
+        "death"
+      ],
+      "deformationValidation": "passed",
+      "textureFinisherSha256": "2268993b3e4fe25350468b4ff63d41b5a331120a8bd7121c5d3deb168e8e3cbf"
+    }
+  ],
+  "browserValidation": {
+    "chromium": {
+      "passed": 26
+    },
+    "firefox": {
+      "passed": 26
+    },
+    "totalPassed": 52
+  },
+  "exportValidation": {
+    "meshesPassed": 26,
+    "clipsPassed": 130,
+    "report": "out/monsters-v1/validation.json"
+  }
+}

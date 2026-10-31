@@ -114,12 +114,15 @@
     <dialog id="welcome" aria-labelledby="welcome-title" aria-describedby="welcome-intro">
       <p>A dungeon adventure for VR</p><h2 id="welcome-title">rougeXR</h2>
       <p id="welcome-intro">Find the Amulet of Yendor, survive the depths, and return to the surface.</p>
+      <label for="welcome-difficulty">Difficulty</label><select id="welcome-difficulty"><option value="easy">Easy</option><option value="normal" selected>Normal</option><option value="hard">Hard</option></select>
       <button id="welcome-new" type="button" autofocus>Start New Game</button>
       <div class="seed-picker"><label for="welcome-seed">World seed</label><div class="seed-entry"><input id="welcome-seed" type="number" inputmode="numeric" min="0" max="4294967295" step="1" value="12345" required><button id="welcome-random" type="button">Random</button></div><p>Reuse a seed to explore the same starting dungeon.</p></div>
       <label for="welcome-saves">Continue an old adventure</label>
       <select id="welcome-saves" aria-label="Welcome saved games" disabled><option>Checking saved games…</option></select>
       <button id="welcome-load" type="button" disabled>Load Saved Game</button>
       <p id="welcome-status" role="status">Checking this browser for saved adventures…</p>
+      <p><a href="model-preview.html?set=hunyuan-v1">View new monsters and animations</a> · <a href="model-preview.html?set=hunyuan-props-v1">View new props</a></p>
+      <p id="asset-territory-notice"><strong>Tencent-generated assets:</strong> Not available for use in the European Union, United Kingdom, or South Korea under the Tencent Hunyuan license. <a href="terms.html">Terms of use and asset licenses</a>.</p>
     </dialog>
     <dialog id="restart-confirm" class="confirm-dialog" aria-labelledby="restart-confirm-title">
       <form method="dialog"><h2 id="restart-confirm-title">Restart adventure?</h2><p>Your current progress will be replaced. Saved checkpoints stay available.</p><div class="seed-picker"><label for="restart-seed">World seed</label><div class="seed-entry"><input id="restart-seed" type="number" inputmode="numeric" min="0" max="4294967295" step="1" required><button id="restart-random" type="button">Random</button></div></div><div class="tools-controls"><button value="cancel" formnovalidate autofocus>Keep playing</button><button id="confirm-restart" value="restart">Restart adventure</button></div></form>
@@ -132,7 +135,7 @@
           <h2>Adventure</h2>
         <select hidden id="view-mode" aria-label="View mode"><option value="3d">3D dungeon</option><option value="2d">Map</option></select>
         <select hidden id="camera-mode" aria-label="Camera mode"><option value="firstPerson">First person</option><option value="orbit">Orbit</option><option value="tabletop">Tabletop</option></select>
-        <button id="new-game" type="button">New Game</button>
+        <label for="difficulty">New game difficulty</label><select id="difficulty"><option value="easy">Easy</option><option value="normal" selected>Normal</option><option value="hard">Hard</option></select><button id="new-game" type="button">New Game</button>
         <input id="save-name" type="text" maxlength="80" value="" aria-label="Save name" title="Use the same name to update a saved game">
         <button id="save-local" type="button" title="Save a checkpoint in this browser">Save Game</button><p id="checkpoint-feedback" role="status" aria-live="polite"></p>
         <select id="saved-games" aria-label="Saved games"><option value="">No saved games</option></select>
@@ -147,7 +150,7 @@
         <section class="map" id="view-host" aria-label="Dungeon view">
           <canvas id="dungeon" aria-label="Dungeon map view" hidden></canvas>
           <section id="ending-panel" class="ending-panel" aria-label="Adventure results" aria-live="polite" hidden><h2 id="ending-title"></h2><p id="ending-cause"></p><p id="ending-stats"></p><p id="ending-score"></p><button id="ending-restart" type="button">Restart</button><select id="ending-saves" aria-label="Load ending checkpoint"></select><button id="ending-load" type="button">Load Save</button></section>
-          <div class="hud" aria-label="Player status"><span>HP <strong id="hud-hp"></strong></span><span>Depth <strong id="hud-depth"></strong></span><span>Gold <strong id="hud-gold"></strong></span><span id="hud-hunger"></span><span id="hud-weapon"></span></div>
+          <div class="hud" aria-label="Player status"><span>HP <strong id="hud-hp"></strong></span><span>Depth <strong id="hud-depth"></strong></span><span>Gold <strong id="hud-gold"></strong></span><span id="hud-hunger"></span><span id="hud-weapon"></span><span id="hud-difficulty"></span></div>
           <span class="crosshair" id="crosshair" aria-hidden="true"></span>
           <div class="context-prompt" id="context-prompt"></div>
           <div class="message" id="hud-message" aria-live="polite"></div>
@@ -157,7 +160,9 @@
           <button id="attack-front" class="attack-button" type="button" aria-label="Attack monster in front" disabled>Attack</button>
         </section>
         <aside id="tools-panel" aria-label="Developer tools" hidden>
-          <section><h2>Setup</h2><div class="tools-controls"><select id="world-mode" aria-label="World type"><option value="generated">Generated</option><option value="kestrel">Kestrel fixture</option><option value="rooms">Two-room fixture</option></select><input id="seed" type="number" min="0" max="4294967295" value="12345" aria-label="Seed"><label for="turn-angle">POV turn</label><select id="turn-angle"><option value="45" selected>45° turns</option><option value="90">90° turns</option></select></div></section>
+          <p><a href="model-preview.html?set=hunyuan-v1">Monster model viewer</a> · <a href="model-preview.html?set=hunyuan-props-v1">Prop model viewer</a></p>
+          <p><a href="terms.html">Terms of use and asset licenses</a></p>
+          <section><h2>Setup</h2><div class="tools-controls"><button id="god-mode" type="button" aria-pressed="false">God mode: Off</button><select id="world-mode" aria-label="World type"><option value="generated">Generated</option><option value="kestrel">Kestrel fixture</option><option value="rooms">Two-room fixture</option></select><input id="seed" type="number" min="0" max="4294967295" value="12345" aria-label="Seed"><label for="turn-angle">POV turn</label><select id="turn-angle"><option value="45" selected>45° turns</option><option value="90">90° turns</option></select></div></section>
           <details open><summary>Observation diagnostics</summary><h2>Discoveries</h2><div id="discoveries"></div><h2>Inventory state</h2><div id="inventory"></div></details>
           <section><h2>Save and diagnose</h2><div class="tools-controls"><button id="save" type="button">Save JSON</button><button id="load" type="button">Load JSON / Replay</button><button id="export-report" type="button">Export bug report</button><input id="load-file" type="file" accept="application/json,.json" hidden></div><p id="save-status">Ready for manual save.</p><p id="xr-status" aria-live="polite">Checking XR…</p></section>
           <section><h2>Replay</h2><div class="tools-controls"><button id="replay-restart" type="button" disabled>Restart</button><button id="replay-step" type="button" disabled>Step</button><button id="replay-play" type="button" disabled>Play</button><button id="replay-pause" type="button" disabled>Pause</button><select id="replay-speed" aria-label="Replay speed" disabled><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option></select></div><p id="replay-status">Live input enabled.</p><pre id="replay-details">No divergence.</pre></section>

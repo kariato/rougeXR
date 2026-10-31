@@ -207,6 +207,11 @@ function defaultAction(action: GameAction, context: RuleContext): RuleResult {
   if (action.type === 'answerCall') return { resolved: false, consumedSlot: false, reason: 'no-pending-decision' };
   if (action.type === 'answerIdentify') return { resolved: false, consumedSlot: false, reason: 'no-identify-decision' };
   if (action.type === 'nameItem') return nameItem(context.state, action.itemId, action.label, context.emitRaw);
+  if (action.type === 'setGodMode') {
+    context.state.settings = { difficulty: context.state.settings?.difficulty ?? 'normal', godMode: action.enabled };
+    context.emit({ type: 'message', text: `God mode ${action.enabled ? 'enabled' : 'disabled'}.` });
+    return { resolved: true, consumedSlot: false, reason: null };
+  }
   if (action.type === 'rest') return { resolved: true, consumedSlot: true, reason: null };
   if (action.type === 'move') {
     const result = resolveMove(context.state, action.direction, action.pickup);
@@ -236,6 +241,7 @@ function validRequest(value: unknown): value is ActionRequest {
   const request = value as Partial<ActionRequest>;
   if (!Number.isSafeInteger(request.expectedRevision) || request.action === null || typeof request.action !== 'object') return false;
   const action = request.action as GameAction;
+  if (action.type === 'setGodMode') return typeof action.enabled === 'boolean';
   if (action.type === 'rest' || action.type === 'search' || action.type === 'pickup' || action.type === 'descend' || action.type === 'ascend') return true;
   if (action.type === 'openChest') return typeof action.chestId === 'string';
   if (action.type === 'move') return Object.hasOwn({ N: 1, NE: 1, E: 1, SE: 1, S: 1, SW: 1, W: 1, NW: 1 }, action.direction)

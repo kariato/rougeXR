@@ -356,12 +356,12 @@ export class ThreeGameView implements GameView {
           const light = new THREE.PointLight(0xffa45b, 5, 4.5, 2); light.position.set(0, .22, .22); mount.add(light);
         }
         this.world.add(holder);
-        void loadPropInto(assetUrl('assets/props/torch.glb?v=2'), mount, fallback, this.generation, sceneToken, () => this.ensureAnimation());
+        void loadPropInto(assetUrl('assets/hunyuan-v1/props/torch.glb'), mount, fallback, this.generation, sceneToken, () => this.ensureAnimation());
         continue;
       }
       holder.add(fallback); this.world.add(holder);
       if (decoration.kind === 'rubble') void loadPropInto(assetUrl('assets/props/rubble.glb'), holder, fallback, this.generation, sceneToken);
-      if (decoration.kind === 'pillar') void loadPropInto(assetUrl('assets/props/pillar.glb'), holder, fallback, this.generation, sceneToken);
+      if (decoration.kind === 'pillar') void loadPropInto(assetUrl('assets/hunyuan-v1/props/pillar.glb'), holder, fallback, this.generation, sceneToken);
       if (decoration.kind === 'coinScatter') void loadPropInto(assetUrl('assets/props/coinScatter.glb'), holder, fallback, this.generation, sceneToken);
       if (decoration.kind === 'bones') void loadPropInto(assetUrl('assets/props/bones.glb?v=2'), holder, fallback, this.generation, sceneToken, () => this.ensureAnimation());
       if (decoration.kind === 'mushroom') void loadPropInto(assetUrl('assets/props/mushroom.glb?v=2'), holder, fallback, this.generation, sceneToken, () => this.ensureAnimation());
@@ -380,7 +380,7 @@ export class ThreeGameView implements GameView {
           this.ensureAnimation();
         });
       }
-      if (decoration.kind === 'urn') void loadPropInto(assetUrl('assets/props/urn.glb'), holder, fallback, this.generation, sceneToken);
+      if (decoration.kind === 'urn') void loadPropInto(assetUrl('assets/hunyuan-v1/props/urn.glb'), holder, fallback, this.generation, sceneToken);
     }
 
     this.lastAnimatedRevision = observation.revision;
@@ -416,7 +416,7 @@ export class ThreeGameView implements GameView {
         if (entity.appearance === ')') void loadPropInto(assetUrl('assets/props/weapon.glb'), holder, fallback, this.generation, sceneToken);
         if (entity.appearance === ':') void loadPropInto(assetUrl('assets/props/food.glb?v=2'), holder, fallback, this.generation, sceneToken, () => this.ensureAnimation());
         if (entity.appearance === '?') void loadPropInto(assetUrl('assets/props/scroll.glb'), holder, fallback, this.generation, sceneToken);
-        if (entity.appearance === '!') void loadPropInto(assetUrl('assets/props/potion.glb'), holder, fallback, this.generation, sceneToken);
+        if (entity.appearance === '!') void loadPropInto(assetUrl('assets/hunyuan-v1/props/potion.glb'), holder, fallback, this.generation, sceneToken);
       }
     }
     for (const corpse of this.corpses.values()) {

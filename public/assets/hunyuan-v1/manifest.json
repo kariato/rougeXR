@@ -1,0 +1,329 @@
+{
+  "collection": "hunyuan-v1",
+  "license": "LICENSE.txt",
+  "notice": "NOTICE.txt",
+  "assets": [
+    {
+      "id": "aquator",
+      "kind": "creatures",
+      "file": "creatures/aquator.glb",
+      "bytes": 3903368,
+      "sha256": "a9a836e7ab41d020593ac0d86138e167de550ff7c32f3a36525a2e3968f58610",
+      "transform": null
+    },
+    {
+      "id": "bat",
+      "kind": "creatures",
+      "file": "creatures/bat.glb",
+      "bytes": 3796412,
+      "sha256": "16a24dd878a8f8bb1788951cef418bf3c0c9d953ee7534efbfd6b480bb521c2f",
+      "transform": null
+    },
+    {
+      "id": "black-unicorn",
+      "kind": "creatures",
+      "file": "creatures/black-unicorn.glb",
+      "bytes": 3575620,
+      "sha256": "3ab7829be8ee94d0796f2c9ab0f8bb6d9d81a8a8532ffc4e06fe15bdbd437bfd",
+      "transform": null
+    },
+    {
+      "id": "centaur",
+      "kind": "creatures",
+      "file": "creatures/centaur.glb",
+      "bytes": 3734856,
+      "sha256": "5c9245630a85ff60c39aef2f3e2c2fb18bf1d41ea69b7850b00f38f9e19ad67a",
+      "transform": null
+    },
+    {
+      "id": "dragon",
+      "kind": "creatures",
+      "file": "creatures/dragon.glb",
+      "bytes": 4033600,
+      "sha256": "6629a54eae9612fea7c9119d886f95253e3d83d5a87231702c15f3f5bd4081b7",
+      "transform": null
+    },
+    {
+      "id": "emu",
+      "kind": "creatures",
+      "file": "creatures/emu.glb",
+      "bytes": 3704060,
+      "sha256": "92926c8d309876f62f433b3f401b4492035b9a2b4f195e52d9f89de1dcbc69c7",
+      "transform": null
+    },
+    {
+      "id": "griffin",
+      "kind": "creatures",
+      "file": "creatures/griffin.glb",
+      "bytes": 4107084,
+      "sha256": "6215ee7f5e2df9d3e3af4cee8e865aed49a4c1081ab24e13d86a3c1e068112ce",
+      "transform": null
+    },
+    {
+      "id": "hobgoblin",
+      "kind": "creatures",
+      "file": "creatures/hobgoblin.glb",
+      "bytes": 3818928,
+      "sha256": "e963235937f09aab537af7838d061594c958e66e7b71b2b376137952f93e92f2",
+      "transform": null
+    },
+    {
+      "id": "ice-monster",
+      "kind": "creatures",
+      "file": "creatures/ice-monster.glb",
+      "bytes": 4144268,
+      "sha256": "322c23cf4908fc9b33b70c330511f8d596ed74896da2715f994f78b31b0b7f5e",
+      "transform": null
+    },
+    {
+      "id": "jabberwock",
+      "kind": "creatures",
+      "file": "creatures/jabberwock.glb",
+      "bytes": 3880680,
+      "sha256": "6da79504bbddeb19d3a80d9c94287b86aef346207b485a10ded18e371b7d05d1",
+      "transform": null
+    },
+    {
+      "id": "kestrel",
+      "kind": "creatures",
+      "file": "creatures/kestrel.glb",
+      "bytes": 3962452,
+      "sha256": "ec29ae6b34a4b5513b52b306427b509ebc301a0751a553c68fcae29274aaac72",
+      "transform": null
+    },
+    {
+      "id": "leprechaun",
+      "kind": "creatures",
+      "file": "creatures/leprechaun.glb",
+      "bytes": 3977996,
+      "sha256": "54d36630a245f088f4d3229f0924c024f23d4c0ade9e2a1725ccc7cc9241a9f0",
+      "transform": null
+    },
+    {
+      "id": "medusa",
+      "kind": "creatures",
+      "file": "creatures/medusa.glb",
+      "bytes": 3873840,
+      "sha256": "fdfc64200f38f2a770f1d5984782c61b0b50cc9b1b83a152efb50892f2d9a00d",
+      "transform": null
+    },
+    {
+      "id": "nymph",
+      "kind": "creatures",
+      "file": "creatures/nymph.glb",
+      "bytes": 3657184,
+      "sha256": "a6527f191455716e6990b44770c90dbb80e9c65c9ab6c28ed770738e8b8455db",
+      "transform": null
+    },
+    {
+      "id": "orc",
+      "kind": "creatures",
+      "file": "creatures/orc.glb",
+      "bytes": 3886748,
+      "sha256": "698897dc19973823108a2c850484e24f7fd8469d8a2f3d2c2a8c83ff5021b7c6",
+      "transform": null
+    },
+    {
+      "id": "phantom",
+      "kind": "creatures",
+      "file": "creatures/phantom.glb",
+      "bytes": 3553136,
+      "sha256": "dbf4f518ffac5be8f27d4b87db371dd9ceaab672765397b3fece2c52736c505a",
+      "transform": null
+    },
+    {
+      "id": "quagga",
+      "kind": "creatures",
+      "file": "creatures/quagga.glb",
+      "bytes": 3791056,
+      "sha256": "0bb3fbeeae6660a537e7bc7ec1c9f38e5c910e6eaf9c8dd916cf4ae5f8778afe",
+      "transform": null
+    },
+    {
+      "id": "rattlesnake",
+      "kind": "creatures",
+      "file": "creatures/rattlesnake.glb",
+      "bytes": 3648592,
+      "sha256": "c24bd1c0b9d989ac3e6fe587e0f3c93f4321dfd9faef378d565c721cba692bca",
+      "transform": null
+    },
+    {
+      "id": "snake",
+      "kind": "creatures",
+      "file": "creatures/snake.glb",
+      "bytes": 3641292,
+      "sha256": "bba07e68df6c144c4e104d1fc3e2280929e9459736424aa0035ecfa2e99c9f23",
+      "transform": null
+    },
+    {
+      "id": "troll",
+      "kind": "creatures",
+      "file": "creatures/troll.glb",
+      "bytes": 4078980,
+      "sha256": "18c8154b79f75b7f6f75a6f2bb27a59f66abe90b8f11e69305f1af8341200c47",
+      "transform": null
+    },
+    {
+      "id": "vampire",
+      "kind": "creatures",
+      "file": "creatures/vampire.glb",
+      "bytes": 3596976,
+      "sha256": "c1074c4b4319c35838bb81b8bc522a096089bfd0d0635a7c1dadc2a285fbbdcd",
+      "transform": null
+    },
+    {
+      "id": "venus-flytrap",
+      "kind": "creatures",
+      "file": "creatures/venus-flytrap.glb",
+      "bytes": 4183660,
+      "sha256": "43eca62cdcc828450e55c86ddf1e2106ab937ac94e8299d5d9c07aa658eda4ba",
+      "transform": null
+    },
+    {
+      "id": "wraith",
+      "kind": "creatures",
+      "file": "creatures/wraith.glb",
+      "bytes": 3746416,
+      "sha256": "fc4b3a2f9facbadab1757956094c0dd25bdade322c57e73d3aa218194996a957",
+      "transform": null
+    },
+    {
+      "id": "xeroc",
+      "kind": "creatures",
+      "file": "creatures/xeroc.glb",
+      "bytes": 4435480,
+      "sha256": "dde3e6bdf7925d600819000acd542709367cd72f8ae993ecfef20333f772aff7",
+      "transform": null
+    },
+    {
+      "id": "yeti",
+      "kind": "creatures",
+      "file": "creatures/yeti.glb",
+      "bytes": 3977104,
+      "sha256": "163651ba348ab8255fba78bd186b5601c29ba730359dea51d47605d3bf7572f4",
+      "transform": null
+    },
+    {
+      "id": "zombie",
+      "kind": "creatures",
+      "file": "creatures/zombie.glb",
+      "bytes": 3538320,
+      "sha256": "68ef2ee1b10d06db338f4c2ac35ec8e62d7549a149451af960f3ff366600a8a4",
+      "transform": null
+    },
+    {
+      "id": "door",
+      "kind": "props",
+      "file": "props/door.glb",
+      "bytes": 1887664,
+      "sha256": "fdce9ad8b58fd11374d71febd0ea8c833e03588a99a3c0663eb3f693ba67af2e",
+      "transform": {
+        "scale": [
+          0.6896551497342619,
+          0.7673912182929231,
+          0.2041660121677895
+        ],
+        "translation": [
+          0,
+          0,
+          -0.06893177697094811
+        ]
+      }
+    },
+    {
+      "id": "chest",
+      "kind": "props",
+      "file": "props/chest.glb",
+      "bytes": 1664648,
+      "sha256": "1a85eac5c8beffe44d891269b12ac0a7101d72eb8de9938807e99680d05be8d6",
+      "transform": {
+        "scale": [
+          0.5598039260981279,
+          0.5598039260981279,
+          0.5598039260981279
+        ],
+        "translation": [
+          0,
+          0.014405353503927595,
+          0.016577883390709758
+        ]
+      }
+    },
+    {
+      "id": "torch",
+      "kind": "props",
+      "file": "props/torch.glb",
+      "bytes": 1382916,
+      "sha256": "ee234216684be12091502c3faf3c97cde3181214e94c0a66ed2f9cac4a8c311d",
+      "transform": {
+        "scale": [
+          0.801388846117039,
+          0.801388846117039,
+          0.801388846117039
+        ],
+        "translation": [
+          0,
+          -0.14499999582767487,
+          0.17774999495078309
+        ]
+      }
+    },
+    {
+      "id": "urn",
+      "kind": "props",
+      "file": "props/urn.glb",
+      "bytes": 1414968,
+      "sha256": "8da101ca7c347bc29ec92ca6a2200c2fd45dd7e9a90fe3bad110e0fe336a7a22",
+      "transform": {
+        "scale": [
+          0.5784351825714111,
+          0.5784351825714111,
+          0.5784351825714111
+        ],
+        "translation": [
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "pillar",
+      "kind": "props",
+      "file": "props/pillar.glb",
+      "bytes": 1093432,
+      "sha256": "07a97ed1fefba3ac03e4edcb10d0aedd250bde11587bfafd9458c2b6591ba044",
+      "transform": {
+        "scale": [
+          0.48409078920432264,
+          0.48409078920432264,
+          0.48409078920432264
+        ],
+        "translation": [
+          7.213514882390538e-9,
+          0,
+          7.213514882390538e-9
+        ]
+      }
+    },
+    {
+      "id": "potion",
+      "kind": "props",
+      "file": "props/potion.glb",
+      "bytes": 1212052,
+      "sha256": "a4d7b6a85d7e41b3683d4f4ea6271a3ac32cf5b529f44a6808cfecd7714bbf15",
+      "transform": {
+        "scale": [
+          1.411764721350687,
+          1.411764721350687,
+          1.411764721350687
+        ],
+        "translation": [
+          5.259233420158502e-9,
+          0.009999997913837433,
+          0.008500007583814567
+        ]
+      }
+    }
+  ]
+}

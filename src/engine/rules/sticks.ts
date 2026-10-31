@@ -1,3 +1,4 @@
+import { incomingDamage } from './difficulty';
 import { buildIndexes } from '../entities';
 import { cellIndex, isPlayable, canOccupyFloor, tileAt } from '../grid';
 import type { RawEventInput } from '../model/action';
@@ -53,7 +54,7 @@ function affect(state:WorldState,id:EntityId,effect:string):void{const monster=s
 }
 function drain(state:WorldState,emit:(event:RawEventInput)=>void):void{const ids=state.level.monsterOrder.filter(id=>{const monster=state.entities[id];if(monster?.kind!=='monster')return false;
   return state.player.roomId===null?Math.abs(monster.at.x-state.player.at.x)<=1&&Math.abs(monster.at.y-state.player.at.y)<=1:monster.roomId===state.player.roomId;});
-  if(!ids.length){message(emit,'You have a tingling feeling.');return;}const before=state.player.stats.hp;state.player.stats.hp=Math.trunc(before/2);emit({type:'hpChanged',actorId:'player',from:before,to:state.player.stats.hp});
+  if(!ids.length){message(emit,'You have a tingling feeling.');return;}const before=state.player.stats.hp;state.player.stats.hp=state.settings?.godMode?before:Math.trunc(before/2);emit({type:'hpChanged',actorId:'player',from:before,to:state.player.stats.hp});
   const each=Math.trunc(state.player.stats.hp/ids.length);for(const id of ids)damageMonster(state,id,each,emit);
 }
 function relocateTarget(state:WorldState,direction:Direction,toPlayer:boolean):void{const id=firstMonster(state,direction);const monster=id?state.entities[id]:null;if(monster?.kind!=='monster')return;
@@ -67,7 +68,7 @@ function elementalBolt(state:WorldState,direction:Direction,effect:string,emit:(
   while(traveled<6&&bounces<20){const next={x:at.x+vector.x,y:at.y+vector.y};if(!isPlayable(state.level,next)||!canStepTerrain(tileAt(state.level,next).terrain)||tileAt(state.level,next).terrain==='door'){
     vector={x:-vector.x,y:-vector.y};returning=!returning;bounces++;message(emit,`The ${effect.slice(6)} bounces.`);continue;}at=next;traveled++;
     const monsterId=buildIndexes(state).monsters.get(cellIndex(state.level,at));if(monsterId&&!returning){returning=true;const monster=state.entities[monsterId];if(monster?.kind==='monster'&&roll(state.rng,1,20)<17-Math.trunc(monster.stats.level/2)){damageMonster(state,monsterId,roll(state.rng,6,6),emit);return;}continue;}
-    if(returning&&at.x===state.player.at.x&&at.y===state.player.at.y){if(roll(state.rng,1,20)<17-Math.trunc(state.player.stats.level/2)){const before=state.player.stats.hp;state.player.stats.hp=Math.max(0,before-roll(state.rng,6,6));emit({type:'hpChanged',actorId:'player',from:before,to:state.player.stats.hp});
+    if(returning&&at.x===state.player.at.x&&at.y===state.player.at.y){if(roll(state.rng,1,20)<17-Math.trunc(state.player.stats.level/2)){const before=state.player.stats.hp;state.player.stats.hp=Math.max(0,before-incomingDamage(state,roll(state.rng,6,6)));emit({type:'hpChanged',actorId:'player',from:before,to:state.player.stats.hp});
       if(state.player.stats.hp===0){state.timing.status='dead';state.timing.deathCause=`reflected ${effect.slice(6)} bolt`;emit({type:'actorDefeated',actorId:'player',byActorId:'bolt'});}}return;}}
 }
 function firstMonster(state:WorldState,direction:Direction):EntityId|undefined{const vector=VECTORS[direction];const monsters=buildIndexes(state).monsters;let at={...state.player.at};

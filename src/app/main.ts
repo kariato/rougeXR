@@ -19,6 +19,7 @@ import { bindVirtualJoystick } from '../input/virtual-joystick';
 import { directionFromForward } from '../presentation/xr/input';
 import type { PresentationEvent } from '../engine/model/action';
 import type { GameAction } from '../engine/model/action';
+import type { Difficulty } from '../engine/model/state';
 import { parseSave, restoreGame, serializeSave } from '../persistence/save';
 import { parseReplay, ReplayRecorder } from '../persistence/replay';
 import { ReplayPlayer, type ReplayStepResult } from '../persistence/replay-player';
@@ -80,6 +81,9 @@ const descend = required<HTMLButtonElement>('#descend');
 const ascend = required<HTMLButtonElement>('#ascend');
 const worldMode = required<HTMLSelectElement>('#world-mode');
 const seedInput = required<HTMLInputElement>('#seed');
+const difficulty = required<HTMLSelectElement>('#difficulty');
+const godMode = required<HTMLButtonElement>('#god-mode');
+godMode.addEventListener('click', () => submit({ type: 'setGodMode', enabled: !session.exportState().settings?.godMode }));
 const newGame = required<HTMLButtonElement>('#new-game');
 const replayRestart = required<HTMLButtonElement>('#replay-restart');
 const replayStep = required<HTMLButtonElement>('#replay-step');
@@ -174,6 +178,11 @@ function refreshAttackButton(observation: PlayerObservation = observe(session.ex
 function render(): void {
   const state = session.exportState();
   const observation = observe(state);
+  const modeLabel = state.settings?.difficulty ?? 'normal';
+  required<HTMLElement>('#hud-difficulty').textContent = `${modeLabel[0]!.toUpperCase()}${modeLabel.slice(1)}${state.settings?.godMode ? ' · GOD MODE' : ''}`;
+  godMode.textContent = `God mode: ${state.settings?.godMode ? 'On' : 'Off'}`;
+  godMode.setAttribute('aria-pressed', String(!!state.settings?.godMode));
+  godMode.disabled = replayPlayer !== null || state.timing.status !== 'playing' || state.pendingDecision !== null;
   syncSpatialMenu();
   const endingPanel = required<HTMLElement>('#ending-panel');
   endingPanel.hidden = !observation.ending || view === threeView;
@@ -419,7 +428,7 @@ newGame.addEventListener('click', event => {
     leaveReplayMode();
     const seed = parseSeed(seedInput.value);
     const mode = worldMode.value as WorldMode;
-    const state = createSelectedWorld(mode, seed);
+    const state = createSelectedWorld(mode, seed, difficulty.value as Difficulty);
     const validation = validateWorld(state);
     if (validation.length) throw new Error(`New world validation failed: ${JSON.stringify(validation)}`);
     session = new GameSession(state); threeView.resetPresentation(); recorder = new ReplayRecorder(state); selectedIndex = null; latestEvents = []; resetDiagnostics();
@@ -695,6 +704,7 @@ async function prepareWelcome(): Promise<void> {
 }
 required<HTMLButtonElement>('#welcome-new').addEventListener('click', () => {
   if (!welcomeSeed.reportValidity()) return;
+  difficulty.value = required<HTMLSelectElement>('#welcome-difficulty').value;
   seedInput.value = welcomeSeed.value; worldMode.value = 'generated'; newGame.click();
 });
 required<HTMLButtonElement>('#welcome-load').addEventListener('click', () => {

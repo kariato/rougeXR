@@ -29,6 +29,8 @@ export function validateWorld(input: unknown): ValidationIssue[] {
   try {
     const s = input as WorldState;
     const level = s.level;
+    if (s.settings !== undefined) check(!!s.settings && ['easy', 'normal', 'hard'].includes(s.settings.difficulty)
+      && typeof s.settings.godMode === 'boolean', 'settings', 'Invalid difficulty or god mode');
     check(integer(s.seed) && s.seed <= 0xffffffff, 'seed', 'Expected uint32');
     check(s.rng.algorithm === 'xorshift32-v1' && integer(s.rng.word, 1) && s.rng.word <= 0xffffffff && integer(s.rng.draws), 'rng', 'Invalid random state');
     check(integer(s.nextEntitySerial, 1) && s.nextEntitySerial < Number.MAX_SAFE_INTEGER, 'nextEntitySerial', 'Invalid serial');

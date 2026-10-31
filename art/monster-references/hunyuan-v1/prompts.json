@@ -1,0 +1,189 @@
+{
+  "format": "rougexr-monster-references-v1",
+  "generator": "built-in image_gen",
+  "style": "dark-fantasy sculpted miniature",
+  "monsters": [
+    {
+      "id": "aquator",
+      "body": "biped",
+      "heightMetres": 1.5,
+      "reference": "aquator.png",
+      "prompt": "Use case: stylized-concept. Asset type: single image-to-3D monster reference for rougeXR. Create exactly ONE full-body AQUATOR: an original stocky amphibian dungeon monster with a broad salamander head, teal pebbled scales, ivory belly, small dorsal fin, powerful webbed feet and rust-orange corrosive hands. Charming but dangerous dark-fantasy collectible miniature quality, anatomically solid, detailed sculpted organic surfaces, restrained realistic materials. Frontal orthographic view facing viewer, standing upright symmetrical relaxed A-pose with arms 35 degrees away from torso, hands and both feet fully separated and visible, mouth closed, neutral expression, all anatomy in frame with 12 percent padding. Diffuse neutral studio light without cast shadow. Genuine transparent background. No scenery, pedestal, floor, weapons, floating effects, lettering, labels, multiple views, collage, or other creatures. This is a reconstruction reference: clear silhouette, opaque surfaces, coherent plausible anatomy."
+    },
+    {
+      "id": "bat",
+      "body": "winged",
+      "heightMetres": 0.65,
+      "reference": "bat.png",
+      "prompt": "Use case: stylized-concept. Asset type: single image-to-3D creature reference for rougeXR. Create exactly ONE original monster, dark-fantasy collectible miniature quality, detailed sculpted organic surfaces, restrained realistic opaque materials. Subject: cave bat with charcoal fur, large pointed ears, small amber eyes and broad leathery maroon wings with clear finger struts; wings spread horizontally and both clawed feet visible. Frontal orthographic view, facing viewer with wings fully spread in symmetrical neutral flying rest pose. Entire creature in frame with 12 percent transparent padding on all sides. Diffuse neutral studio light, no cast shadow. Genuine transparent background. No scenery, floor, pedestal, weapons, floating effects, letters, labels, watermarks, multiple views, collage, or extra creatures. Clear silhouette and coherent plausible anatomy for reconstruction."
+    },
+    {
+      "id": "centaur",
+      "body": "centaur",
+      "heightMetres": 2,
+      "reference": "centaur.png",
+      "prompt": "Use case: stylized-concept. Asset type: single image-to-3D creature reference for rougeXR. Create exactly ONE original monster, dark-fantasy collectible miniature quality, detailed sculpted organic surfaces, restrained realistic opaque materials. Subject: powerful centaur, fully clothed brown leather armored human upper body and chestnut horse lower body, two muscular arms extended slightly, four distinct separated horse legs and long dark tail, no weapon. Front three-quarter view turned only 15 degrees, neutral standing rest pose, every limb distinct and visible; show the complete body and full tail. Entire creature in frame with 12 percent transparent padding on all sides. Diffuse neutral studio light, no cast shadow. Genuine transparent background. No scenery, floor, pedestal, weapons, floating effects, letters, labels, watermarks, multiple views, collage, or extra creatures. Clear silhouette and coherent plausible anatomy for reconstruction."
+    },
+    {
+      "id": "dragon",
+      "body": "quadruped",
+      "heightMetres": 1.65,
+      "reference": "dragon.png",
+      "prompt": "Use case: stylized-concept. Asset type: single image-to-3D creature reference for rougeXR. Create exactly ONE original monster, dark-fantasy collectible miniature quality, detailed sculpted organic surfaces, restrained realistic opaque materials. Subject: ancient crimson red dragon with gold belly scales, broad partly spread wings, swept horns, muscular four-legged body, closed toothy jaw and long curved tail, all four feet separated. Front three-quarter view turned only 15 degrees, neutral standing rest pose, every limb distinct and visible; show the complete body and full tail. Entire creature in frame with 12 percent transparent padding on all sides. Diffuse neutral studio light, no cast shadow. Genuine transparent background. No scenery, floor, pedestal, weapons, floating effects, letters, labels, watermarks, multiple views, collage, or extra creatures. Clear silhouette and coherent plausible anatomy for reconstruction."
+    },
+    {
+      "id": "emu",
+      "body": "bird",
+      "heightMetres": 1.8,
+      "reference": "emu.png",
+      "prompt": "Use case: stylized-concept. Asset type: single image-to-3D creature reference for rougeXR. Create exactly ONE original monster, dark-fantasy collectible miniature quality, detailed sculpted organic surfaces, restrained realistic opaque materials. Subject: alert emu with shaggy layered brown feathers, long blue-gray neck, small head, amber eyes, small wings and two powerful long legs with three-clawed toes. Front three-quarter view turned only 15 degrees, neutral standing rest pose, every limb distinct and visible; show the complete body and full tail. Entire creature in frame with 12 percent transparent padding on all sides. Diffuse neutral studio light, no cast shadow. Genuine transparent background. No scenery, floor, pedestal, weapons, floating effects, letters, labels, watermarks, multiple views, collage, or extra creatures. Clear silhouette and coherent plausible anatomy for reconstruction."
+    },
+    {
+      "id": "venus-flytrap",
+      "body": "plant",
+      "heightMetres": 1.25,
+      "reference": "venus-flytrap.png",
+      "prompt": "Use case: stylized-concept. Asset type: single image-to-3D creature reference for rougeXR. Create exactly ONE original monster, dark-fantasy collectible miniature quality, detailed sculpted organic surfaces, restrained realistic opaque materials. Subject: monstrous Venus flytrap with rooted green leaf rosette, thick upright curved stem, enormous open crimson trap mouth lined with interlocking ivory plant spines, two distinct side vines, fleshy green lobes. Front three-quarter view turned only 15 degrees, neutral standing rest pose, every limb distinct and visible; show the complete body and full tail. Entire creature in frame with 12 percent transparent padding on all sides. Diffuse neutral studio light, no cast shadow. Genuine transparent background. No scenery, floor, pedestal, weapons, floating effects, letters, labels, watermarks, multiple views, collage, or extra creatures. Clear silhouette and coherent plausible anatomy for reconstruction."
+    },
+    {
+      "id": "griffin",
+      "body": "quadruped",
+      "heightMetres": 1.6,
+      "reference": "griffin.png",
+      "prompt": "Use case: stylized-concept. Asset type: single image-to-3D creature reference for rougeXR. Create exactly ONE original monster, dark-fantasy collectible miniature quality, detailed sculpted organic surfaces, restrained realistic opaque materials. Subject: majestic eagle-lion griffin with golden hooked beak, layered ivory and gold feathered head, tawny lion hindquarters, broad partly spread feather wings, two front taloned legs and two rear lion legs, distinct tail. Front three-quarter view turned only 15 degrees, neutral standing rest pose, every limb distinct and visible; show the complete body and full tail. Entire creature in frame with 12 percent transparent padding on all sides. Diffuse neutral studio light, no cast shadow. Genuine transparent background. No scenery, floor, pedestal, weapons, floating effects, letters, labels, watermarks, multiple views, collage, or extra creatures. Clear silhouette and coherent plausible anatomy for reconstruction."
+    },
+    {
+      "id": "hobgoblin",
+      "body": "biped",
+      "heightMetres": 1.55,
+      "reference": "hobgoblin.png",
+      "prompt": "Use case: stylized-concept. Asset type: single image-to-3D creature reference for rougeXR. Create exactly ONE original monster, dark-fantasy collectible miniature quality, detailed sculpted organic surfaces, restrained realistic opaque materials. Subject: lean vicious hobgoblin with burnt orange skin, broad pointed ears, amber eyes, heavy brow, two small tusks, ragged dark leather tunic and trousers, leather wrist wraps, no weapon. Frontal orthographic view facing viewer, relaxed symmetrical A-pose, arms 35 degrees away from torso, both hands and feet distinct. Entire creature in frame with 12 percent transparent padding on all sides. Diffuse neutral studio light, no cast shadow. Genuine transparent background. No scenery, floor, pedestal, weapons, floating effects, letters, labels, watermarks, multiple views, collage, or extra creatures. Clear silhouette and coherent plausible anatomy for reconstruction."
+    },
+    {
+      "id": "ice-monster",
+      "body": "biped",
+      "heightMetres": 1.55,
+      "reference": "ice-monster.png",
+      "prompt": "Use case: stylized-concept. Asset type: single image-to-3D creature reference for rougeXR. Create exactly ONE original monster, dark-fantasy collectible miniature quality, detailed sculpted organic surfaces, restrained realistic opaque materials. Subject: bulky ice elemental monster with a solid opaque glacier-blue humanoid body, frosty crystalline plates on shoulders, angular face with blue recessed eyes, thick articulated arms and legs, no transparent glass or particles. Frontal orthographic view facing viewer, relaxed symmetrical A-pose, arms 35 degrees away from torso, both hands and feet distinct. Entire creature in frame with 12 percent transparent padding on all sides. Diffuse neutral studio light, no cast shadow. Genuine transparent background. No scenery, floor, pedestal, weapons, floating effects, letters, labels, watermarks, multiple views, collage, or extra creatures. Clear silhouette and coherent plausible anatomy for reconstruction."
+    },
+    {
+      "id": "jabberwock",
+      "body": "quadruped",
+      "heightMetres": 1.7,
+      "reference": "jabberwock.png",
+      "prompt": "Use case: stylized-concept. Asset type: single image-to-3D creature reference for rougeXR. Create exactly ONE original monster, dark-fantasy collectible miniature quality, detailed sculpted organic surfaces, restrained realistic opaque materials. Subject: uncanny green dragonkin Jabberwock with very long curved neck and snout, oversized ivory buck teeth, small whisker tendrils, horns, violet partly spread bat wings, four muscular legs and long curled tail. Front three-quarter view turned only 15 degrees, neutral standing rest pose, every limb distinct and visible; show the complete body and full tail. Entire creature in frame with 12 percent transparent padding on all sides. Diffuse neutral studio light, no cast shadow. Genuine transparent background. No scenery, floor, pedestal, weapons, floating effects, letters, labels, watermarks, multiple views, collage, or extra creatures. Clear silhouette and coherent plausible anatomy for reconstruction."
+    },
+    {
+      "id": "kestrel",
+      "body": "winged",
+      "heightMetres": 0.6,
+      "reference": "kestrel.png",
+      "prompt": "Use case: stylized-concept. Asset type: single image-to-3D creature reference for rougeXR. Create exactly ONE original monster, dark-fantasy collectible miniature quality, detailed sculpted organic surfaces, restrained realistic opaque materials. Subject: kestrel falcon with russet barred back feathers, pale speckled breast, slate gray head, black facial markings, hooked beak and yellow talons; wings spread horizontally and tail feathers separated. Frontal orthographic view, facing viewer with wings fully spread in symmetrical neutral flying rest pose. Entire creature in frame with 12 percent transparent padding on all sides. Diffuse neutral studio light, no cast shadow. Genuine transparent background. No scenery, floor, pedestal, weapons, floating effects, letters, labels, watermarks, multiple views, collage, or extra creatures. Clear silhouette and coherent plausible anatomy for reconstruction."
+    },
+    {
+      "id": "leprechaun",
+      "body": "biped",
+      "heightMetres": 0.95,
+      "reference": "leprechaun.png",
+      "prompt": "Use case: stylized-concept. Asset type: single image-to-3D creature reference for rougeXR. Create exactly ONE original monster, dark-fantasy collectible miniature quality, detailed sculpted organic surfaces, restrained realistic opaque materials. Subject: cunning small leprechaun with freckled face, ginger beard, green fitted coat and trousers, brown leather belt with brass buckle, squat green hat and brown boots, empty hands. Frontal orthographic view facing viewer, relaxed symmetrical A-pose, arms 35 degrees away from torso, both hands and feet distinct. Entire creature in frame with 12 percent transparent padding on all sides. Diffuse neutral studio light, no cast shadow. Genuine transparent background. No scenery, floor, pedestal, weapons, floating effects, letters, labels, watermarks, multiple views, collage, or extra creatures. Clear silhouette and coherent plausible anatomy for reconstruction."
+    },
+    {
+      "id": "medusa",
+      "body": "biped",
+      "heightMetres": 1.7,
+      "reference": "medusa.png",
+      "prompt": "Use case: stylized-concept. Asset type: single image-to-3D creature reference for rougeXR. Create exactly ONE original monster, dark-fantasy collectible miniature quality, detailed sculpted organic surfaces, restrained realistic opaque materials. Subject: fearsome Medusa gorgon with jade-green skin, opaque gold eyes, crown of thick distinct short green snakes instead of hair, fully clothed dark green scale-textured tunic and leggings with gold belt, two separate legs, empty hands. Frontal orthographic view facing viewer, relaxed symmetrical A-pose, arms 35 degrees away from torso, both hands and feet distinct. Entire creature in frame with 12 percent transparent padding on all sides. Diffuse neutral studio light, no cast shadow. Genuine transparent background. No scenery, floor, pedestal, weapons, floating effects, letters, labels, watermarks, multiple views, collage, or extra creatures. Clear silhouette and coherent plausible anatomy for reconstruction."
+    },
+    {
+      "id": "nymph",
+      "body": "biped",
+      "heightMetres": 1.6,
+      "reference": "nymph.png",
+      "prompt": "Use case: stylized-concept. Asset type: single image-to-3D creature reference for rougeXR. Create exactly ONE original monster, dark-fantasy collectible miniature quality, detailed sculpted organic surfaces, restrained realistic opaque materials. Subject: adult woodland nymph thief with pointed ears, olive skin, green eyes, willow-green hair tucked behind shoulders, fully clothed layered leaf tunic with opaque leggings and soft boots, small gold charm on belt, empty hands. Frontal orthographic view facing viewer, relaxed symmetrical A-pose, arms 35 degrees away from torso, both hands and feet distinct. Entire creature in frame with 12 percent transparent padding on all sides. Diffuse neutral studio light, no cast shadow. Genuine transparent background. No scenery, floor, pedestal, weapons, floating effects, letters, labels, watermarks, multiple views, collage, or extra creatures. Clear silhouette and coherent plausible anatomy for reconstruction."
+    },
+    {
+      "id": "orc",
+      "body": "biped",
+      "heightMetres": 1.7,
+      "reference": "orc.png",
+      "prompt": "Use case: stylized-concept. Asset type: single image-to-3D creature reference for rougeXR. Create exactly ONE original monster, dark-fantasy collectible miniature quality, detailed sculpted organic surfaces, restrained realistic opaque materials. Subject: muscular green orc with broad face, blunt nose, pronounced lower tusks, dark swept-back hair, scarred ears, fully clothed battered brown leather jerkin and trousers, worn boots, empty hands. Frontal orthographic view facing viewer, relaxed symmetrical A-pose, arms 35 degrees away from torso, both hands and feet distinct. Entire creature in frame with 12 percent transparent padding on all sides. Diffuse neutral studio light, no cast shadow. Genuine transparent background. No scenery, floor, pedestal, weapons, floating effects, letters, labels, watermarks, multiple views, collage, or extra creatures. Clear silhouette and coherent plausible anatomy for reconstruction."
+    },
+    {
+      "id": "phantom",
+      "body": "spectral",
+      "heightMetres": 1.7,
+      "reference": "phantom.png",
+      "prompt": "Use case: stylized-concept. Asset type: single image-to-3D creature reference for rougeXR. Create exactly ONE original monster, dark-fantasy collectible miniature quality, detailed sculpted organic surfaces, restrained realistic opaque materials. Subject: armored spectral phantom with beaked dark metal mask, violet eyes, spiked shoulders, long clawed gauntlets, opaque black floating torn cloak with two distinct trailing cloth tails, no legs, no translucent particles. Frontal orthographic view, arms away from body, cloth tails distinct. Entire creature in frame with 12 percent transparent padding on all sides. Diffuse neutral studio light, no cast shadow. Genuine transparent background. No scenery, floor, pedestal, weapons, floating effects, letters, labels, watermarks, multiple views, collage, or extra creatures. Clear silhouette and coherent plausible anatomy for reconstruction."
+    },
+    {
+      "id": "quagga",
+      "body": "quadruped",
+      "heightMetres": 1.35,
+      "reference": "quagga.png",
+      "prompt": "Use case: stylized-concept. Asset type: single image-to-3D creature reference for rougeXR. Create exactly ONE original monster, dark-fantasy collectible miniature quality, detailed sculpted organic surfaces, restrained realistic opaque materials. Subject: quagga animal with zebra-striped head neck and front shoulders fading to warm brown unstriped horse hindquarters, short upright mane, dark tail tuft, all four hooves separated, natural proportions. Front three-quarter view turned only 15 degrees, neutral standing rest pose, every limb distinct and visible; show the complete body and full tail. Entire creature in frame with 12 percent transparent padding on all sides. Diffuse neutral studio light, no cast shadow. Genuine transparent background. No scenery, floor, pedestal, weapons, floating effects, letters, labels, watermarks, multiple views, collage, or extra creatures. Clear silhouette and coherent plausible anatomy for reconstruction."
+    },
+    {
+      "id": "rattlesnake",
+      "body": "snake",
+      "heightMetres": 0.5,
+      "reference": "rattlesnake.png",
+      "prompt": "Use case: stylized-concept. Asset type: single image-to-3D creature reference for rougeXR. Create exactly ONE original monster, dark-fantasy collectible miniature quality, detailed sculpted organic surfaces, restrained realistic opaque materials. Subject: thick diamondback rattlesnake, sandy ochre and dark brown diamond scales, clearly segmented raised tail rattle at one side, broad wedge-shaped head raised at front and single open S-shaped body loop lying on ground, no overlapping coils. Elevated front three-quarter view of a single long open S-shaped body, head clearly raised at front, whole tail visible, no overlapping coils. Entire creature in frame with 12 percent transparent padding on all sides. Diffuse neutral studio light, no cast shadow. Genuine transparent background. No scenery, floor, pedestal, weapons, floating effects, letters, labels, watermarks, multiple views, collage, or extra creatures. Clear silhouette and coherent plausible anatomy for reconstruction."
+    },
+    {
+      "id": "snake",
+      "body": "snake",
+      "heightMetres": 0.4,
+      "reference": "snake.png",
+      "prompt": "Use case: stylized-concept. Asset type: single image-to-3D creature reference for rougeXR. Create exactly ONE original monster, dark-fantasy collectible miniature quality, detailed sculpted organic surfaces, restrained realistic opaque materials. Subject: emerald-green dungeon snake with pale cream belly scales, narrow angular head raised at front, amber eyes and a long single sinuous S-shaped body lying on ground with separated tail, no overlapping coils. Elevated front three-quarter view of a single long open S-shaped body, head clearly raised at front, whole tail visible, no overlapping coils. Entire creature in frame with 12 percent transparent padding on all sides. Diffuse neutral studio light, no cast shadow. Genuine transparent background. No scenery, floor, pedestal, weapons, floating effects, letters, labels, watermarks, multiple views, collage, or extra creatures. Clear silhouette and coherent plausible anatomy for reconstruction."
+    },
+    {
+      "id": "troll",
+      "body": "biped",
+      "heightMetres": 1.95,
+      "reference": "troll.png",
+      "prompt": "Use case: stylized-concept. Asset type: single image-to-3D creature reference for rougeXR. Create exactly ONE original monster, dark-fantasy collectible miniature quality, detailed sculpted organic surfaces, restrained realistic opaque materials. Subject: massive cave troll with moss-green leathery skin, stone-gray face and fists, broad hunched shoulders, large nose, two ivory tusks, short coarse beard, ragged leather shorts and belt, long heavy empty arms. Frontal orthographic view facing viewer, relaxed symmetrical A-pose, arms 35 degrees away from torso, both hands and feet distinct. Entire creature in frame with 12 percent transparent padding on all sides. Diffuse neutral studio light, no cast shadow. Genuine transparent background. No scenery, floor, pedestal, weapons, floating effects, letters, labels, watermarks, multiple views, collage, or extra creatures. Clear silhouette and coherent plausible anatomy for reconstruction."
+    },
+    {
+      "id": "black-unicorn",
+      "body": "quadruped",
+      "heightMetres": 1.65,
+      "reference": "black-unicorn.png",
+      "prompt": "Use case: stylized-concept. Asset type: single image-to-3D creature reference for rougeXR. Create exactly ONE original monster, dark-fantasy collectible miniature quality, detailed sculpted organic surfaces, restrained realistic opaque materials. Subject: ominous black unicorn with muscular horse body, subtle violet sheen on opaque black hide, single long spiraled pale-violet horn, dark upright mane, long tail and four separate hooves, no magical particles. Front three-quarter view turned only 15 degrees, neutral standing rest pose, every limb distinct and visible; show the complete body and full tail. Entire creature in frame with 12 percent transparent padding on all sides. Diffuse neutral studio light, no cast shadow. Genuine transparent background. No scenery, floor, pedestal, weapons, floating effects, letters, labels, watermarks, multiple views, collage, or extra creatures. Clear silhouette and coherent plausible anatomy for reconstruction."
+    },
+    {
+      "id": "vampire",
+      "body": "biped",
+      "heightMetres": 1.8,
+      "reference": "vampire.png",
+      "prompt": "Use case: stylized-concept. Asset type: single image-to-3D creature reference for rougeXR. Create exactly ONE original monster, dark-fantasy collectible miniature quality, detailed sculpted organic surfaces, restrained realistic opaque materials. Subject: aristocratic male vampire with pale gray skin, sharp cheekbones, small visible ivory fangs, red eyes, swept black hair, fitted black coat with crimson lining and high collar, dark trousers and boots, narrow split cape behind body, empty hands. Frontal orthographic view facing viewer, relaxed symmetrical A-pose, arms 35 degrees away from torso, both hands and feet distinct. Entire creature in frame with 12 percent transparent padding on all sides. Diffuse neutral studio light, no cast shadow. Genuine transparent background. No scenery, floor, pedestal, weapons, floating effects, letters, labels, watermarks, multiple views, collage, or extra creatures. Clear silhouette and coherent plausible anatomy for reconstruction."
+    },
+    {
+      "id": "wraith",
+      "body": "spectral",
+      "heightMetres": 1.7,
+      "reference": "wraith.png",
+      "prompt": "Use case: stylized-concept. Asset type: single image-to-3D creature reference for rougeXR. Create exactly ONE original monster, dark-fantasy collectible miniature quality, detailed sculpted organic surfaces, restrained realistic opaque materials. Subject: hooded wraith with deep faceless black hood, two dim teal eyes, long skeletal hands, opaque tattered charcoal floating robe split into two trailing cloth tails, outstretched separate arms, no legs or translucent smoke. Frontal orthographic view, arms away from body, cloth tails distinct. Entire creature in frame with 12 percent transparent padding on all sides. Diffuse neutral studio light, no cast shadow. Genuine transparent background. No scenery, floor, pedestal, weapons, floating effects, letters, labels, watermarks, multiple views, collage, or extra creatures. Clear silhouette and coherent plausible anatomy for reconstruction."
+    },
+    {
+      "id": "xeroc",
+      "body": "mimic",
+      "heightMetres": 0.8,
+      "reference": "xeroc.png",
+      "prompt": "Use case: stylized-concept. Asset type: single image-to-3D creature reference for rougeXR. Create exactly ONE original monster, dark-fantasy collectible miniature quality, detailed sculpted organic surfaces, restrained realistic opaque materials. Subject: Xeroc treasure-chest mimic: squat wooden chest body with iron bands, open hinged wooden lid lined with large ivory teeth, two sinister amber eyes on lid, red fleshy interior and short thick tongue hanging forward, two short clawed feet underneath. Front three-quarter view turned only 15 degrees, neutral standing rest pose, every limb distinct and visible; show the complete body and full tail. Entire creature in frame with 12 percent transparent padding on all sides. Diffuse neutral studio light, no cast shadow. Genuine transparent background. No scenery, floor, pedestal, weapons, floating effects, letters, labels, watermarks, multiple views, collage, or extra creatures. Clear silhouette and coherent plausible anatomy for reconstruction."
+    },
+    {
+      "id": "yeti",
+      "body": "biped",
+      "heightMetres": 1.95,
+      "reference": "yeti.png",
+      "prompt": "Use case: stylized-concept. Asset type: single image-to-3D creature reference for rougeXR. Create exactly ONE original monster, dark-fantasy collectible miniature quality, detailed sculpted organic surfaces, restrained realistic opaque materials. Subject: massive snow yeti with layered ivory fur, blue-gray bare face palms and feet, small icy-blue eyes, thick arched shoulders, short canine fangs, long muscular arms and two sturdy legs, opaque groomed sculpted fur. Frontal orthographic view facing viewer, relaxed symmetrical A-pose, arms 35 degrees away from torso, both hands and feet distinct. Entire creature in frame with 12 percent transparent padding on all sides. Diffuse neutral studio light, no cast shadow. Genuine transparent background. No scenery, floor, pedestal, weapons, floating effects, letters, labels, watermarks, multiple views, collage, or extra creatures. Clear silhouette and coherent plausible anatomy for reconstruction."
+    },
+    {
+      "id": "zombie",
+      "body": "biped",
+      "heightMetres": 1.7,
+      "reference": "zombie.png",
+      "prompt": "Use case: stylized-concept. Asset type: single image-to-3D creature reference for rougeXR. Create exactly ONE original monster, dark-fantasy collectible miniature quality, detailed sculpted organic surfaces, restrained realistic opaque materials. Subject: shambling humanoid zombie with pallid desaturated gray-green skin, hollow cloudy eyes, gaunt face, disheveled dark hair, fully clothed torn brown tunic and trousers, worn boots, no gore or open wounds, empty hands. Frontal orthographic view facing viewer, relaxed symmetrical A-pose, arms 35 degrees away from torso, both hands and feet distinct. Entire creature in frame with 12 percent transparent padding on all sides. Diffuse neutral studio light, no cast shadow. Genuine transparent background. No scenery, floor, pedestal, weapons, floating effects, letters, labels, watermarks, multiple views, collage, or extra creatures. Clear silhouette and coherent plausible anatomy for reconstruction."
+    }
+  ]
+}

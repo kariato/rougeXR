@@ -1,0 +1,146 @@
+{
+  "format": "rougexr-prop-references-v1",
+  "generator": "built-in image_gen",
+  "parts": [
+    {
+      "id": "door-leaf",
+      "asset": "door",
+      "heightMetres": 1.95,
+      "triangles": 2200,
+      "subject": "A single heavy rectangular medieval oak dungeon door LEAF ONLY, six vertical aged dark honey-brown planks, two black wrought-iron horizontal straps, visible rounded iron rivets, one plain iron ring pull on the viewer's right side. Straight square top and bottom. No stone frame, no threshold, no wall, no exposed hinge arms outside the rectangle.",
+      "view": "Strict front orthographic elevation, perfectly upright and symmetrical outline, entire rectangular panel visible.",
+      "reference": "door-leaf.png",
+      "prompt": "Use case: stylized-concept. Asset type: individual image-to-3D prop reference for rougeXR, matching a detailed dark-fantasy sculpted collectible miniature asset collection. Subject: A single heavy rectangular medieval oak dungeon door LEAF ONLY, six vertical aged dark honey-brown planks, two black wrought-iron horizontal straps, visible rounded iron rivets, one plain iron ring pull on the viewer's right side. Straight square top and bottom. No stone frame, no threshold, no wall, no exposed hinge arms outside the rectangle. Strict front orthographic elevation, perfectly upright and symmetrical outline, entire rectangular panel visible. Clear plausible construction, opaque solid materials, sharp readable geometry, softly lit neutral studio render with even lighting and no cast shadows. Center the single object, preserve 12 percent empty margin around every edge. Genuine transparent background. No lettering, no watermark, no labels, no scenery, no extra objects, no multi-view layout, no pedestal."
+    },
+    {
+      "id": "door-frame",
+      "asset": "door",
+      "heightMetres": 2.3,
+      "triangles": 2500,
+      "subject": "A single freestanding stone dungeon doorway FRAME ONLY, two thick upright jambs of worn blue-gray carved stone blocks supporting a thick straight stone lintel across the top. Rectangular opening completely empty and transparent from top to bottom. Subtle chipped stone, moss only in crevices. No door panel, no threshold across bottom, no surrounding wall or floor.",
+      "view": "Strict front orthographic elevation, upright vertical jambs, square rectangular clear opening, symmetrical silhouette.",
+      "reference": "door-frame.png",
+      "prompt": "Use case: stylized-concept. Asset type: individual image-to-3D prop reference for rougeXR, matching a detailed dark-fantasy sculpted collectible miniature asset collection. Subject: A single freestanding stone dungeon doorway FRAME ONLY, two thick upright jambs of worn blue-gray carved stone blocks supporting a thick straight stone lintel across the top. Rectangular opening completely empty and transparent from top to bottom. Subtle chipped stone, moss only in crevices. No door panel, no threshold across bottom, no surrounding wall or floor. Strict front orthographic elevation, upright vertical jambs, square rectangular clear opening, symmetrical silhouette. Clear plausible construction, opaque solid materials, sharp readable geometry, softly lit neutral studio render with even lighting and no cast shadows. Center the single object, preserve 12 percent empty margin around every edge. Genuine transparent background. No lettering, no watermark, no labels, no scenery, no extra objects, no multi-view layout, no pedestal."
+    },
+    {
+      "id": "chest-base",
+      "asset": "chest",
+      "heightMetres": 0.55,
+      "triangles": 2200,
+      "subject": "A single open-top medieval oak treasure chest BASE ONLY: broad rectangular dark honey-brown wooden box with black iron corner bands and rounded rivets, small brass lock plate centered on front. Its lid has been completely removed. Clearly visible dark empty hollow interior, thick wooden rim and solid bottom, open top. No lid, no treasure, no coins, no handles sticking beyond the box.",
+      "view": "Front three-quarter studio view turned only 10 degrees, elevated 20 degrees to clearly show the open top, full base visible.",
+      "reference": "chest-base.png",
+      "prompt": "Use case: stylized-concept. Asset type: individual image-to-3D prop reference for rougeXR, matching a detailed dark-fantasy sculpted collectible miniature asset collection. Subject: A single open-top medieval oak treasure chest BASE ONLY: broad rectangular dark honey-brown wooden box with black iron corner bands and rounded rivets, small brass lock plate centered on front. Its lid has been completely removed. Clearly visible dark empty hollow interior, thick wooden rim and solid bottom, open top. No lid, no treasure, no coins, no handles sticking beyond the box. Front three-quarter studio view turned only 10 degrees, elevated 20 degrees to clearly show the open top, full base visible. Clear plausible construction, opaque solid materials, sharp readable geometry, softly lit neutral studio render with even lighting and no cast shadows. Center the single object, preserve 12 percent empty margin around every edge. Genuine transparent background. No lettering, no watermark, no labels, no scenery, no extra objects, no multi-view layout, no pedestal."
+    },
+    {
+      "id": "chest-lid",
+      "asset": "chest",
+      "heightMetres": 0.23,
+      "triangles": 1400,
+      "subject": "A single detached medieval treasure chest LID ONLY, a shallow barrel-vaulted oak wooden lid, dark honey-brown planks with black wrought-iron bands, rounded iron rivets, small brass latch tab centered on front edge. Broad, low rectangular footprint, curved convex top, flat open underside rim. No chest base, no coins, no floating hinge hardware, no support.",
+      "view": "Front three-quarter studio view turned only 10 degrees, elevated 20 degrees, complete low wide lid visible.",
+      "reference": "chest-lid.png",
+      "prompt": "Use case: stylized-concept. Asset type: individual image-to-3D prop reference for rougeXR, matching a detailed dark-fantasy sculpted collectible miniature asset collection. Subject: A single detached medieval treasure chest LID ONLY, a shallow barrel-vaulted oak wooden lid, dark honey-brown planks with black wrought-iron bands, rounded iron rivets, small brass latch tab centered on front edge. Broad, low rectangular footprint, curved convex top, flat open underside rim. No chest base, no coins, no floating hinge hardware, no support. Front three-quarter studio view turned only 10 degrees, elevated 20 degrees, complete low wide lid visible. Clear plausible construction, opaque solid materials, sharp readable geometry, softly lit neutral studio render with even lighting and no cast shadows. Center the single object, preserve 12 percent empty margin around every edge. Genuine transparent background. No lettering, no watermark, no labels, no scenery, no extra objects, no multi-view layout, no pedestal."
+    },
+    {
+      "id": "torch",
+      "asset": "torch",
+      "heightMetres": 0.72,
+      "triangles": 1600,
+      "subject": "A single unlit medieval wall torch: upright weathered oak handle with dark iron grip rings, dense cream linen wraps around its thick top, a small dark iron wall-mount bracket immediately behind lower handle. Worn soot-blackened edges, strong readable silhouette, no flame, no smoke, no embers.",
+      "view": "Front orthographic view, upright, entire torch visible.",
+      "reference": "torch.png",
+      "prompt": "Use case: stylized-concept. Asset type: individual image-to-3D prop reference for rougeXR, matching a detailed dark-fantasy sculpted collectible miniature asset collection. Subject: A single unlit medieval wall torch: upright weathered oak handle with dark iron grip rings, dense cream linen wraps around its thick top, a small dark iron wall-mount bracket immediately behind lower handle. Worn soot-blackened edges, strong readable silhouette, no flame, no smoke, no embers. Front orthographic view, upright, entire torch visible. Clear plausible construction, opaque solid materials, sharp readable geometry, softly lit neutral studio render with even lighting and no cast shadows. Center the single object, preserve 12 percent empty margin around every edge. Genuine transparent background. No lettering, no watermark, no labels, no scenery, no extra objects, no multi-view layout, no pedestal."
+    },
+    {
+      "id": "urn",
+      "asset": "urn",
+      "heightMetres": 0.7,
+      "triangles": 2000,
+      "subject": "A single ancient dungeon funerary urn made of warm weathered terracotta, round broad belly on small stable foot, narrow neck and thick open mouth rim, two sturdy small curved handles attached on opposite sides, simple incised horizontal bands and subtle chips, empty interior, no lid or floating fragments.",
+      "view": "Front orthographic view slightly elevated to show mouth, symmetrical silhouette, entire urn visible.",
+      "reference": "urn.png",
+      "prompt": "Use case: stylized-concept. Asset type: individual image-to-3D prop reference for rougeXR, matching a detailed dark-fantasy sculpted collectible miniature asset collection. Subject: A single ancient dungeon funerary urn made of warm weathered terracotta, round broad belly on small stable foot, narrow neck and thick open mouth rim, two sturdy small curved handles attached on opposite sides, simple incised horizontal bands and subtle chips, empty interior, no lid or floating fragments. Front orthographic view slightly elevated to show mouth, symmetrical silhouette, entire urn visible. Clear plausible construction, opaque solid materials, sharp readable geometry, softly lit neutral studio render with even lighting and no cast shadows. Center the single object, preserve 12 percent empty margin around every edge. Genuine transparent background. No lettering, no watermark, no labels, no scenery, no extra objects, no multi-view layout, no pedestal."
+    },
+    {
+      "id": "pillar",
+      "asset": "pillar",
+      "heightMetres": 2.2,
+      "triangles": 2000,
+      "subject": "A single freestanding ancient dungeon stone pillar, worn blue-gray limestone with square stepped plinth, sturdy round fluted shaft, simple squared capital, small chips and sparse moss in carved grooves. Intact vertical structure. No attached wall or ceiling, no floor slab outside its own plinth.",
+      "view": "Strict front orthographic view, perfectly vertical, complete pillar from plinth bottom to capital top.",
+      "reference": "pillar.png",
+      "prompt": "Use case: stylized-concept. Asset type: individual image-to-3D prop reference for rougeXR, matching a detailed dark-fantasy sculpted collectible miniature asset collection. Subject: A single freestanding ancient dungeon stone pillar, worn blue-gray limestone with square stepped plinth, sturdy round fluted shaft, simple squared capital, small chips and sparse moss in carved grooves. Intact vertical structure. No attached wall or ceiling, no floor slab outside its own plinth. Strict front orthographic view, perfectly vertical, complete pillar from plinth bottom to capital top. Clear plausible construction, opaque solid materials, sharp readable geometry, softly lit neutral studio render with even lighting and no cast shadows. Center the single object, preserve 12 percent empty margin around every edge. Genuine transparent background. No lettering, no watermark, no labels, no scenery, no extra objects, no multi-view layout, no pedestal."
+    },
+    {
+      "id": "potion",
+      "asset": "potion",
+      "heightMetres": 0.23,
+      "triangles": 1400,
+      "subject": "A single squat fantasy potion bottle with bulbous deep-purple tinted glass body, narrow neck, thick opaque dark purple glass rim, fitted warm brown cork stopper, two slender worn brass bands around neck, tiny red wax seal. Glass rendered solid and opaque for 3D reconstruction, purple contents suggested by colour only. No labels, no writing, no floating magic.",
+      "view": "Strict front orthographic view, upright, complete bottle visible.",
+      "reference": "potion.png",
+      "prompt": "Use case: stylized-concept. Asset type: individual image-to-3D prop reference for rougeXR, matching a detailed dark-fantasy sculpted collectible miniature asset collection. Subject: A single squat fantasy potion bottle with bulbous deep-purple tinted glass body, narrow neck, thick opaque dark purple glass rim, fitted warm brown cork stopper, two slender worn brass bands around neck, tiny red wax seal. Glass rendered solid and opaque for 3D reconstruction, purple contents suggested by colour only. No labels, no writing, no floating magic. Strict front orthographic view, upright, complete bottle visible. Clear plausible construction, opaque solid materials, sharp readable geometry, softly lit neutral studio render with even lighting and no cast shadows. Center the single object, preserve 12 percent empty margin around every edge. Genuine transparent background. No lettering, no watermark, no labels, no scenery, no extra objects, no multi-view layout, no pedestal."
+    }
+  ],
+  "assets": [
+    {
+      "id": "door",
+      "parts": [
+        "door-leaf",
+        "door-frame"
+      ],
+      "clips": [
+        "open",
+        "close"
+      ]
+    },
+    {
+      "id": "chest",
+      "parts": [
+        "chest-base",
+        "chest-lid"
+      ],
+      "clips": [
+        "open",
+        "close"
+      ]
+    },
+    {
+      "id": "torch",
+      "parts": [
+        "torch"
+      ],
+      "clips": []
+    },
+    {
+      "id": "urn",
+      "parts": [
+        "urn"
+      ],
+      "clips": []
+    },
+    {
+      "id": "pillar",
+      "parts": [
+        "pillar"
+      ],
+      "clips": []
+    },
+    {
+      "id": "potion",
+      "parts": [
+        "potion"
+      ],
+      "clips": []
+    }
+  ],
+  "supportingTextures": [
+    {
+      "reference": "chest-base-front.png",
+      "generator": "built-in image_gen edit",
+      "source": "chest-base.png",
+      "prompt": "Use case: precise-object-edit. Transform the reference treasure chest BASE ONLY into a STRICT FRONT ORTHOGRAPHIC ELEVATION for a 3D texture projection. Keep the same dark honey-brown oak planks, black iron corner straps and rows of round iron rivets, small brass keyhole lock plate centered on front. The front is a single clean solid upright RECTANGLE, width twice its height. Show the front panel only: camera exactly horizontal at middle height, no top surface, no inside cavity, no rear wall, no side panels, no lid. Level horizontal top and bottom edges. Retain construction details and wood grain but remove all perspective and all diagonal lines. One object centered with ample padding; genuine transparent background without shadows or vignette. No extra pieces, no words, no labels, no floor."
+    }
+  ]
+}

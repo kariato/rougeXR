@@ -1,6 +1,7 @@
 import type { Direction, EquipmentSlot, Position } from './state';
 
 export type GameAction =
+  | { type: 'setGodMode'; enabled: boolean }
   | { type: 'move'; direction: Direction; pickup: boolean }
   | { type: 'openChest'; chestId: string }
   | { type: 'rest' }

@@ -9,6 +9,8 @@ export const STOMACH_SIZE = 2000;
 export const STARVE_TIME = 850;
 
 export function runStomach(state: WorldState, emit: (event: RawEventInput) => void): void {
+  if (state.settings?.godMode) return;
+  if (state.settings?.difficulty === 'easy' && state.timing.tick % 2 === 0) return;
   const timing = state.timing; const oldStage = timing.hungerStage;
   if (timing.foodLeft <= 0) {
     if (timing.foodLeft-- < -STARVE_TIME) {
@@ -20,7 +22,7 @@ export function runStomach(state: WorldState, emit: (event: RawEventInput) => vo
     timing.noCommand += rnd(state.rng, 8) + 4; timing.hungerStage = 3;
     emit({ type: 'sourceMessage', text: 'You faint from lack of food.' });
   } else {
-    const oldFood = timing.foodLeft; timing.foodLeft-=1+ringFoodCost(state,'leftRing')+ringFoodCost(state,'rightRing');
+    const oldFood = timing.foodLeft; timing.foodLeft-=(state.settings?.difficulty === 'hard' ? 2 : 1)+ringFoodCost(state,'leftRing')+ringFoodCost(state,'rightRing');
     if (timing.foodLeft < MORE_TIME && oldFood >= MORE_TIME) {
       timing.hungerStage = 2; emit({ type: 'sourceMessage', text: 'You are starting to feel weak.' });
     } else if (timing.foodLeft < 2 * MORE_TIME && oldFood >= 2 * MORE_TIME) {

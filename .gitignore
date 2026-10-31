@@ -4,3 +4,10 @@ coverage/
 test-results/
 playwright-report/
 *.tsbuildinfo
+
+# Local generated monster meshes, editable sources, and review renders
+out/monsters-v1/
+__pycache__/
+
+# Local generated prop collection
+out/props-v1/

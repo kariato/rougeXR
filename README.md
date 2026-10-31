@@ -35,6 +35,8 @@ Run `npx playwright install chromium firefox` once, then `npm run test:browser` 
 
 ## GitHub Pages
 
+The site links to [terms of use and asset licenses](public/terms.html). The game and model viewer load 26 generated monsters and six props from `public/assets/hunyuan-v1/`, with a provenance manifest, license, and notice. Their Tencent license restricts territories; terms alone do not enforce geographic restrictions. Regenerate the published copies from local reviewed exports with `node tools/assets/publish-hunyuan.mjs`.
+
 The Pages workflow builds and deploys `main` to `https://kariato.github.io/rougeXR/`.
 In the repository's **Settings → Pages**, set **Build and deployment → Source** to
 **GitHub Actions**. Then run **Deploy GitHub Pages** from the Actions tab or push
@@ -56,6 +58,10 @@ To check that build locally, run `GITHUB_PAGES=true npm run build` and
 Death and escape now open an in-world results panel, also available on the map. Death records its cause in saved games; both endings show the deepest level reached, gold, experience, turns, and a score (gold + experience, with a 1,000-point escape bonus). Restart starts a fresh adventure; Load Save offers the browser’s named checkpoints. Older death saves without a recorded cause display “An unknown dungeon danger.”
 
 Equipment uses readable names such as “Mace” and “Ring mail,” including older saves with internal IDs as labels. Custom item names remain intact. Menu → Discoveries (or Tools → Discoveries) lists identified potions, scrolls, rings, and wands/staves with their randomized appearances. The list retains knowledge after items are used or dropped and never reveals unlearned identities.
+
+Choose Easy, Normal, or Hard on the welcome screen or under Desktop options → New game difficulty before starting a new adventure. Normal preserves the original rules. Easy halves incoming combat/trap/bolt damage (rounded up) and runs hunger every other turn; Hard increases that damage by 50% (rounded up) and doubles base food consumption. The generated dungeon stays the same for a given seed.
+
+Desktop options → Developer tools → Setup includes a God mode toggle for debugging. It prevents HP damage, energy-drain death, maximum-HP drain, and starvation without advancing game time when toggled. Other effects, such as confusion, traps holding you, and equipment damage, still apply. The HUD and headset status panel mark GOD MODE while enabled. Difficulty and god mode persist in saves and replays; older saves default to Normal with god mode off. New games start with god mode off.
 
 On launch, a welcome screen offers **Start New Game** or **Load Saved Game**. The save selector includes named browser checkpoints, a legacy checkpoint if present, and the latest automatic save. Nothing restores until you choose it. Missing, unavailable, or incompatible saves leave the new-game option available.
 

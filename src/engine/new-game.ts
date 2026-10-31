@@ -1,5 +1,5 @@
 import { generateLevelContentFromRandom } from './generation/level';
-import type { EntityState, ItemState, WorldState } from './model/state';
+import type { EntityState, ItemState, WorldState, Difficulty } from './model/state';
 import { createRandom, rnd } from './random';
 import { createScheduler, scheduleFuse, startDaemon } from './scheduler';
 import { updateKnowledge } from './perception/knowledge';
@@ -9,7 +9,7 @@ import { initializeIdentification } from './identification';
 
 const KNOWN = 0o2; const MISSILE = 0o4; const MANY = 0o10;
 
-export function createNewGame(seed: number): WorldState {
+export function createNewGame(seed: number, difficulty: Difficulty = 'normal'): WorldState {
   const rng = createRandom(seed); let serial = 1; const nextId = (): string => `e${serial++}`;
   const food = item(nextId(), 'food.ration', 'food');
   const armor = { ...item(nextId(), 'armor.ring-mail', 'armor'), flags: KNOWN, armorClass: 6 } as ItemState;
@@ -25,6 +25,7 @@ export function createNewGame(seed: number): WorldState {
   const starting = [food, armor, mace, bow, arrows]; const entities: Record<string, EntityState> = { ...generated.entities };
   for (const entry of starting) entities[entry.id] = entry;
   const state: WorldState = {
+    ...(difficulty !== 'normal' ? { settings: { difficulty, godMode: false } } : {}),
     seed, rng, nextEntitySerial: generated.nextEntitySerial, sourceState: { flytrapHits: 0, nextGroup: generated.nextGroup, maximumDepth: 1 }, entities, pendingDecision: null,
     level: generated.level,
     player: { at: generated.playerAt, roomId: generated.playerRoomId, gold: 0, flags: 0, maximumStrength: 16,

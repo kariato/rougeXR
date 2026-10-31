@@ -83,7 +83,11 @@ export interface TimingState {
   foodLeft: number; noFood: number; quiet: number; between: number; hungerStage: number;
   scheduler: SchedulerState; cycle: CycleState;
 }
+export type Difficulty = 'easy' | 'normal' | 'hard';
+export interface GameSettings { difficulty: Difficulty; godMode: boolean }
 export interface WorldState {
+  /** Absent in legacy saves: normal difficulty, god mode off. */
+  settings?: GameSettings;
   seed: number; rng: RandomState; nextEntitySerial: number;
   sourceState: { flytrapHits: number; nextGroup: number; maximumDepth: number };
   level: LevelState; player: PlayerState; entities: Record<EntityId, EntityState>;

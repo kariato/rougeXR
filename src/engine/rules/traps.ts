@@ -1,3 +1,4 @@
+import { incomingDamage } from './difficulty';
 import { allocateId, buildIndexes } from '../entities';
 import { cellIndex } from '../grid';
 import type { RawEventInput } from '../model/action';
@@ -66,7 +67,7 @@ function mysteryTrap(state: WorldState, emit: (event: RawEventInput) => void): v
 }
 
 function hurt(state: WorldState, damage: number, cause: string, emit: (event: RawEventInput) => void): void {
-  const before = state.player.stats.hp; state.player.stats.hp = Math.max(0, before - damage);
+  const before = state.player.stats.hp; state.player.stats.hp = Math.max(0, before - incomingDamage(state, damage));
   emit({ type: 'hpChanged', actorId: 'player', from: before, to: state.player.stats.hp });
   if (state.player.stats.hp === 0) { state.timing.status = 'dead'; state.timing.deathCause = cause; emit({ type: 'actorDefeated', actorId: 'player', byActorId: cause }); message(emit, `A ${cause} killed you.`); }
 }

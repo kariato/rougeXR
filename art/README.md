@@ -437,3 +437,11 @@ blender --background --python tools/blender/create_hobgoblin.py
 Run the usual development server and open `/model-preview.html` to orbit the model and inspect every animation. This is a standalone asset study; the gameplay renderer still uses its existing procedural fallback until explicit asset integration.
 
 The source file keeps the animation tracks muted for a clean rest-pose editing view. Enable a single NLA track to inspect it in Blender. The export script exports all five tracks as independent glTF animation clips.
+
+## Hunyuan monster collection v1
+
+A new, separate 26-monster reference set is in `art/monster-references/hunyuan-v1/`, with exact built-in ImageGen prompts in `prompts.json`. The local generated meshes, editable Blender sources, five animation clips, baked textures, review renders, gallery, and provenance are in ignored `out/monsters-v1/`. See [the generation and review workflow](../tools/monsters/README.md). The game and production model viewer load the reviewed copies in `public/assets/hunyuan-v1/`.
+
+## Hunyuan prop collection v1
+
+Eight separate image references create six assembled prop assets: door, chest, torch, urn, pillar, and potion. The door and chest have working open/close hinges. Exact prompts are in `art/prop-references/hunyuan-v1/prompts.json`; local GLBs, Blender sources, textures, and the gallery are in ignored `out/props-v1/`. See [the prop workflow](../tools/props/README.md). Published copies are fitted to the original game prop footprints, preserving hinge clips.

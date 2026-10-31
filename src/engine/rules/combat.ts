@@ -1,3 +1,4 @@
+import { incomingDamage } from './difficulty';
 import { MONSTER_DEFINITIONS, STRENGTH_DAMAGE_BONUS, STRENGTH_HIT_BONUS } from '../../definitions/combat';
 import { WEAPON_DAMAGE } from '../../definitions/objects';
 import { allocateId, buildIndexes, transferItem } from '../entities';
@@ -95,6 +96,7 @@ function strike(state: WorldState, attackerId: string, attacker: CombatStats, de
       didHit = true;
       for (let die = 0; die < group.count; die++) damage += rnd(state.rng, group.sides) + 1;
       damage = Math.max(0, damage + weaponDamage + STRENGTH_DAMAGE_BONUS[strength]!);
+      if (defenderId === 'player') damage = incomingDamage(state, damage);
       const before = defender.hp; defender.hp = Math.max(0, defender.hp - damage);
       emit({ type: 'hpChanged', actorId: defenderId, from: before, to: defender.hp });
     }
@@ -165,6 +167,7 @@ function stealGold(state: WorldState, monster: MonsterState, emit: EmitRaw): voi
 }
 
 function drainLevel(state: WorldState, emit: EmitRaw): void {
+  if (state.settings?.godMode) return;
   const stats = state.player.stats; if (stats.experience === 0) return killPlayer(state, 'energy drain', emit);
   stats.level--; if (stats.level === 0) { stats.experience = 0; stats.level = 1; }
   else stats.experience = (EXPERIENCE_LEVELS[stats.level - 1] ?? 0) + 1;
@@ -172,6 +175,7 @@ function drainLevel(state: WorldState, emit: EmitRaw): void {
 }
 
 function drainMaximumHp(state: WorldState, cause: string, amount: number, emit: EmitRaw): void {
+  if (state.settings?.godMode) return;
   const before = state.player.stats.hp; state.player.stats.hp = Math.max(1, before - amount); state.player.stats.maxHp -= amount;
   emit({ type: 'hpChanged', actorId: 'player', from: before, to: state.player.stats.hp });
   if (state.player.stats.maxHp <= 0) killPlayer(state, cause, emit);
@@ -179,11 +183,11 @@ function drainMaximumHp(state: WorldState, cause: string, amount: number, emit: 
 }
 
 function damagePlayer(state: WorldState, amount: number, cause: string, emit: EmitRaw): void { if (amount <= 0) return;
-  const before = state.player.stats.hp; state.player.stats.hp = Math.max(0, before - amount); emit({ type: 'hpChanged', actorId: 'player', from: before, to: state.player.stats.hp });
+  const before = state.player.stats.hp; state.player.stats.hp = Math.max(0, before - incomingDamage(state, amount)); emit({ type: 'hpChanged', actorId: 'player', from: before, to: state.player.stats.hp });
   if (state.player.stats.hp === 0) killPlayer(state, cause, emit);
 }
 
-function killPlayer(state: WorldState, cause: string, _emit: EmitRaw): void { state.player.stats.hp = 0; state.timing.status = 'dead'; state.timing.deathCause = cause; }
+function killPlayer(state: WorldState, cause: string, _emit: EmitRaw): void { if (state.settings?.godMode) return; state.player.stats.hp = 0; state.timing.status = 'dead'; state.timing.deathCause = cause; }
 function saveThrow(state: WorldState, which: number): boolean { let adjusted = which;
   if (which === 3) for (const slot of ['leftRing', 'rightRing'] as const) { const id = state.player.equipment[slot]; const ring = id ? state.entities[id] : null;
     if (ring?.kind === 'item' && ring.category === 'ring' && ring.definitionId === 'ring.protection') adjusted -= ring.magnitude; }

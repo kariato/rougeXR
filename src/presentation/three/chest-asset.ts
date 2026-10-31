@@ -11,7 +11,7 @@ const cache = new AssetCache<GLTF>(url => new Promise((resolve, reject) => loade
 export async function loadChestInto(holder: THREE.Group, fallback: THREE.Object3D, generation: SceneGeneration,
   token: number, opened: boolean, onAttached: (open: () => { mixer: THREE.AnimationMixer; duration: number }) => void): Promise<void> {
   try {
-    const lease = await cache.acquire(assetUrl('assets/props/crate.glb?v=3'), {});
+    const lease = await cache.acquire(assetUrl('assets/hunyuan-v1/props/chest.glb'), {});
     if (!generation.isCurrent(token) || !holder.parent) { lease.release(); return; }
     const clip = lease.value.animations.find(animation => animation.name === 'open');
     if (!clip) { lease.release(); return; }

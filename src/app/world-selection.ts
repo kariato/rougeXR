@@ -1,5 +1,5 @@
 import { createKestrelEncounterFixture, createTwoRoomFixture } from '../debug/fixtures';
-import type { WorldState } from '../engine/model/state';
+import type { Difficulty, WorldState } from '../engine/model/state';
 import { createNewGame } from '../engine/new-game';
 
 export type WorldMode = 'generated' | 'kestrel' | 'rooms';
@@ -13,10 +13,9 @@ export function parseSeed(value: string): number {
   return seed;
 }
 
-export function createSelectedWorld(mode: WorldMode, seed: number): WorldState {
-  switch (mode) {
-    case 'generated': return createNewGame(seed);
-    case 'kestrel': return createKestrelEncounterFixture(seed);
-    case 'rooms': return createTwoRoomFixture(seed);
-  }
+export function createSelectedWorld(mode: WorldMode, seed: number, difficulty: Difficulty = 'normal'): WorldState {
+  if (mode === 'generated') return createNewGame(seed, difficulty);
+  const state = mode === 'kestrel' ? createKestrelEncounterFixture(seed) : createTwoRoomFixture(seed);
+  if (difficulty !== 'normal') state.settings = { difficulty, godMode: false };
+  return state;
 }

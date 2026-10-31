@@ -76,6 +76,7 @@ function validAction(value: unknown): value is GameAction {
   if (!value || typeof value !== 'object') return false;
   const action = value as Partial<GameAction> & { direction?: unknown; pickup?: unknown; name?: unknown };
   if (action.type === 'rest' || action.type === 'search' || action.type === 'pickup' || action.type === 'descend') return true;
+  if (action.type === 'setGodMode') return typeof action.enabled === 'boolean';
   if (action.type === 'openChest') return typeof (action as { chestId?: unknown }).chestId === 'string';
   if (action.type === 'fixture') return typeof action.name === 'string';
   if (action.type === 'answerCall') return action.label === null || (typeof action.label === 'string' && action.label.length <= 80);

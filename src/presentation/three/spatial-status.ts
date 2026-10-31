@@ -7,7 +7,7 @@ export function spatialStatusLines(observation: PlayerObservation): string[] {
   const { hp, maxHp, depth, gold, hungerStage, conditions } = observation.status;
   const weapon = observation.inventory.find(item => item.equippedSlot === 'weapon');
   const returning = observation.inventory.some(item => item.category === 'amulet');
-  return [`HP ${hp}/${maxHp}   Level ${depth}   Gold ${gold}   ${['Fed', 'Hungry', 'Weak', 'Faint'][hungerStage] ?? 'Hungry'}`,
+  return [`HP ${hp}/${maxHp}   Level ${depth}   Gold ${gold}   ${['Fed', 'Hungry', 'Weak', 'Faint'][hungerStage] ?? 'Hungry'}${observation.status.godMode ? '   GOD MODE' : observation.status.difficulty ? `   ${observation.status.difficulty}` : ''}`,
     `${weapon ? weapon.label : 'Unarmed'}${returning ? '   Amulet: return upstairs' : ''}${conditions?.length ? `   ${conditions.join(' · ')}` : ''}`];
 }
 

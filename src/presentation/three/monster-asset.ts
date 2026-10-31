@@ -45,7 +45,7 @@ export type MonsterCue = 'move' | 'attack' | 'hurt' | 'death';
 export async function loadMonsterInto(id: string, holder: THREE.Group, fallback: THREE.Object3D,
   generation: SceneGeneration, token: number, cues: MonsterCue[], onMixer: (mixer: THREE.AnimationMixer) => void): Promise<void> {
   try {
-    const lease = await cache.acquire(assetUrl(`assets/creatures/${id}.glb`), {});
+    const lease = await cache.acquire(assetUrl(`assets/hunyuan-v1/creatures/${id}.glb`), {});
     if (!generation.isCurrent(token) || !holder.parent) { lease.release(); return; }
     const instance = cloneSkeleton(lease.value.scene);
     instance.traverse(object => {
